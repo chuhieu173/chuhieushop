@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Quản Lý Cửa Hàng</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f9; color: #333; }
+    
+    /* GIAO DIỆN ĐĂNG NHẬP */
+    #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+    .login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; width: 300px; position: relative;}
+    .login-box h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; color: #333; }
+    
+    /* Khung bọc ô mật khẩu để chứa con mắt */
+    .input-wrapper { position: relative; margin: 15px 0; }
+    .input-wrapper input { width: 100%; padding: 12px; padding-right: 40px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+    .toggle-eye { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; color: #666; user-select: none;}
+    
+    .login-box button { width: 100%; background: #0068ff; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .login-box button:hover { background: #0055d4; }
+    .error-msg { color: #e74c3c; font-size: 14px; margin-bottom: 10px; display: none; font-weight: 500;}
+
+    /* BỐ CỤC CHÍNH */
+    #admin-app { display: none; }
+    .header { background: #1a2935; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { margin: 0; font-family: 'Montserrat', sans-serif; font-size: 20px; }
+    
+    .nav-tabs { display: flex; background: #2c3e50; padding: 0 30px; }
+    .tab { padding: 15px 25px; color: #a4b0be; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: 0.3s; }
+    .tab:hover { color: white; }
+    .tab.active { color: white; border-bottom: 3px solid #0068ff; background: rgba(0,0,0,0.1); }
+    
+    .content { padding: 30px; max-width: 1200px; margin: 0 auto; display: none; }
+    .content.active { display: block; }
+    
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: middle; }
+    th { background: #f8f9fa; color: #333; font-weight: 500; font-family: 'Montserrat', sans-serif; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background: #f1f4f8; }
+    
+    .status-select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-family: 'Roboto', sans-serif; }
+    .btn-update { background: #0068ff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;}
+    .btn-update:hover { background: #0055d4; }
+    
+    .stock-warning { color: #d9534f; font-weight: bold; background: #ffe6e6; padding: 4px 8px; border-radius: 4px; display: inline-block;}
+    
+    /* GIAO DIỆN MODAL SỬA SẢN PHẨM */
+    .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; }
+    .edit-content { background: white; width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; border-radius: 8px; padding: 25px; box-sizing: border-box; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+    .edit-content h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; margin-bottom: 20px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+    .form-group textarea { height: 80px; resize: vertical; }
+    .edit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-cancel { background: #e0e0e0; color: #333; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-save { background: #ee4d2d; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+    #loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); z-index: 20000; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #0068ff; display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- MÀN HÌNH KHÓA ĐĂNG NHẬP -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <h2>KHU VỰC BẢO MẬT</h2>
+      <div id="login-error" class="error-msg">Mật khẩu không chính xác!</div>
+      
+      <div class="input-wrapper">
+        <input type="password" id="admin-pass" placeholder="Nhập mật khẩu quản trị..." onkeypress="if(event.key === 'Enter') login()">
+        <span class="toggle-eye" id="toggle-eye" onclick="togglePassword()">👁️</span>
+      </div>
+
+      <button onclick="login()" id="btn-login">ĐĂNG NHẬP</button>
+    </div>
+  </div>
+
+  <!-- KHU VỰC QUẢN TRỊ CHÍNH -->
+  <div id="admin-app">
+    <div class="header">
+      <h1>Hệ Thống Quản Trị Cửa Hàng</h1>
+      <div>
+        <button onclick="loadData()" class="btn-update">Làm mới dữ liệu</button>
+        <button onclick="logout()" class="btn-update" style="background:#e74c3c; margin-left:10px;">Thoát</button>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="tab active" onclick="switchTab('orders', this)">📦 Quản Lý Đơn Hàng</div>
+      <div class="tab" onclick="switchTab('inventory', this)">🏬 Kho & Sản Phẩm</div>
+    </div>
+
+    <div id="loading-overlay">Đang đồng bộ dữ liệu...</div>
+
+    <!-- BẢNG ĐƠN HÀNG -->
+    <div id="orders" class="content active">
+      <table>
+        <thead>
+          <tr>
+            <th>Mã ĐH</th>
+            <th>Thời gian</th>
+            <th>Khách hàng</th>
+            <th style="width: 25%;">Chi tiết SP</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái hiện tại</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="orders-body"></tbody>
+      </table>
+    </div>
+
+    <!-- BẢNG KHO HÀNG -->
+    <div id="inventory" class="content">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Ảnh</th>
+            <th style="width: 30%;">Sản phẩm & Mô tả</th>
+            <th>Giá bán</th>
+            <th>Tồn kho</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="inventory-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL CHỈNH SỬA SẢN PHẨM -->
+  <div id="edit-modal" class="edit-modal">
+    <div class="edit-content">
+      <h2>Chỉnh sửa Sản Phẩm</h2>
+      <input type="hidden" id="edit-id">
+      
+      <div class="form-group">
+        <label>Tên Sản Phẩm:</label>
+        <input type="text" id="edit-name">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1;">
+          <label>Giá Gốc (Chỉ nhập số):</label>
+          <input type="number" id="edit-orig-price">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Giá Bán (Chỉ nhập số):</label>
+          <input type="number" id="edit-sell-price">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Link Ảnh (Mỗi link 1 dòng):</label>
+        <textarea id="edit-images"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Mô tả ngắn gọn:</label>
+        <textarea id="edit-desc"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Số lượng tồn kho (Thực tế):</label>
+        <input type="number" id="edit-stock" style="width: 100px; font-size: 16px; font-weight: bold; color: #ee4d2d;">
+      </div>
+      
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="closeEditModal()">Hủy</button>
+        <button class="btn-save" onclick="saveProductChanges()">LƯU THAY ĐỔI</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === DÁN LINK WEB APP API VÀO ĐÂY ===
+    const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
+
+    // ==========================================
+    // 1. TÍNH NĂNG BẢO MẬT (MÃ HÓA & ẨN/HIỆN PASS)
+    // ==========================================
+
+    // Tính năng Ẩn/Hiện mật khẩu
+    function togglePassword() {
+      let passInput = document.getElementById("admin-pass");
+      if (passInput.type === "password") {
+        passInput.type = "text";
+      } else {
+        passInput.type = "password";
+      }
+    }
+
+    // Hàm mã hóa thuật toán SHA-256 (Web Crypto API)
+    async function sha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Kiểm tra đăng nhập (đã lưu khóa Hash trên trình duyệt)
+    if (sessionStorage.getItem("adminHashToken")) {
+      document.getElementById("login-overlay").style.display = "none";
+      document.getElementById("admin-app").style.display = "block";
+      loadData();
+    }
+
+    // Hàm Đăng nhập bằng Hash
+    async function login() {
+      let plainPass = document.getElementById("admin-pass").value;
+      if(!plainPass) return;
+      
+      let btn = document.getElementById("btn-login");
+      btn.innerText = "Đang kiểm tra...";
+      btn.disabled = true;
+
+      try {
+        // Băm mật khẩu ra mã Hash trước khi ném qua mạng lưới
+        let hashedPass = await sha256(plainPass);
+
+        let res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: "login", password: hashedPass }) // Server sẽ kiểm tra Hash này
+        });
+        let data = await res.json();
+        
+        if (data.status === "success") {
+          // Lưu token là mã Hash (Bảo mật tuyệt đối, không lưu plain text)
+          sessionStorage.setItem("adminHashToken", hashedPass); 
+          document.getElementById("login-overlay").style.display = "none";
+          document.getElementById("admin-app").style.display = "block";
+          loadData();
+        } else {
+          document.getElementById("login-error").style.display = "block";
+        }
+      } catch (e) { alert("Lỗi mạng, không thể kết nối tới máy chủ."); }
+      
+      btn.innerText = "ĐĂNG NHẬP";
+      btn.disabled = false;
+    }
+
+    function logout() {
+      sessionStorage.removeItem("adminHashToken");
+      location.reload(); 
+    }
+
+    // ==========================================
+    // 2. KHỞI TẠO VÀ XỬ LÝ DỮ LIỆU CHÍNH
+    // ==========================================
+    const STATUS_OPTIONS = ["Khách đặt hàng", "Đang chuẩn bị hàng", "Đã giao cho đơn vị vận chuyển", "Hoàn thành"];
+    let globalProductsData = [];
+
+    function switchTab(tabId, element) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+      element.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function showLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
+
+    async function loadData() {
+      let tokenHash = sessionStorage.getItem("adminHashToken");
+      showLoading(true);
+      try {
+        // Lấy dữ liệu Đơn hàng (Yêu cầu phải có mã Hash đúng)
+        let resOrders = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: "getOrders", password: tokenHash })
+        });
+        let orders = await resOrders.json();
+        
+        if(orders.status === "error") { logout(); return; }
+        renderOrders(orders);
+        
+        let resProducts = await fetch(API_URL + "?action=getProducts");
+        globalProductsData = await resProducts.json();
+        renderInventory(globalProductsData);
+      } catch (e) { alert("Lỗi kết nối máy chủ Google!"); }
+      showLoading(false);
+    }
+
+    function renderOrders(orders) {
+      const tbody = document.getElementById('orders-body');
+      tbody.innerHTML = "";
+      if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
+
+      orders.forEach(order => {
+        let selectHtml = `<select id="status-${order.row}" class="status-select">`;
+        STATUS_OPTIONS.forEach(opt => {
+          let selected = (order.status === opt) ? "selected" : "";
+          selectHtml += `<option value="${opt}" ${selected}>${opt}</option>`;
+        });
+        selectHtml += `</select>`;
+
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${order.orderId}</b></td>
+            <td><span style="font-size:12px; color:#666;">${order.date}</span></td>
+            <td><b>${order.name}</b><br><span style="color:#0068ff;">📞 ${order.phone}</span></td>
+            <td style="white-space: pre-wrap; font-size: 13px;">${order.details}</td>
+            <td style="color:#d9534f; font-weight:bold;">${order.total}</td>
+            <td>${order.status}</td>
+            <td>
+              ${selectHtml}
+              <button class="btn-update" onclick="updateOrderStatus(${order.row})" style="margin-top:5px;">Lưu</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderInventory(products) {
+      const tbody = document.getElementById('inventory-body');
+      tbody.innerHTML = "";
+      products.forEach(p => {
+        let stockHtml = p.stock <= 2 
+            ? `<span class="stock-warning">${p.stock} (Sắp hết)</span>` 
+            : `<span style="font-weight:bold; font-size:16px;">${p.stock}</span>`;
+            
+        let firstImg = p.images && p.images.length > 0 ? p.images[0] : "";
+        let origHtml = p.originalPrice > 0 ? `<div style="text-decoration:line-through; color:#999; font-size:12px;">${Number(p.originalPrice).toLocaleString()}đ</div>` : '';
+
+        tbody.innerHTML += `
+          <tr>
+            <td style="color:#666;">${p.id}</td>
+            <td><img src="${firstImg}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #ddd;"></td>
+            <td>
+              <b style="font-size:15px;">${p.name}</b>
+              <div style="font-size:12px; color:#777; margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${p.desc}</div>
+            </td>
+            <td>
+              ${origHtml}
+              <div style="color:#ee4d2d; font-weight:bold;">${Number(p.price).toLocaleString()}đ</div>
+            </td>
+            <td align="center">${stockHtml}</td>
+            <td>
+              <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa thông tin</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function updateOrderStatus(rowIdx) {
+      let newStatus = document.getElementById(`status-${rowIdx}`).value;
+      if(!confirm(`Xác nhận chuyển trạng thái thành: "${newStatus}" ?\n(Chuyển sang "Đã giao..." sẽ tự động trừ kho sản phẩm)`)) return;
+
+      showLoading(true);
+      try {
+        let payload = { 
+          action: "updateOrderStatus", 
+          password: sessionStorage.getItem("adminHashToken"),
+          row: rowIdx, 
+          newStatus: newStatus 
+        };
+        let res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+        let data = await res.json();
+        if(data.status === "error") { logout(); return; }
+        
+        alert("Đã cập nhật trạng thái đơn hàng!");
+        loadData(); 
+      } catch (e) { alert("Lỗi cập nhật!"); showLoading(false); }
+    }
+
+    // ==========================================
+    // 3. LOGIC MODAL CHỈNH SỬA SẢN PHẨM 
+    // ==========================================
+    function openEditModal(productId) {
+      let product = globalProductsData.find(p => p.id.toString() === productId.toString());
+      if (!product) return;
+      
+      document.getElementById("edit-id").value = product.id;
+      document.getElementById("edit-name").value = product.name;
+      document.getElementById("edit-orig-price").value = product.originalPrice;
+      document.getElementById("edit-sell-price").value = product.price;
+      document.getElementById("edit-images").value = product.rawImages; 
+      document.getElementById("edit-desc").value = product.desc;
+      document.getElementById("edit-stock").value = product.stock;
+      
+      document.getElementById("edit-modal").style.display = "flex";
+    }
+
+    function closeEditModal() {
+      document.getElementById("edit-modal").style.display = "none";
+    }
+
+    async function saveProductChanges() {
+      let payload = {
+        action: "updateProduct",
+        password: sessionStorage.getItem("adminHashToken"),
+        productId: document.getElementById("edit-id").value,
+        name: document.getElementById("edit-name").value,
+        originalPrice: document.getElementById("edit-orig-price").value,
+        price: document.getElementById("edit-sell-price").value,
+        images: document.getElementById("edit-images").value,
+        desc: document.getElementById("edit-desc").value,
+        stock: parseInt(document.getElementById("edit-stock").value) || 0
+      };
+
+      if(!payload.name || payload.price === "") {
+        alert("Tên và Giá bán không được để trống!"); return;
+      }
+
+      showLoading(true);
+      closeEditModal();
+      
+      try {
+        let res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        let data = await res.json();
+        if(data.status === "error") { logout(); return; }
+        
+        alert("Lưu thay đổi thành công!");
+        loadData();
+      } catch (e) { 
+        alert("Lỗi khi lưu dữ liệu!"); 
+        showLoading(false); 
+      }
+    }
+  </script>
+</body>
+</html>
