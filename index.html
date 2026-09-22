@@ -58,7 +58,6 @@
     }
     .form-group select:disabled { background-color: #f9f9f9; cursor: not-allowed; opacity: 0.7;}
     
-    /* === GIAO DIỆN LOADING CSS === */
     .loader { background: #f4f4f9; bottom: 0; left: 0; overflow: hidden; position: fixed; right: 0; top: 0; z-index: 99999; transition: opacity 0.5s ease, visibility 0.5s ease; }
     .loader.hidden { opacity: 0; visibility: hidden; }
     .loader-inner { bottom: 0; height: 60px; left: 0; margin: auto; position: absolute; right: 0; top: 0; width: 100px; }
@@ -75,15 +74,12 @@
     .loader-line-wrap:nth-child(4) .loader-line { border-color: hsl(180, 80%, 60%); height: 48px; width: 48px; top: 28px; }
     .loader-line-wrap:nth-child(5) .loader-line { border-color: hsl(240, 80%, 60%); height: 34px; width: 34px; top: 35px; }
     @keyframes spin { 0%, 15% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
-    
-    /* Chỉnh khoảng cách top xuống 85px để tạo không gian thoáng hơn */
     .loader-text { position: absolute; top: calc(50% + 85px); left: 0; width: 100%; text-align: center; color: #333; font-family: 'Montserrat', sans-serif; letter-spacing: 1px; font-size: 14px; font-weight: 600;}
     
     #floating-cart { position: fixed; bottom: 20px; right: 20px; background-color: #ff4757; color: white; padding: 15px 25px; border-radius: 50px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; font-weight: bold; font-family: 'Montserrat', sans-serif; display: none; transition: transform 0.2s; }
     #floating-cart:hover { transform: scale(1.05); }
     #cart-count { background: white; color: #ff4757; border-radius: 50px; padding: 2px 8px; margin-left: 8px; font-size: 14px; }
 
-    /* CSS CHO MODAL PHÓNG TO ẢNH */
     .image-modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
     .image-modal-content { max-width: 95%; max-height: 90vh; object-fit: contain; border-radius: 8px; user-select: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
     .close-modal { position: absolute; top: 15px; right: 25px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 2010; line-height: 1; }
@@ -109,7 +105,6 @@
 
   <h1>CỬA HÀNG CỦA MINH HIẾU</h1>
   
-  <!-- Khu vực Loading Mới -->
   <div id="loading" class="loader">
     <div class="loader-inner">
       <div class="loader-line-wrap"><div class="loader-line"></div></div>
@@ -160,7 +155,6 @@
     <button class="modal-nav prev" onclick="changeModalImg(-1)">&#10094;</button>
     <img class="image-modal-content" id="modal-img">
     <button class="modal-nav next" onclick="changeModalImg(1)">&#10095;</button>
-    
     <div id="modal-indicator" class="modal-indicator">1 / 1</div>
     <div id="modal-dots" class="modal-dots"></div>
   </div>
@@ -174,7 +168,6 @@
     
     let cart = [];
     let productsData = [];
-    
     let currentModalProductId = null;
     let currentModalImgIndex = 0;
 
@@ -209,7 +202,6 @@
       phuongSelect.innerHTML = '<option value="">Chọn Phường / Xã *</option>';
       if(!idTinh) { phuongSelect.disabled = true; return; }
       phuongSelect.disabled = false;
-      
       try {
         let res = await fetch(`https://provinces.open-api.vn/api/v2/p/${idTinh}?depth=2`);
         let data = await res.json();
@@ -243,12 +235,9 @@
     function changeModalImg(delta) {
       let product = productsData.find(p => p.id === currentModalProductId);
       if (!product) return;
-      
       currentModalImgIndex += delta;
-      
       if (currentModalImgIndex < 0) currentModalImgIndex = product.images.length - 1;
       if (currentModalImgIndex >= product.images.length) currentModalImgIndex = 0;
-      
       updateModalImage();
     }
     
@@ -261,12 +250,10 @@
       let product = productsData.find(p => p.id === currentModalProductId);
       if (product && product.images[currentModalImgIndex]) {
         document.getElementById('modal-img').src = product.images[currentModalImgIndex];
-        
         document.getElementById('modal-indicator').innerText = (currentModalImgIndex + 1) + " / " + product.images.length;
         
         let dotsContainer = document.getElementById('modal-dots');
         dotsContainer.innerHTML = ''; 
-        
         if (product.images.length > 1) {
           for (let i = 0; i < product.images.length; i++) {
             let dot = document.createElement('div');
@@ -283,8 +270,7 @@
 
     function setupModalSwipe() {
       const modal = document.getElementById('image-modal');
-      let touchstartX = 0;
-      let touchendX = 0;
+      let touchstartX = 0; let touchendX = 0;
 
       modal.addEventListener('touchstart', e => {
         if(e.touches.length > 1) return;
@@ -303,9 +289,7 @@
       }
 
       window.onclick = function(event) {
-        if (event.target == modal) {
-          closeModal();
-        }
+        if (event.target == modal) closeModal();
       }
     }
 
@@ -324,9 +308,7 @@
     }
 
     function renderProducts(products) {
-      // Ẩn mượt mà màn hình loading
       document.getElementById('loading').classList.add('hidden');
-      
       const list = document.getElementById('product-list');
       
       products.forEach(p => {
@@ -341,15 +323,9 @@
         if (orig > curr && curr > 0) {
           let percent = Math.round(((orig - curr) / orig) * 100);
           badgeHtml = `<div class="discount-badge">-${percent}%</div>`;
-          priceHtml = `
-            <div class="original-price">${formatMoney(orig)}</div>
-            <div class="current-price">${formatMoney(curr)}</div>
-          `;
+          priceHtml = `<div class="original-price">${formatMoney(orig)}</div><div class="current-price">${formatMoney(curr)}</div>`;
         } else {
-          priceHtml = `
-            <div class="original-price" style="visibility:hidden;">0đ</div>
-            <div class="current-price">${formatMoney(curr)}</div>
-          `;
+          priceHtml = `<div class="original-price" style="visibility:hidden;">0đ</div><div class="current-price">${formatMoney(curr)}</div>`;
         }
 
         let safeName = p.name.replace(/'/g, "\\'");
@@ -369,26 +345,19 @@
         
         card.innerHTML = `
           ${badgeHtml}
-          
           <div class="carousel">
-            <div class="carousel-slides" id="slides-${p.id}">
-              ${imagesHtml}
-            </div>
+            <div class="carousel-slides" id="slides-${p.id}">${imagesHtml}</div>
             ${arrowsHtml}
           </div>
-
           <h3>${p.name}</h3>
           <p>${p.desc}</p>
-          <div class="price-container">
-            ${priceHtml}
-          </div>
+          <div class="price-container">${priceHtml}</div>
           
           <div class="qty-wrapper">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', -1)">-</button>
             <input type="number" id="qty-${p.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${p.id}')">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', 1)">+</button>
           </div>
-          
           <button class="btn-primary" onclick="addToCart('${p.id}', '${safeName}', ${curr})">Thêm vào giỏ</button>
         `;
         list.appendChild(card);
@@ -453,7 +422,6 @@
                 <button class="qty-btn small" onclick="changeCartQty(${index}, 1)">+</button>
               </div>
             </div>
-            
             <div style="white-space: nowrap; display: flex; flex-direction: column; align-items: flex-end;">
               <span style="font-weight: 500;">${formatMoney(itemTotal)}</span>
               <span style="color:red; cursor:pointer; margin-top:8px; font-weight:bold; font-size:0.9em;" onclick="removeItem(${index})">Xóa</span>
@@ -470,18 +438,11 @@
           <div style="margin-top: 5px; color: #ee4d2d;">Tổng cộng: ${formatMoney(finalTotal)}</div>
         `;
       }
-      
       document.getElementById('cart-count').innerText = totalQty; 
     }
 
-    function removeItem(index) {
-      cart.splice(index, 1);
-      updateCart();
-    }
-
-    function scrollToCart() {
-      document.getElementById('cart-section').scrollIntoView({ behavior: 'smooth' });
-    }
+    function removeItem(index) { cart.splice(index, 1); updateCart(); }
+    function scrollToCart() { document.getElementById('cart-section').scrollIntoView({ behavior: 'smooth' }); }
 
     function checkout() {
       const name = document.getElementById('customer-name').value;
@@ -512,8 +473,11 @@
       orderText += "------------------------\n";
       
       let total = 0;
+      let itemsForSheet = [];
+
       cart.forEach(item => {
         orderText += `- ${item.name} (x${item.qty}): ${formatMoney(item.price * item.qty)}\n`;
+        itemsForSheet.push(`- ${item.name} (x${item.qty})`);
         total += (item.price * item.qty);
       });
       
@@ -524,6 +488,27 @@
       orderText += "🚚 Phí giao hàng: " + formatMoney(shippingFee) + "\n";
       orderText += "💰 TỔNG THANH TOÁN: " + formatMoney(finalTotal);
 
+      // --- PHẦN GỬI DỮ LIỆU NGẦM VỀ GOOGLE SHEETS ---
+      let orderData = {
+        action: "createOrder",
+        name: name,
+        phone: phone, 
+        address: fullAddress,
+        note: note,
+        itemsText: itemsForSheet.join('\n'), // Hiển thị text cho dễ nhìn
+        total: formatMoney(finalTotal),
+        cartJSON: JSON.stringify(cart) // Dữ liệu máy đọc để tự động trừ kho
+      };
+
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(orderData)
+      }).then(() => console.log("Đã gửi đơn hàng"))
+        .catch(err => console.error(err));
+      // ------------------------------------------------
+
+      // Copy text và mở Zalo
       const tempTextArea = document.createElement("textarea");
       tempTextArea.value = orderText;
       document.body.appendChild(tempTextArea);
@@ -531,7 +516,7 @@
       
       try {
         document.execCommand("copy");
-        alert("📋 ĐÃ LƯU ĐƠN HÀNG!\n\nHệ thống sẽ mở Zalo của Shop. Bạn chỉ cần bấm DÁN (Paste) vào khung chat để gửi đơn nhé!");
+        alert("📋 ĐÃ LƯU ĐƠN HÀNG VÀ CHUYỂN VỀ HỆ THỐNG!\n\nHệ thống sẽ mở Zalo của Shop. Bạn chỉ cần bấm DÁN (Paste) vào khung chat để gửi đơn nhé!");
       } catch (err) {
         alert("Trình duyệt không hỗ trợ copy tự động. Vui lòng nhắn tin trực tiếp cho Shop nhé!");
       }
