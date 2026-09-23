@@ -4,62 +4,119 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Quản Lý Cửa Hàng</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f9; color: #333; }
+    body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f9; color: #333; -webkit-font-smoothing: antialiased; }
     
-    /* GIAO DIỆN ĐĂNG NHẬP */
-    #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-    .login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; width: 300px; position: relative;}
-    .login-box h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; color: #333; }
+    /* === GIAO DIỆN ĐĂNG NHẬP === */
+    #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
+    .login-box { background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 100%; max-width: 400px; box-sizing: border-box;}
+    .login-box h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; color: #1a2935; font-size: 22px; margin-bottom: 20px;}
     
-    /* Khung bọc ô mật khẩu để chứa con mắt */
     .input-wrapper { position: relative; margin: 15px 0; }
-    .input-wrapper input { width: 100%; padding: 12px; padding-right: 40px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
-    .toggle-eye { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; color: #666; user-select: none;}
+    .input-wrapper input { width: 100%; padding: 14px; padding-right: 45px; border: 1.5px solid #dfe6e9; border-radius: 6px; box-sizing: border-box; font-size: 16px; outline: none; transition: border-color 0.3s;}
+    .input-wrapper input:focus { border-color: #0068ff; }
+    .toggle-eye { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; color: #636e72; user-select: none;}
     
-    .login-box button { width: 100%; background: #0068ff; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .login-box button { width: 100%; background: #0068ff; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
     .login-box button:hover { background: #0055d4; }
-    .error-msg { color: #e74c3c; font-size: 14px; margin-bottom: 10px; display: none; font-weight: 500;}
+    .error-msg { color: #e74c3c; font-size: 14px; margin-bottom: 15px; display: none; font-weight: 500; background: #fadbd8; padding: 10px; border-radius: 4px;}
 
-    /* BỐ CỤC CHÍNH */
+    /* === BỐ CỤC CHÍNH === */
     #admin-app { display: none; }
-    .header { background: #1a2935; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    .header { background: #1a2935; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
     .header h1 { margin: 0; font-family: 'Montserrat', sans-serif; font-size: 20px; }
+    .header-actions { display: flex; gap: 10px; }
     
-    .nav-tabs { display: flex; background: #2c3e50; padding: 0 30px; }
+    .nav-tabs { display: flex; background: #2c3e50; padding: 0 30px; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none;}
+    .nav-tabs::-webkit-scrollbar { display: none; }
     .tab { padding: 15px 25px; color: #a4b0be; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: 0.3s; }
     .tab:hover { color: white; }
-    .tab.active { color: white; border-bottom: 3px solid #0068ff; background: rgba(0,0,0,0.1); }
+    .tab.active { color: white; border-bottom: 3px solid #0068ff; background: rgba(0,0,0,0.2); }
     
     .content { padding: 30px; max-width: 1200px; margin: 0 auto; display: none; }
     .content.active { display: block; }
     
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: middle; }
-    th { background: #f8f9fa; color: #333; font-weight: 500; font-family: 'Montserrat', sans-serif; }
+    /* === BẢNG DỮ LIỆU (DESKTOP) === */
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    th, td { padding: 15px; text-align: left; border-bottom: 1px solid #edf2f7; font-size: 14px; vertical-align: middle; }
+    th { background: #f8fafc; color: #4a5568; font-weight: 600; font-family: 'Montserrat', sans-serif; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;}
     tr:last-child td { border-bottom: none; }
-    tr:hover { background: #f1f4f8; }
+    tr:hover { background: #f8fafc; }
     
-    .status-select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-family: 'Roboto', sans-serif; }
-    .btn-update { background: #0068ff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;}
+    .status-select { padding: 8px; border-radius: 4px; border: 1px solid #cbd5e0; font-family: 'Roboto', sans-serif; font-size: 13px; width: 100%; box-sizing: border-box; margin-bottom: 8px; background: white;}
+    .btn-update { background: #0068ff; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s;}
     .btn-update:hover { background: #0055d4; }
+    .btn-logout { background: #e53e3e; }
+    .btn-logout:hover { background: #c53030; }
     
-    .stock-warning { color: #d9534f; font-weight: bold; background: #ffe6e6; padding: 4px 8px; border-radius: 4px; display: inline-block;}
+    .stock-warning { color: #c53030; font-weight: bold; background: #fed7d7; padding: 4px 8px; border-radius: 4px; display: inline-block;}
     
-    /* GIAO DIỆN MODAL SỬA SẢN PHẨM */
-    .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; }
-    .edit-content { background: white; width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; border-radius: 8px; padding: 25px; box-sizing: border-box; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
-    .edit-content h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; margin-bottom: 20px; }
+    /* === GIAO DIỆN MODAL SỬA SẢN PHẨM === */
+    .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px);}
+    .edit-content { background: white; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border-radius: 12px; padding: 25px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    .edit-content h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; margin-bottom: 20px; color: #1a2935; border-bottom: 2px solid #edf2f7; padding-bottom: 10px;}
     .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; }
-    .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 8px; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-family: 'Roboto', sans-serif; font-size: 14px; transition: border-color 0.2s;}
+    .form-group input:focus, .form-group textarea:focus { border-color: #0068ff; outline: none; }
     .form-group textarea { height: 80px; resize: vertical; }
-    .edit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-    .btn-cancel { background: #e0e0e0; color: #333; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-save { background: #ee4d2d; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .edit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+    .btn-cancel { background: #e2e8f0; color: #4a5568; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+    .btn-cancel:hover { background: #cbd5e0; }
+    .btn-save { background: #ee4d2d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+    .btn-save:hover { background: #d33c20; }
 
-    #loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); z-index: 20000; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #0068ff; display: none; }
+    #loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; display: none; backdrop-filter: blur(2px);}
+    .spinner { width: 40px; height: 40px; border: 4px solid rgba(0, 104, 255, 0.2); border-top-color: #0068ff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;}
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .loading-text { font-weight: bold; font-size: 16px; color: #0068ff; font-family: 'Montserrat', sans-serif;}
+
+    /* ====================================================
+       TỐI ƯU GIAO DIỆN MOBILE (MOBILE RESPONSIVE CARD VIEW)
+       ==================================================== */
+    @media (max-width: 768px) {
+      .header { flex-direction: column; padding: 15px; text-align: center; gap: 15px; }
+      .header-actions { width: 100%; justify-content: center; }
+      .content { padding: 15px; }
+      
+      .nav-tabs { padding: 0; justify-content: space-between; }
+      .tab { padding: 15px 10px; font-size: 13px; text-align: center; flex: 1; }
+
+      /* Ép Table thành dạng Thẻ (Card) */
+      table, thead, tbody, th, td, tr { display: block; }
+      
+      /* Ẩn thẻ thead (tiêu đề cột) đi */
+      thead tr { position: absolute; top: -9999px; left: -9999px; }
+      
+      /* Biến mỗi dòng tr thành 1 cái thẻ card */
+      tr { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 15px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 5px;}
+      
+      /* Định dạng từng ô td */
+      td { border: none; border-bottom: 1px dashed #e2e8f0; position: relative; padding: 12px 15px; }
+      td:last-child { border-bottom: none; }
+      
+      /* Tự động lấy tên cột từ thuộc tính data-label chèn lên trước dữ liệu */
+      td::before { 
+        content: attr(data-label); 
+        display: block; 
+        font-size: 11px; 
+        font-weight: bold; 
+        text-transform: uppercase; 
+        color: #718096; 
+        margin-bottom: 6px; 
+        font-family: 'Montserrat', sans-serif;
+      }
+      
+      /* Ghi đè các thuộc tính text-align riêng */
+      td[align="center"] { text-align: left; }
+      td[style*="width"] { width: 100% !important; }
+      
+      .status-select { font-size: 14px; padding: 10px;}
+      .btn-update { width: 100%; padding: 10px; font-size: 14px;}
+      
+      .edit-content { padding: 20px; }
+    }
   </style>
 </head>
 <body>
@@ -82,19 +139,22 @@
   <!-- KHU VỰC QUẢN TRỊ CHÍNH -->
   <div id="admin-app">
     <div class="header">
-      <h1>Hệ Thống Quản Trị Cửa Hàng</h1>
-      <div>
-        <button onclick="loadData()" class="btn-update">Làm mới dữ liệu</button>
-        <button onclick="logout()" class="btn-update" style="background:#e74c3c; margin-left:10px;">Thoát</button>
+      <h1>Cửa Hàng Của Minh Hiếu</h1>
+      <div class="header-actions">
+        <button onclick="loadData()" class="btn-update">🔄 Làm mới</button>
+        <button onclick="logout()" class="btn-update btn-logout">Đăng xuất</button>
       </div>
     </div>
 
     <div class="nav-tabs">
-      <div class="tab active" onclick="switchTab('orders', this)">📦 Quản Lý Đơn Hàng</div>
-      <div class="tab" onclick="switchTab('inventory', this)">🏬 Kho & Sản Phẩm</div>
+      <div class="tab active" onclick="switchTab('orders', this)">📦 QUẢN LÝ ĐƠN HÀNG</div>
+      <div class="tab" onclick="switchTab('inventory', this)">🏬 KHO & SẢN PHẨM</div>
     </div>
 
-    <div id="loading-overlay">Đang đồng bộ dữ liệu...</div>
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Đang đồng bộ dữ liệu...</div>
+    </div>
 
     <!-- BẢNG ĐƠN HÀNG -->
     <div id="orders" class="content active">
@@ -104,10 +164,10 @@
             <th>Mã ĐH</th>
             <th>Thời gian</th>
             <th>Khách hàng</th>
-            <th style="width: 25%;">Chi tiết SP</th>
+            <th style="width: 28%;">Chi tiết Đơn hàng</th>
             <th>Tổng tiền</th>
-            <th>Trạng thái hiện tại</th>
-            <th>Thao tác</th>
+            <th>Trạng thái</th>
+            <th style="width: 15%;">Cập nhật</th>
           </tr>
         </thead>
         <tbody id="orders-body"></tbody>
@@ -120,11 +180,11 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>Ảnh</th>
+            <th>Hình ảnh</th>
             <th style="width: 30%;">Sản phẩm & Mô tả</th>
             <th>Giá bán</th>
             <th>Tồn kho</th>
-            <th>Thao tác</th>
+            <th style="width: 12%;">Thao tác</th>
           </tr>
         </thead>
         <tbody id="inventory-body"></tbody>
@@ -142,13 +202,13 @@
         <label>Tên Sản Phẩm:</label>
         <input type="text" id="edit-name">
       </div>
-      <div style="display:flex; gap:10px;">
+      <div style="display:flex; gap:15px;">
         <div class="form-group" style="flex:1;">
-          <label>Giá Gốc (Chỉ nhập số):</label>
+          <label>Giá Gốc (VNĐ):</label>
           <input type="number" id="edit-orig-price">
         </div>
         <div class="form-group" style="flex:1;">
-          <label>Giá Bán (Chỉ nhập số):</label>
+          <label>Giá Bán (VNĐ):</label>
           <input type="number" id="edit-sell-price">
         </div>
       </div>
@@ -157,17 +217,17 @@
         <textarea id="edit-images"></textarea>
       </div>
       <div class="form-group">
-        <label>Mô tả ngắn gọn:</label>
-        <textarea id="edit-desc"></textarea>
+        <label>Mô tả chi tiết:</label>
+        <textarea id="edit-desc" style="height: 100px;"></textarea>
       </div>
       <div class="form-group">
-        <label>Số lượng tồn kho (Thực tế):</label>
-        <input type="number" id="edit-stock" style="width: 100px; font-size: 16px; font-weight: bold; color: #ee4d2d;">
+        <label>Số lượng tồn kho thực tế:</label>
+        <input type="number" id="edit-stock" style="font-size: 16px; font-weight: bold; color: #e53e3e;">
       </div>
       
       <div class="edit-actions">
-        <button class="btn-cancel" onclick="closeEditModal()">Hủy</button>
-        <button class="btn-save" onclick="saveProductChanges()">LƯU THAY ĐỔI</button>
+        <button class="btn-cancel" onclick="closeEditModal()">Hủy bỏ</button>
+        <button class="btn-save" onclick="saveProductChanges()">Lưu thay đổi</button>
       </div>
     </div>
   </div>
@@ -177,20 +237,13 @@
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
 
     // ==========================================
-    // 1. TÍNH NĂNG BẢO MẬT (MÃ HÓA & ẨN/HIỆN PASS)
+    // 1. TÍNH NĂNG BẢO MẬT 
     // ==========================================
-
-    // Tính năng Ẩn/Hiện mật khẩu
     function togglePassword() {
       let passInput = document.getElementById("admin-pass");
-      if (passInput.type === "password") {
-        passInput.type = "text";
-      } else {
-        passInput.type = "password";
-      }
+      passInput.type = passInput.type === "password" ? "text" : "password";
     }
 
-    // Hàm mã hóa thuật toán SHA-256 (Web Crypto API)
     async function sha256(message) {
       const msgBuffer = new TextEncoder().encode(message);
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -198,14 +251,12 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // Kiểm tra đăng nhập (đã lưu khóa Hash trên trình duyệt)
     if (sessionStorage.getItem("adminHashToken")) {
       document.getElementById("login-overlay").style.display = "none";
       document.getElementById("admin-app").style.display = "block";
       loadData();
     }
 
-    // Hàm Đăng nhập bằng Hash
     async function login() {
       let plainPass = document.getElementById("admin-pass").value;
       if(!plainPass) return;
@@ -215,18 +266,15 @@
       btn.disabled = true;
 
       try {
-        // Băm mật khẩu ra mã Hash trước khi ném qua mạng lưới
         let hashedPass = await sha256(plainPass);
-
         let res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: "login", password: hashedPass }) // Server sẽ kiểm tra Hash này
+          body: JSON.stringify({ action: "login", password: hashedPass })
         });
         let data = await res.json();
         
         if (data.status === "success") {
-          // Lưu token là mã Hash (Bảo mật tuyệt đối, không lưu plain text)
           sessionStorage.setItem("adminHashToken", hashedPass); 
           document.getElementById("login-overlay").style.display = "none";
           document.getElementById("admin-app").style.display = "block";
@@ -264,7 +312,6 @@
       let tokenHash = sessionStorage.getItem("adminHashToken");
       showLoading(true);
       try {
-        // Lấy dữ liệu Đơn hàng (Yêu cầu phải có mã Hash đúng)
         let resOrders = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -282,6 +329,7 @@
       showLoading(false);
     }
 
+    // Cập nhật thẻ <td> có thêm data-label để phục vụ Responsive Mobile
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body');
       tbody.innerHTML = "";
@@ -297,15 +345,20 @@
 
         tbody.innerHTML += `
           <tr>
-            <td><b>${order.orderId}</b></td>
-            <td><span style="font-size:12px; color:#666;">${order.date}</span></td>
-            <td><b>${order.name}</b><br><span style="color:#0068ff;">📞 ${order.phone}</span></td>
-            <td style="white-space: pre-wrap; font-size: 13px;">${order.details}</td>
-            <td style="color:#d9534f; font-weight:bold;">${order.total}</td>
-            <td>${order.status}</td>
-            <td>
+            <td data-label="Mã ĐH"><b>${order.orderId}</b></td>
+            <td data-label="Thời gian"><span style="color:#718096;">${order.date}</span></td>
+            <td data-label="Khách hàng">
+              <b>${order.name}</b><br>
+              <span style="color:#0068ff; display:inline-block; margin-top:4px;">📞 ${order.phone}</span>
+            </td>
+            <td data-label="Chi tiết Đơn hàng" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${order.details}</td>
+            <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${order.total}</td>
+            <td data-label="Trạng thái">
+              <span style="font-weight: 500; color: #2b6cb0;">${order.status}</span>
+            </td>
+            <td data-label="Thao tác">
               ${selectHtml}
-              <button class="btn-update" onclick="updateOrderStatus(${order.row})" style="margin-top:5px;">Lưu</button>
+              <button class="btn-update" onclick="updateOrderStatus(${order.row})">Lưu trạng thái</button>
             </td>
           </tr>
         `;
@@ -318,25 +371,25 @@
       products.forEach(p => {
         let stockHtml = p.stock <= 2 
             ? `<span class="stock-warning">${p.stock} (Sắp hết)</span>` 
-            : `<span style="font-weight:bold; font-size:16px;">${p.stock}</span>`;
+            : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${p.stock}</span>`;
             
         let firstImg = p.images && p.images.length > 0 ? p.images[0] : "";
-        let origHtml = p.originalPrice > 0 ? `<div style="text-decoration:line-through; color:#999; font-size:12px;">${Number(p.originalPrice).toLocaleString()}đ</div>` : '';
+        let origHtml = p.originalPrice > 0 ? `<div style="text-decoration:line-through; color:#a0aec0; font-size:12px;">${Number(p.originalPrice).toLocaleString()}đ</div>` : '';
 
         tbody.innerHTML += `
           <tr>
-            <td style="color:#666;">${p.id}</td>
-            <td><img src="${firstImg}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #ddd;"></td>
-            <td>
-              <b style="font-size:15px;">${p.name}</b>
-              <div style="font-size:12px; color:#777; margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${p.desc}</div>
+            <td data-label="ID Sản Phẩm" style="color:#718096; font-size: 13px;">${p.id}</td>
+            <td data-label="Hình ảnh"><img src="${firstImg}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Sản phẩm & Mô tả">
+              <b style="font-size:15px; color: #2d3748;">${p.name}</b>
+              <div style="font-size:13px; color:#718096; margin-top:6px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4;">${p.desc}</div>
             </td>
-            <td>
+            <td data-label="Giá bán">
               ${origHtml}
-              <div style="color:#ee4d2d; font-weight:bold;">${Number(p.price).toLocaleString()}đ</div>
+              <div style="color:#e53e3e; font-weight:bold; font-size:15px;">${Number(p.price).toLocaleString()}đ</div>
             </td>
-            <td align="center">${stockHtml}</td>
-            <td>
+            <td data-label="Tồn kho">${stockHtml}</td>
+            <td data-label="Thao tác">
               <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa thông tin</button>
             </td>
           </tr>
@@ -346,7 +399,7 @@
 
     async function updateOrderStatus(rowIdx) {
       let newStatus = document.getElementById(`status-${rowIdx}`).value;
-      if(!confirm(`Xác nhận chuyển trạng thái thành: "${newStatus}" ?\n(Chuyển sang "Đã giao..." sẽ tự động trừ kho sản phẩm)`)) return;
+      if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Lưu ý: Chuyển sang "Đã giao..." sẽ tự động trừ kho sản phẩm)`)) return;
 
       showLoading(true);
       try {
@@ -381,10 +434,12 @@
       document.getElementById("edit-stock").value = product.stock;
       
       document.getElementById("edit-modal").style.display = "flex";
+      document.body.style.overflow = "hidden"; // Chống cuộn nền khi mở modal
     }
 
     function closeEditModal() {
       document.getElementById("edit-modal").style.display = "none";
+      document.body.style.overflow = "auto";
     }
 
     async function saveProductChanges() {
