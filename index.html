@@ -58,6 +58,7 @@
     }
     .form-group select:disabled { background-color: #f9f9f9; cursor: not-allowed; opacity: 0.7;}
     
+    /* GIAO DIỆN LOADING CSS */
     .loader { background: #f4f4f9; bottom: 0; left: 0; overflow: hidden; position: fixed; right: 0; top: 0; z-index: 99999; transition: opacity 0.5s ease, visibility 0.5s ease; }
     .loader.hidden { opacity: 0; visibility: hidden; }
     .loader-inner { bottom: 0; height: 60px; left: 0; margin: auto; position: absolute; right: 0; top: 0; width: 100px; }
@@ -76,10 +77,36 @@
     @keyframes spin { 0%, 15% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
     .loader-text { position: absolute; top: calc(50% + 85px); left: 0; width: 100%; text-align: center; color: #333; font-family: 'Montserrat', sans-serif; letter-spacing: 1px; font-size: 14px; font-weight: 600;}
     
+    /* GIAO DIỆN TOAST THÔNG BÁO TỰ ĐỘNG TẮT */
+    #toast-notification {
+      visibility: hidden;
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 50px;
+      padding: 12px 24px;
+      position: fixed;
+      z-index: 10000;
+      left: 50%;
+      bottom: 30px;
+      font-size: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.3s, bottom 0.3s;
+    }
+    #toast-notification.show {
+      visibility: visible;
+      opacity: 1;
+      bottom: 90px; /* Nổi lên cao hơn một chút so với nút giỏ hàng nổi */
+    }
+
     #floating-cart { position: fixed; bottom: 20px; right: 20px; background-color: #ff4757; color: white; padding: 15px 25px; border-radius: 50px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; font-weight: bold; font-family: 'Montserrat', sans-serif; display: none; transition: transform 0.2s; }
     #floating-cart:hover { transform: scale(1.05); }
     #cart-count { background: white; color: #ff4757; border-radius: 50px; padding: 2px 8px; margin-left: 8px; font-size: 14px; }
 
+    /* CSS CHO MODAL PHÓNG TO ẢNH */
     .image-modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
     .image-modal-content { max-width: 95%; max-height: 90vh; object-fit: contain; border-radius: 8px; user-select: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
     .close-modal { position: absolute; top: 15px; right: 25px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 2010; line-height: 1; }
@@ -117,6 +144,9 @@
   </div>
   
   <div class="container" id="product-list"></div>
+
+  <!-- Thông báo nhỏ nổi lên (Toast) -->
+  <div id="toast-notification">Đã thêm sản phẩm vào giỏ hàng!</div>
 
   <div id="floating-cart" onclick="scrollToCart()">
     🛒 Giỏ hàng <span id="cart-count">0</span>
@@ -176,6 +206,16 @@
       fetchTinh(); 
       setupModalSwipe();
     };
+
+    // Hàm hiển thị Toast Notification
+    function showToast(message) {
+      let toast = document.getElementById("toast-notification");
+      toast.innerText = message;
+      toast.className = "show";
+      setTimeout(function(){ 
+        toast.className = toast.className.replace("show", ""); 
+      }, 3000); // Tự động ẩn sau 3 giây
+    }
 
     async function loadProducts() {
       try {
@@ -373,7 +413,9 @@
       
       qtyInput.value = 1; 
       updateCart();
-      alert(`Đã thêm ${qtyToAdd} sản phẩm [ ${name} ] vào giỏ hàng!`);
+      
+      // Hiển thị Toast thay vì alert
+      showToast(`Đã thêm ${qtyToAdd} x [ ${name} ] vào giỏ!`);
     }
 
     function changeCartQty(index, delta) {
@@ -470,13 +512,15 @@
       orderText += "📞 SĐT: " + phone + "\n";
       orderText += "📍 Địa chỉ: " + fullAddress + "\n";
       if(note) orderText += "📝 Ghi chú: " + note + "\n";
-      orderText += "------------------------\n";
+      orderText += "------------------------\n\n"; 
       
       let total = 0;
       let itemsForSheet = [];
 
-      cart.forEach(item => {
-        orderText += `- ${item.name} (x${item.qty}): ${formatMoney(item.price * item.qty)}\n`;
+      cart.forEach((item, index) => {
+        orderText += `${index + 1}. ${item.name}\n`;
+        orderText += `   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n\n`; 
+        
         itemsForSheet.push(`- ${item.name} (x${item.qty})`);
         total += (item.price * item.qty);
       });
@@ -495,20 +539,19 @@
         phone: phone, 
         address: fullAddress,
         note: note,
-        itemsText: itemsForSheet.join('\n'), // Hiển thị text cho dễ nhìn
+        itemsText: itemsForSheet.join('\n'), 
         total: formatMoney(finalTotal),
-        cartJSON: JSON.stringify(cart) // Dữ liệu máy đọc để tự động trừ kho
+        cartJSON: JSON.stringify(cart)
       };
 
       fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(orderData)
-      }).then(() => console.log("Đã gửi đơn hàng"))
+      }).then(() => console.log("Đã đồng bộ Google Sheets"))
         .catch(err => console.error(err));
       // ------------------------------------------------
 
-      // Copy text và mở Zalo
       const tempTextArea = document.createElement("textarea");
       tempTextArea.value = orderText;
       document.body.appendChild(tempTextArea);
