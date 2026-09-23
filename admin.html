@@ -251,7 +251,19 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    if (sessionStorage.getItem("adminHashToken")) {
+    // Chống XSS: escape mọi dữ liệu lấy từ Sheet (do khách hàng hoặc admin nhập)
+    // trước khi chèn vào innerHTML.
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    if (sessionStorage.getItem("adminToken")) {
       document.getElementById("login-overlay").style.display = "none";
       document.getElementById("admin-app").style.display = "block";
       loadData();
@@ -275,7 +287,10 @@
         let data = await res.json();
         
         if (data.status === "success") {
-          sessionStorage.setItem("adminHashToken", hashedPass); 
+          // Lưu session token ngẫu nhiên (do server cấp, có hạn dùng) thay vì
+          // hash mật khẩu — nếu token bị lộ, kẻ tấn công chỉ dùng được trong
+          // thời gian ngắn và có thể bị vô hiệu hóa qua logout().
+          sessionStorage.setItem("adminToken", data.token);
           document.getElementById("login-overlay").style.display = "none";
           document.getElementById("admin-app").style.display = "block";
           loadData();
@@ -288,9 +303,18 @@
       btn.disabled = false;
     }
 
-    function logout() {
-      sessionStorage.removeItem("adminHashToken");
-      location.reload(); 
+    async function logout() {
+      let token = sessionStorage.getItem("adminToken");
+      sessionStorage.removeItem("adminToken");
+      try {
+        // Báo server hủy token ngay lập tức, không chờ hết hạn tự nhiên
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: "logout", token: token })
+        });
+      } catch (e) {}
+      location.reload();
     }
 
     // ==========================================
@@ -309,13 +333,13 @@
     function showLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
 
     async function loadData() {
-      let tokenHash = sessionStorage.getItem("adminHashToken");
+      let token = sessionStorage.getItem("adminToken");
       showLoading(true);
       try {
         let resOrders = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: "getOrders", password: tokenHash })
+          body: JSON.stringify({ action: "getOrders", token: token })
         });
         let orders = await resOrders.json();
         
@@ -345,16 +369,16 @@
 
         tbody.innerHTML += `
           <tr>
-            <td data-label="Mã ĐH"><b>${order.orderId}</b></td>
-            <td data-label="Thời gian"><span style="color:#718096;">${order.date}</span></td>
+            <td data-label="Mã ĐH"><b>${escapeHtml(order.orderId)}</b></td>
+            <td data-label="Thời gian"><span style="color:#718096;">${escapeHtml(order.date)}</span></td>
             <td data-label="Khách hàng">
-              <b>${order.name}</b><br>
-              <span style="color:#0068ff; display:inline-block; margin-top:4px;">📞 ${order.phone}</span>
+              <b>${escapeHtml(order.name)}</b><br>
+              <span style="color:#0068ff; display:inline-block; margin-top:4px;">📞 ${escapeHtml(order.phone)}</span>
             </td>
-            <td data-label="Chi tiết Đơn hàng" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${order.details}</td>
-            <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${order.total}</td>
+            <td data-label="Chi tiết Đơn hàng" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${escapeHtml(order.details)}</td>
+            <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${escapeHtml(order.total)}</td>
             <td data-label="Trạng thái">
-              <span style="font-weight: 500; color: #2b6cb0;">${order.status}</span>
+              <span style="font-weight: 500; color: #2b6cb0;">${escapeHtml(order.status)}</span>
             </td>
             <td data-label="Thao tác">
               ${selectHtml}
@@ -378,11 +402,11 @@
 
         tbody.innerHTML += `
           <tr>
-            <td data-label="ID Sản Phẩm" style="color:#718096; font-size: 13px;">${p.id}</td>
-            <td data-label="Hình ảnh"><img src="${firstImg}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="ID Sản Phẩm" style="color:#718096; font-size: 13px;">${escapeHtml(p.id)}</td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Sản phẩm & Mô tả">
-              <b style="font-size:15px; color: #2d3748;">${p.name}</b>
-              <div style="font-size:13px; color:#718096; margin-top:6px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4;">${p.desc}</div>
+              <b style="font-size:15px; color: #2d3748;">${escapeHtml(p.name)}</b>
+              <div style="font-size:13px; color:#718096; margin-top:6px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4;">${escapeHtml(p.desc)}</div>
             </td>
             <td data-label="Giá bán">
               ${origHtml}
@@ -405,7 +429,7 @@
       try {
         let payload = { 
           action: "updateOrderStatus", 
-          password: sessionStorage.getItem("adminHashToken"),
+          token: sessionStorage.getItem("adminToken"),
           row: rowIdx, 
           newStatus: newStatus 
         };
@@ -445,7 +469,7 @@
     async function saveProductChanges() {
       let payload = {
         action: "updateProduct",
-        password: sessionStorage.getItem("adminHashToken"),
+        token: sessionStorage.getItem("adminToken"),
         productId: document.getElementById("edit-id").value,
         name: document.getElementById("edit-name").value,
         originalPrice: document.getElementById("edit-orig-price").value,
