@@ -255,6 +255,19 @@
 
     function formatMoney(amount) { return Number(amount).toLocaleString('vi-VN') + "đ"; }
 
+    // Chống XSS: escape dữ liệu sản phẩm (tên, mô tả, link ảnh) trước khi
+    // chèn vào innerHTML, phòng trường hợp dữ liệu trong Sheet bị chỉnh sửa
+    // để chứa mã độc.
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function scrollCarousel(id, direction) {
       const container = document.getElementById(`slides-${id}`);
       const scrollAmount = container.clientWidth;
@@ -368,11 +381,9 @@
           priceHtml = `<div class="original-price" style="visibility:hidden;">0đ</div><div class="current-price">${formatMoney(curr)}</div>`;
         }
 
-        let safeName = p.name.replace(/'/g, "\\'");
-        
         let imagesHtml = '';
         p.images.forEach((img, index) => {
-          imagesHtml += `<img src="${img}" alt="${safeName}" onclick="openModal('${p.id}', ${index})">`;
+          imagesHtml += `<img src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" onclick="openModal('${p.id}', ${index})">`;
         });
 
         let arrowsHtml = '';
@@ -389,8 +400,8 @@
             <div class="carousel-slides" id="slides-${p.id}">${imagesHtml}</div>
             ${arrowsHtml}
           </div>
-          <h3>${p.name}</h3>
-          <p>${p.desc}</p>
+          <h3>${escapeHtml(p.name)}</h3>
+          <p>${escapeHtml(p.desc)}</p>
           <div class="price-container">${priceHtml}</div>
           
           <div class="qty-wrapper">
@@ -398,13 +409,18 @@
             <input type="number" id="qty-${p.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${p.id}')">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', 1)">+</button>
           </div>
-          <button class="btn-primary" onclick="addToCart('${p.id}', '${safeName}', ${curr})">Thêm vào giỏ</button>
+          <button class="btn-primary" onclick="addToCart('${p.id}')">Thêm vào giỏ</button>
         `;
         list.appendChild(card);
       });
     }
 
-    function addToCart(id, name, price) {
+    function addToCart(id) {
+      let product = productsData.find(p => p.id === id);
+      if (!product) return;
+      let name = product.name;
+      let price = Number(product.price) || 0;
+
       let qtyInput = document.getElementById('qty-' + id);
       let qtyToAdd = parseInt(qtyInput.value) || 1;
 
@@ -457,7 +473,7 @@
         cartDiv.innerHTML += `
           <div class="cart-item">
             <div style="flex: 1; padding-right: 10px;">
-              <b style="font-size: 14px; line-height: 1.4;">${item.name}</b>
+              <b style="font-size: 14px; line-height: 1.4;">${escapeHtml(item.name)}</b>
               <div class="cart-qty-wrapper">
                 <button class="qty-btn small" onclick="changeCartQty(${index}, -1)">-</button>
                 <input type="number" class="qty-input small" value="${item.qty}" min="1" onchange="setCartQty(${index}, this.value)">
