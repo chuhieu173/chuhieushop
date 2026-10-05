@@ -203,11 +203,11 @@
     let currentModalProductId = null;
     let currentModalImgIndex = 0;
 
-    window.onload = function() {
+    document.addEventListener("DOMContentLoaded", function() {
       loadProducts();
       fetchTinh(); 
       setupModalSwipe();
-    };
+    });
 
     function showToast(message) {
       let toast = document.getElementById("toast-notification");
