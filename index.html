@@ -99,7 +99,7 @@
     #toast-notification.show {
       visibility: visible;
       opacity: 1;
-      bottom: 90px; /* Nổi lên cao hơn một chút so với nút giỏ hàng nổi */
+      bottom: 90px;
     }
 
     #floating-cart { position: fixed; bottom: 20px; right: 20px; background-color: #ff4757; color: white; padding: 15px 25px; border-radius: 50px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; font-weight: bold; font-family: 'Montserrat', sans-serif; display: none; transition: transform 0.2s; }
@@ -160,7 +160,7 @@
     <div style="margin-top: 30px;">
       <h3>Thông tin nhận hàng</h3>
       <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" required></div>
-      <div class="form-group"><input type="number" id="customer-phone" placeholder="Số điện thoại Zalo *" required></div>
+      <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" required></div>
       
       <div class="form-group">
         <select id="tinh" onchange="fetchPhuong(this.value)" required>
@@ -172,10 +172,12 @@
           <option value="">Chọn Phường / Xã *</option>
         </select>
       </div>
+      <!-- Đã sửa placeholder -->
       <div class="form-group"><input type="text" id="customer-address-detail" placeholder="Địa chỉ chi tiết (Số nhà, đường, ngõ...) *" required></div>
-      <div class="form-group"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn, VD: Giao giờ hành chính...)"></div>
+      <div class="form-group"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
 
-      <button class="btn-primary" onclick="checkout()" style="background: #ee4d2d; margin-top: 10px;">Lưu & Mở Zalo Gửi Đơn</button>
+      <!-- Đã đổi tên nút bấm -->
+      <button class="btn-primary" onclick="checkout()" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
     </div>
   </div>
 
@@ -207,14 +209,13 @@
       setupModalSwipe();
     };
 
-    // Hàm hiển thị Toast Notification
     function showToast(message) {
       let toast = document.getElementById("toast-notification");
       toast.innerText = message;
       toast.className = "show";
       setTimeout(function(){ 
         toast.className = toast.className.replace("show", ""); 
-      }, 3000); // Tự động ẩn sau 3 giây
+      }, 3000);
     }
 
     async function loadProducts() {
@@ -255,9 +256,6 @@
 
     function formatMoney(amount) { return Number(amount).toLocaleString('vi-VN') + "đ"; }
 
-    // Chống XSS: escape dữ liệu sản phẩm (tên, mô tả, link ảnh) trước khi
-    // chèn vào innerHTML, phòng trường hợp dữ liệu trong Sheet bị chỉnh sửa
-    // để chứa mã độc.
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return str.toString()
@@ -430,7 +428,6 @@
       qtyInput.value = 1; 
       updateCart();
       
-      // Hiển thị Toast thay vì alert
       showToast(`Đã thêm ${qtyToAdd} x [ ${name} ] vào giỏ!`);
     }
 
@@ -523,11 +520,14 @@
 
       let fullAddress = `${detailAddress}, ${phuongName}, ${tinhName}`;
 
-      let orderText = "🛒 ĐƠN ĐẶT HÀNG MỚI\n";
-      orderText += "👤 Khách: " + name + "\n";
-      orderText += "📞 SĐT: " + phone + "\n";
-      orderText += "📍 Địa chỉ: " + fullAddress + "\n";
-      if(note) orderText += "📝 Ghi chú: " + note + "\n";
+      // ====================================================
+      // Đã loại bỏ hoàn toàn biểu tượng cảm xúc (Icon) và tinh chỉnh cấu trúc
+      // ====================================================
+      let orderText = "ĐƠN ĐẶT HÀNG MỚI\n";
+      orderText += "Người nhận: " + name + "\n";
+      orderText += "Sđt: " + phone + "\n";
+      orderText += "Địa chỉ: " + fullAddress + "\n";
+      if(note) orderText += "Ghi chú: " + note + "\n";
       orderText += "------------------------\n\n"; 
       
       let total = 0;
@@ -544,9 +544,9 @@
       let finalTotal = total + shippingFee;
 
       orderText += "------------------------\n";
-      orderText += "📦 Tiền hàng: " + formatMoney(total) + "\n";
-      orderText += "🚚 Phí giao hàng: " + formatMoney(shippingFee) + "\n";
-      orderText += "💰 TỔNG THANH TOÁN: " + formatMoney(finalTotal);
+      orderText += "Tiền hàng: " + formatMoney(total) + "\n";
+      orderText += "Phí giao hàng: " + formatMoney(shippingFee) + "\n";
+      orderText += "TỔNG THANH TOÁN: " + formatMoney(finalTotal);
 
       // --- PHẦN GỬI DỮ LIỆU NGẦM VỀ GOOGLE SHEETS ---
       let orderData = {
@@ -575,7 +575,7 @@
       
       try {
         document.execCommand("copy");
-        alert("📋 ĐÃ LƯU ĐƠN HÀNG VÀ CHUYỂN VỀ HỆ THỐNG!\n\nHệ thống sẽ mở Zalo của Shop. Bạn chỉ cần bấm DÁN (Paste) vào khung chat để gửi đơn nhé!");
+        alert("ĐÃ LƯU ĐƠN HÀNG VÀ CHUYỂN VỀ HỆ THỐNG!\n\nHệ thống sẽ mở Zalo của Shop. Bạn chỉ cần bấm DÁN (Paste) vào khung chat để gửi đơn nhé!");
       } catch (err) {
         alert("Trình duyệt không hỗ trợ copy tự động. Vui lòng nhắn tin trực tiếp cho Shop nhé!");
       }
