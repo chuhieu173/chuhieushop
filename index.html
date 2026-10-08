@@ -430,6 +430,7 @@
       const cartDiv = document.getElementById('cart-items');
       const totalPriceDiv = document.getElementById('total-price');
       
+      cart.forEach(i => { if (i.qty > 99) i.qty = 99; }); // khớp giới hạn của server
       cartDiv.innerHTML = '';
       let total = 0;
       let totalQty = 0; 
