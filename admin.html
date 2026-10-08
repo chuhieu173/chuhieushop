@@ -8,36 +8,29 @@
   <style>
     body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f9; color: #333; -webkit-font-smoothing: antialiased; }
     
-    /* === GIAO DIỆN ĐĂNG NHẬP === */
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
     .login-box { background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 100%; max-width: 400px; box-sizing: border-box;}
     .login-box h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; color: #1a2935; font-size: 22px; margin-bottom: 20px;}
-    
     .input-wrapper { position: relative; margin: 15px 0; }
     .input-wrapper input { width: 100%; padding: 14px; padding-right: 45px; border: 1.5px solid #dfe6e9; border-radius: 6px; box-sizing: border-box; font-size: 16px; outline: none; transition: border-color 0.3s;}
     .input-wrapper input:focus { border-color: #0068ff; }
     .toggle-eye { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; color: #636e72; user-select: none;}
-    
     .login-box button { width: 100%; background: #0068ff; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
     .login-box button:hover { background: #0055d4; }
     .error-msg { color: #e74c3c; font-size: 14px; margin-bottom: 15px; display: none; font-weight: 500; background: #fadbd8; padding: 10px; border-radius: 4px;}
 
-    /* === BỐ CỤC CHÍNH === */
     #admin-app { display: none; }
     .header { background: #1a2935; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
     .header h1 { margin: 0; font-family: 'Montserrat', sans-serif; font-size: 20px; }
     .header-actions { display: flex; gap: 10px; }
-    
     .nav-tabs { display: flex; background: #2c3e50; padding: 0 30px; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none;}
     .nav-tabs::-webkit-scrollbar { display: none; }
     .tab { padding: 15px 25px; color: #a4b0be; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: 0.3s; }
     .tab:hover { color: white; }
     .tab.active { color: white; border-bottom: 3px solid #0068ff; background: rgba(0,0,0,0.2); }
-    
     .content { padding: 30px; max-width: 1200px; margin: 0 auto; display: none; }
     .content.active { display: block; }
     
-    /* === BẢNG DỮ LIỆU (DESKTOP) === */
     table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     th, td { padding: 15px; text-align: left; border-bottom: 1px solid #edf2f7; font-size: 14px; vertical-align: middle; }
     th { background: #f8fafc; color: #4a5568; font-weight: 600; font-family: 'Montserrat', sans-serif; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;}
@@ -49,10 +42,8 @@
     .btn-update:hover { background: #0055d4; }
     .btn-logout { background: #e53e3e; }
     .btn-logout:hover { background: #c53030; }
-    
     .stock-warning { color: #c53030; font-weight: bold; background: #fed7d7; padding: 4px 8px; border-radius: 4px; display: inline-block;}
     
-    /* === GIAO DIỆN MODAL SỬA SẢN PHẨM === */
     .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px);}
     .edit-content { background: white; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border-radius: 12px; padding: 25px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
     .edit-content h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; margin-bottom: 20px; color: #1a2935; border-bottom: 2px solid #edf2f7; padding-bottom: 10px;}
@@ -72,71 +63,40 @@
     @keyframes spin { 100% { transform: rotate(360deg); } }
     .loading-text { font-weight: bold; font-size: 16px; color: #0068ff; font-family: 'Montserrat', sans-serif;}
 
-    /* ====================================================
-       TỐI ƯU GIAO DIỆN MOBILE (MOBILE RESPONSIVE CARD VIEW)
-       ==================================================== */
     @media (max-width: 768px) {
       .header { flex-direction: column; padding: 15px; text-align: center; gap: 15px; }
       .header-actions { width: 100%; justify-content: center; }
       .content { padding: 15px; }
-      
       .nav-tabs { padding: 0; justify-content: space-between; }
       .tab { padding: 15px 10px; font-size: 13px; text-align: center; flex: 1; }
-
-      /* Ép Table thành dạng Thẻ (Card) */
       table, thead, tbody, th, td, tr { display: block; }
-      
-      /* Ẩn thẻ thead (tiêu đề cột) đi */
       thead tr { position: absolute; top: -9999px; left: -9999px; }
-      
-      /* Biến mỗi dòng tr thành 1 cái thẻ card */
       tr { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 15px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 5px;}
-      
-      /* Định dạng từng ô td */
       td { border: none; border-bottom: 1px dashed #e2e8f0; position: relative; padding: 12px 15px; }
       td:last-child { border-bottom: none; }
-      
-      /* Tự động lấy tên cột từ thuộc tính data-label chèn lên trước dữ liệu */
-      td::before { 
-        content: attr(data-label); 
-        display: block; 
-        font-size: 11px; 
-        font-weight: bold; 
-        text-transform: uppercase; 
-        color: #718096; 
-        margin-bottom: 6px; 
-        font-family: 'Montserrat', sans-serif;
-      }
-      
-      /* Ghi đè các thuộc tính text-align riêng */
+      td::before { content: attr(data-label); display: block; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #718096; margin-bottom: 6px; font-family: 'Montserrat', sans-serif;}
       td[align="center"] { text-align: left; }
       td[style*="width"] { width: 100% !important; }
-      
       .status-select { font-size: 14px; padding: 10px;}
       .btn-update { width: 100%; padding: 10px; font-size: 14px;}
-      
       .edit-content { padding: 20px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- MÀN HÌNH KHÓA ĐĂNG NHẬP -->
   <div id="login-overlay">
     <div class="login-box">
       <h2>KHU VỰC BẢO MẬT</h2>
       <div id="login-error" class="error-msg">Mật khẩu không chính xác!</div>
-      
       <div class="input-wrapper">
         <input type="password" id="admin-pass" placeholder="Nhập mật khẩu quản trị..." onkeypress="if(event.key === 'Enter') login()">
         <span class="toggle-eye" id="toggle-eye" onclick="togglePassword()">👁️</span>
       </div>
-
       <button onclick="login()" id="btn-login">ĐĂNG NHẬP</button>
     </div>
   </div>
 
-  <!-- KHU VỰC QUẢN TRỊ CHÍNH -->
   <div id="admin-app">
     <div class="header">
       <h1>Cửa Hàng Của Minh Hiếu</h1>
@@ -156,7 +116,6 @@
       <div class="loading-text">Đang đồng bộ dữ liệu...</div>
     </div>
 
-    <!-- BẢNG ĐƠN HÀNG -->
     <div id="orders" class="content active">
       <table>
         <thead>
@@ -174,8 +133,17 @@
       </table>
     </div>
 
-    <!-- BẢNG KHO HÀNG -->
     <div id="inventory" class="content">
+      <!-- CẤU HÌNH PHÍ SHIP NẰM TẠI ĐÂY -->
+      <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <h3 style="margin: 0; font-size: 16px; color: #1a2935;">🚚 Cấu hình Phí Ship:</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <input type="number" id="edit-shipping-fee" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; width: 120px; font-size: 15px; font-weight: bold; color: #e53e3e;" placeholder="VD: 18000">
+          <span style="font-weight: 500;">VNĐ</span>
+        </div>
+        <button class="btn-update" onclick="updateShippingFee()" style="background: #2b6cb0;">Lưu Cấu Hình</button>
+      </div>
+
       <table>
         <thead>
           <tr>
@@ -192,12 +160,10 @@
     </div>
   </div>
 
-  <!-- MODAL CHỈNH SỬA SẢN PHẨM -->
   <div id="edit-modal" class="edit-modal">
     <div class="edit-content">
       <h2>Chỉnh sửa Sản Phẩm</h2>
       <input type="hidden" id="edit-id">
-      
       <div class="form-group">
         <label>Tên Sản Phẩm:</label>
         <input type="text" id="edit-name">
@@ -224,7 +190,6 @@
         <label>Số lượng tồn kho thực tế:</label>
         <input type="number" id="edit-stock" style="font-size: 16px; font-weight: bold; color: #e53e3e;">
       </div>
-      
       <div class="edit-actions">
         <button class="btn-cancel" onclick="closeEditModal()">Hủy bỏ</button>
         <button class="btn-save" onclick="saveProductChanges()">Lưu thay đổi</button>
@@ -236,9 +201,6 @@
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
 
-    // ==========================================
-    // 1. TÍNH NĂNG BẢO MẬT 
-    // ==========================================
     function togglePassword() {
       let passInput = document.getElementById("admin-pass");
       passInput.type = passInput.type === "password" ? "text" : "password";
@@ -251,8 +213,6 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // Chống XSS: escape mọi dữ liệu lấy từ Sheet (do khách hàng hoặc admin nhập)
-    // trước khi chèn vào innerHTML.
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return str.toString()
@@ -263,11 +223,13 @@
         .replace(/'/g, '&#39;');
     }
 
-    if (sessionStorage.getItem("adminToken")) {
-      document.getElementById("login-overlay").style.display = "none";
-      document.getElementById("admin-app").style.display = "block";
-      loadData();
-    }
+    document.addEventListener("DOMContentLoaded", function() {
+      if (sessionStorage.getItem("adminToken")) {
+        document.getElementById("login-overlay").style.display = "none";
+        document.getElementById("admin-app").style.display = "block";
+        loadData();
+      }
+    });
 
     async function login() {
       let plainPass = document.getElementById("admin-pass").value;
@@ -287,9 +249,6 @@
         let data = await res.json();
         
         if (data.status === "success") {
-          // Lưu session token ngẫu nhiên (do server cấp, có hạn dùng) thay vì
-          // hash mật khẩu — nếu token bị lộ, kẻ tấn công chỉ dùng được trong
-          // thời gian ngắn và có thể bị vô hiệu hóa qua logout().
           sessionStorage.setItem("adminToken", data.token);
           document.getElementById("login-overlay").style.display = "none";
           document.getElementById("admin-app").style.display = "block";
@@ -307,7 +266,6 @@
       let token = sessionStorage.getItem("adminToken");
       sessionStorage.removeItem("adminToken");
       try {
-        // Báo server hủy token ngay lập tức, không chờ hết hạn tự nhiên
         await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -317,9 +275,6 @@
       location.reload();
     }
 
-    // ==========================================
-    // 2. KHỞI TẠO VÀ XỬ LÝ DỮ LIỆU CHÍNH
-    // ==========================================
     const STATUS_OPTIONS = ["Khách đặt hàng", "Đang chuẩn bị hàng", "Đã giao cho đơn vị vận chuyển", "Hoàn thành"];
     let globalProductsData = [];
 
@@ -342,18 +297,25 @@
           body: JSON.stringify({ action: "getOrders", token: token })
         });
         let orders = await resOrders.json();
-        
         if(orders.status === "error") { logout(); return; }
         renderOrders(orders);
         
         let resProducts = await fetch(API_URL + "?action=getProducts");
-        globalProductsData = await resProducts.json();
+        let resData = await resProducts.json();
+        
+        // Tương thích với cấu trúc JSON mới có chứa Phí Ship
+        if (resData.products) {
+          globalProductsData = resData.products;
+          document.getElementById("edit-shipping-fee").value = resData.shippingFee;
+        } else {
+          globalProductsData = resData; // Phòng khi dính cache cũ
+        }
+        
         renderInventory(globalProductsData);
       } catch (e) { alert("Lỗi kết nối máy chủ Google!"); }
       showLoading(false);
     }
 
-    // Cập nhật thẻ <td> có thêm data-label để phục vụ Responsive Mobile
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body');
       tbody.innerHTML = "";
@@ -441,10 +403,32 @@
         loadData(); 
       } catch (e) { alert("Lỗi cập nhật!"); showLoading(false); }
     }
+    
+    // GỬI LỆNH LƯU PHÍ SHIP LÊN MÁY CHỦ
+    async function updateShippingFee() {
+      let newFee = document.getElementById("edit-shipping-fee").value;
+      if (newFee === "") { alert("Vui lòng nhập phí ship hợp lệ!"); return; }
+      
+      showLoading(true);
+      try {
+        let payload = {
+          action: "updateShippingFee",
+          token: sessionStorage.getItem("adminToken"),
+          shippingFee: parseInt(newFee) || 0
+        };
+        let res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        let data = await res.json();
+        if(data.status === "error") { logout(); return; }
+        
+        alert("Đã cập nhật cấu hình Phí Ship thành công!");
+        loadData();
+      } catch(e) { alert("Lỗi cập nhật phí ship!"); showLoading(false); }
+    }
 
-    // ==========================================
-    // 3. LOGIC MODAL CHỈNH SỬA SẢN PHẨM 
-    // ==========================================
     function openEditModal(productId) {
       let product = globalProductsData.find(p => p.id.toString() === productId.toString());
       if (!product) return;
@@ -458,7 +442,7 @@
       document.getElementById("edit-stock").value = product.stock;
       
       document.getElementById("edit-modal").style.display = "flex";
-      document.body.style.overflow = "hidden"; // Chống cuộn nền khi mở modal
+      document.body.style.overflow = "hidden"; 
     }
 
     function closeEditModal() {
@@ -497,10 +481,7 @@
         
         alert("Lưu thay đổi thành công!");
         loadData();
-      } catch (e) { 
-        alert("Lỗi khi lưu dữ liệu!"); 
-        showLoading(false); 
-      }
+      } catch (e) { alert("Lỗi khi lưu dữ liệu!"); showLoading(false); }
     }
   </script>
 </body>
