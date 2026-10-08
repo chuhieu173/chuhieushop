@@ -63,6 +63,12 @@
     @keyframes spin { 100% { transform: rotate(360deg); } }
     .loading-text { font-weight: bold; font-size: 16px; color: #0068ff; font-family: 'Montserrat', sans-serif;}
 
+    /* CSS Giao diện quản lý ảnh */
+    .img-preview-box { position: relative; width: 80px; height: 80px; border: 1px solid #cbd5e0; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+    .img-preview-remove { position: absolute; top: 4px; right: 4px; background: rgba(229, 62, 62, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.2s;}
+    .img-preview-remove:hover { background: #c53030; }
+
     @media (max-width: 768px) {
       .header { flex-direction: column; padding: 15px; text-align: center; gap: 15px; }
       .header-actions { width: 100%; justify-content: center; }
@@ -134,7 +140,6 @@
     </div>
 
     <div id="inventory" class="content">
-      <!-- CẤU HÌNH PHÍ SHIP NẰM TẠI ĐÂY -->
       <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
         <h3 style="margin: 0; font-size: 16px; color: #1a2935;">🚚 Cấu hình Phí Ship:</h3>
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -178,10 +183,20 @@
           <input type="number" id="edit-sell-price">
         </div>
       </div>
+      
+      <!-- GIAO DIỆN QUẢN LÝ ẢNH MỚI -->
       <div class="form-group">
-        <label>Link Ảnh (Mỗi link 1 dòng):</label>
-        <textarea id="edit-images"></textarea>
+        <label>Hình Ảnh Sản Phẩm:</label>
+        <div id="image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <!-- Nút chọn file ẩn -->
+          <input type="file" id="image-upload-input" multiple accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+          <button type="button" class="btn-update" style="background: #38a169; flex: 1; padding: 10px;" onclick="document.getElementById('image-upload-input').click()">📸 Tải ảnh lên</button>
+          <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addManualImageLink()">🔗 Nhập link thủ công</button>
+        </div>
       </div>
+
       <div class="form-group">
         <label>Mô tả chi tiết:</label>
         <textarea id="edit-desc" style="height: 100px;"></textarea>
@@ -198,8 +213,14 @@
   </div>
 
   <script>
-    // === DÁN LINK WEB APP API VÀO ĐÂY ===
+    // === 1. DÁN LINK WEB APP CỦA GOOGLE SCRIPT VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
+    
+    // === 2. DÁN API KEY CỦA IMGBB VÀO ĐÂY ===
+    const IMGBB_API_KEY = "1bcd71570d9fbd88632b558feeb24b0c";
+
+    let globalProductsData = [];
+    let currentEditImages = []; // Biến lưu mảng ảnh của sản phẩm đang sửa
 
     function togglePassword() {
       let passInput = document.getElementById("admin-pass");
@@ -276,7 +297,6 @@
     }
 
     const STATUS_OPTIONS = ["Khách đặt hàng", "Đang chuẩn bị hàng", "Đã giao cho đơn vị vận chuyển", "Hoàn thành"];
-    let globalProductsData = [];
 
     function switchTab(tabId, element) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -303,12 +323,11 @@
         let resProducts = await fetch(API_URL + "?action=getProducts");
         let resData = await resProducts.json();
         
-        // Tương thích với cấu trúc JSON mới có chứa Phí Ship
         if (resData.products) {
           globalProductsData = resData.products;
           document.getElementById("edit-shipping-fee").value = resData.shippingFee;
         } else {
-          globalProductsData = resData; // Phòng khi dính cache cũ
+          globalProductsData = resData; 
         }
         
         renderInventory(globalProductsData);
@@ -404,7 +423,6 @@
       } catch (e) { alert("Lỗi cập nhật!"); showLoading(false); }
     }
     
-    // GỬI LỆNH LƯU PHÍ SHIP LÊN MÁY CHỦ
     async function updateShippingFee() {
       let newFee = document.getElementById("edit-shipping-fee").value;
       if (newFee === "") { alert("Vui lòng nhập phí ship hợp lệ!"); return; }
@@ -429,6 +447,80 @@
       } catch(e) { alert("Lỗi cập nhật phí ship!"); showLoading(false); }
     }
 
+    // ==========================================
+    // LOGIC QUẢN LÝ VÀ UPLOAD ẢNH (IMGBB)
+    // ==========================================
+    function renderImagePreviews() {
+      const container = document.getElementById("image-preview-container");
+      container.innerHTML = "";
+      if (currentEditImages.length === 0) {
+        container.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh nào. Bạn có thể up nhiều ảnh cùng lúc.</span>";
+        return;
+      }
+      currentEditImages.forEach((url, index) => {
+        container.innerHTML += `
+          <div class="img-preview-box">
+            <img src="${escapeHtml(url)}">
+            <button type="button" class="img-preview-remove" onclick="removeEditImage(${index})" title="Xóa ảnh này">✕</button>
+          </div>
+        `;
+      });
+    }
+
+    function removeEditImage(index) {
+      currentEditImages.splice(index, 1);
+      renderImagePreviews();
+    }
+
+    function addManualImageLink() {
+      let url = prompt("Nhập link ảnh (URL):");
+      if (url && url.trim() !== "") {
+        currentEditImages.push(url.trim());
+        renderImagePreviews();
+      }
+    }
+
+    async function handleImageUpload(input) {
+      const files = input.files;
+      if (!files || files.length === 0) return;
+      
+      if (IMGBB_API_KEY === "DÁN_API_KEY_IMGBB_VÀO_ĐÂY" || !IMGBB_API_KEY) {
+         alert("Bạn chưa cấu hình API Key của ImgBB trong mã nguồn. Vui lòng thiết lập để sử dụng tính năng này!");
+         input.value = "";
+         return;
+      }
+
+      showLoading(true);
+      
+      // Chạy vòng lặp để upload từng file lên ImgBB
+      for (let i = 0; i < files.length; i++) {
+        let formData = new FormData();
+        formData.append("image", files[i]);
+        
+        try {
+          let res = await fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_API_KEY, {
+            method: "POST",
+            body: formData
+          });
+          let data = await res.json();
+          if (data.success && data.data && data.data.url) {
+            currentEditImages.push(data.data.url);
+          } else {
+            alert("Không thể tải lên ảnh thứ " + (i + 1) + ". Có thể API Key không đúng.");
+          }
+        } catch(e) {
+          alert("Lỗi kết nối khi tải ảnh thứ " + (i + 1));
+        }
+      }
+      
+      input.value = ""; // Reset input file
+      renderImagePreviews();
+      showLoading(false);
+    }
+
+    // ==========================================
+    // LOGIC MODAL SẢN PHẨM
+    // ==========================================
     function openEditModal(productId) {
       let product = globalProductsData.find(p => p.id.toString() === productId.toString());
       if (!product) return;
@@ -437,9 +529,12 @@
       document.getElementById("edit-name").value = product.name;
       document.getElementById("edit-orig-price").value = product.originalPrice;
       document.getElementById("edit-sell-price").value = product.price;
-      document.getElementById("edit-images").value = product.rawImages; 
       document.getElementById("edit-desc").value = product.desc;
       document.getElementById("edit-stock").value = product.stock;
+      
+      // Khởi tạo mảng ảnh hiện tại của sản phẩm
+      currentEditImages = product.rawImages.split('\n').map(i => i.trim()).filter(i => i !== "");
+      renderImagePreviews();
       
       document.getElementById("edit-modal").style.display = "flex";
       document.body.style.overflow = "hidden"; 
@@ -458,7 +553,7 @@
         name: document.getElementById("edit-name").value,
         originalPrice: document.getElementById("edit-orig-price").value,
         price: document.getElementById("edit-sell-price").value,
-        images: document.getElementById("edit-images").value,
+        images: currentEditImages.join('\n'), // Gộp mảng ảnh lại thành chuỗi, cách nhau bằng \n để lưu vào Sheet
         desc: document.getElementById("edit-desc").value,
         stock: parseInt(document.getElementById("edit-stock").value) || 0
       };
