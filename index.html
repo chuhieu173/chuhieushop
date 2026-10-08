@@ -81,7 +81,7 @@
     #toast-notification { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 12px 24px; position: fixed; z-index: 10000; left: 50%; bottom: 30px; font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
     #toast-notification.show { visibility: visible; opacity: 1; bottom: 85px; }
 
-    /* GIAO DIỆN THANH TOÁN DƯỚI ĐÁY MÀN HÌNH (Luôn hiện, icon dồn sang phải) */
+    /* GIAO DIỆN THANH TOÁN DƯỚI ĐÁY MÀN HÌNH */
     #floating-cart { 
       position: fixed; bottom: 0; left: 0; width: 100%; background-color: white; 
       box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 1000; display: flex; 
@@ -141,7 +141,7 @@
     </div>
   </div>
 
-  <!-- KHU VỰC GIỎ HÀNG (Luôn hiện để chứa dòng thông báo khi trống) -->
+  <!-- KHU VỰC GIỎ HÀNG -->
   <div class="cart-section" id="cart-section">
     <h2>Giỏ hàng của bạn</h2>
     
@@ -152,7 +152,8 @@
     
     <div class="total-price" id="total-price" style="display: none;">Tổng cộng: 0đ</div>
 
-    <div id="checkout-form" style="margin-top: 30px; display: none;">
+    <!-- KHUNG ĐIỀN THÔNG TIN LUÔN HIỂN THỊ -->
+    <div id="checkout-form" style="margin-top: 30px;">
       <h3>Thông tin nhận hàng</h3>
       <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" required></div>
       <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" required></div>
@@ -427,7 +428,6 @@
 
     function updateCart() {
       const cartDiv = document.getElementById('cart-items');
-      const checkoutForm = document.getElementById('checkout-form');
       const totalPriceDiv = document.getElementById('total-price');
       
       cartDiv.innerHTML = '';
@@ -436,10 +436,8 @@
       const shippingFee = globalShippingFee; 
 
       if (cart.length > 0) { 
-        checkoutForm.style.display = 'block'; 
         totalPriceDiv.style.display = 'block'; 
       } else { 
-        checkoutForm.style.display = 'none'; 
         totalPriceDiv.style.display = 'none'; 
         cartDiv.innerHTML = '<div style="text-align:center; padding: 20px; color:#888; font-size: 15px; font-weight: 500;">Hãy thêm sản phẩm vào giỏ hàng</div>';
       }
@@ -469,8 +467,8 @@
       
       if (total > 0) {
         let finalTotal = total + shippingFee;
-        
         document.getElementById('floating-total-price').innerText = formatMoney(finalTotal);
+        
         document.getElementById('total-price').innerHTML = `
           <div style="font-size: 0.7em; color: #666; font-weight: normal;">Tiền hàng: ${formatMoney(total)}</div>
           <div style="font-size: 0.7em; color: #666; font-weight: normal;">Phí giao hàng: ${formatMoney(shippingFee)}</div>
@@ -479,6 +477,7 @@
       } else {
         document.getElementById('floating-total-price').innerText = "0đ";
       }
+      
       document.getElementById('cart-count').innerText = totalQty; 
     }
 
@@ -492,6 +491,12 @@
     }
 
     function checkout() {
+      // Bảo vệ: Chặn khách gửi đơn nếu giỏ hàng đang trống
+      if (cart.length === 0) {
+        alert("Giỏ hàng của bạn đang trống! Vui lòng chọn mua ít nhất 1 sản phẩm trước khi gửi tin nhắn đặt hàng.");
+        return;
+      }
+
       const name = document.getElementById('customer-name').value;
       const phone = document.getElementById('customer-phone').value;
       const detailAddress = document.getElementById('customer-address-detail').value;
