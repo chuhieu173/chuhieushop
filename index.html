@@ -192,7 +192,7 @@
   </div>
 
   <script>
-    // === DÁN LINK WEB APP CỦA GOOGLE SCRIPT VÀO DƯỚI ĐÂY ===
+    // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec"; 
     
     // === SỐ ĐIỆN THOẠI ZALO CỦA BẠN ===
@@ -202,6 +202,9 @@
     let productsData = [];
     let currentModalProductId = null;
     let currentModalImgIndex = 0;
+    
+    // Biến lưu trữ phí ship (mặc định 18k, sẽ tự đè lên khi load xong API)
+    let globalShippingFee = 20000;
 
     document.addEventListener("DOMContentLoaded", function() {
       loadProducts();
@@ -213,15 +216,22 @@
       let toast = document.getElementById("toast-notification");
       toast.innerText = message;
       toast.className = "show";
-      setTimeout(function(){ 
-        toast.className = toast.className.replace("show", ""); 
-      }, 3000);
+      setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
     async function loadProducts() {
       try {
         let response = await fetch(API_URL);
-        productsData = await response.json(); 
+        let resData = await response.json(); 
+        
+        // Cập nhật để hỗ trợ cấu trúc JSON mới có chứa biến shippingFee
+        if (resData.products) {
+          productsData = resData.products;
+          globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 20000;
+        } else {
+          productsData = resData; 
+        }
+        
         renderProducts(productsData);
       } catch (error) {
         document.getElementById('loading-text').innerHTML = "<span style='color:#ff4d4d;'>Không thể tải dữ liệu, vui lòng kiểm tra lại Link API!</span>";
@@ -279,9 +289,7 @@
       document.getElementById('image-modal').style.display = 'flex';
     }
 
-    function closeModal() {
-      document.getElementById('image-modal').style.display = 'none';
-    }
+    function closeModal() { document.getElementById('image-modal').style.display = 'none'; }
 
     function changeModalImg(delta) {
       let product = productsData.find(p => p.id === currentModalProductId);
@@ -309,10 +317,7 @@
           for (let i = 0; i < product.images.length; i++) {
             let dot = document.createElement('div');
             dot.className = 'modal-dot' + (i === currentModalImgIndex ? ' active' : '');
-            dot.onclick = function(event) { 
-              event.stopPropagation(); 
-              jumpToModalImg(i); 
-            };
+            dot.onclick = function(event) { event.stopPropagation(); jumpToModalImg(i); };
             dotsContainer.appendChild(dot);
           }
         }
@@ -322,26 +327,13 @@
     function setupModalSwipe() {
       const modal = document.getElementById('image-modal');
       let touchstartX = 0; let touchendX = 0;
-
-      modal.addEventListener('touchstart', e => {
-        if(e.touches.length > 1) return;
-        touchstartX = e.changedTouches[0].screenX;
-      });
-
-      modal.addEventListener('touchend', e => {
-        if(e.changedTouches.length > 1) return;
-        touchendX = e.changedTouches[0].screenX;
-        handleSwipe();
-      });
-
+      modal.addEventListener('touchstart', e => { if(e.touches.length > 1) return; touchstartX = e.changedTouches[0].screenX; });
+      modal.addEventListener('touchend', e => { if(e.changedTouches.length > 1) return; touchendX = e.changedTouches[0].screenX; handleSwipe(); });
       function handleSwipe() {
         if (touchendX < touchstartX - 50) changeModalImg(1);
         if (touchendX > touchstartX + 50) changeModalImg(-1);
       }
-
-      window.onclick = function(event) {
-        if (event.target == modal) closeModal();
-      }
+      window.onclick = function(event) { if (event.target == modal) closeModal(); }
     }
 
     function changeProductQty(id, delta) {
@@ -427,7 +419,6 @@
       
       qtyInput.value = 1; 
       updateCart();
-      
       showToast(`Đã thêm ${qtyToAdd} x [ ${name} ] vào giỏ!`);
     }
 
@@ -452,7 +443,7 @@
       cartDiv.innerHTML = '';
       let total = 0;
       let totalQty = 0; 
-      const shippingFee = 18000;
+      const shippingFee = globalShippingFee; // Lấy phí từ biến động thay vì fix cứng
 
       if (cart.length > 0) { 
         cartSection.style.display = 'block'; 
@@ -511,7 +502,7 @@
       const tinhName = tinhSelect.options[tinhSelect.selectedIndex]?.text || '';
       const phuongName = phuongSelect.options[phuongSelect.selectedIndex]?.text || '';
 
-      const shippingFee = 18000;
+      const shippingFee = globalShippingFee; // Lấy phí từ biến động thay vì fix cứng
 
       if (!name || !phone || !detailAddress || !tinhSelect.value || !phuongSelect.value) { 
         alert("Vui lòng điền đầy đủ Thông tin cá nhân và Địa chỉ nhận hàng!"); 
@@ -520,9 +511,6 @@
 
       let fullAddress = `${detailAddress}, ${phuongName}, ${tinhName}`;
 
-      // ====================================================
-      // Đã loại bỏ hoàn toàn biểu tượng cảm xúc (Icon) và tinh chỉnh cấu trúc
-      // ====================================================
       let orderText = "ĐƠN ĐẶT HÀNG MỚI\n";
       orderText += "Người nhận: " + name + "\n";
       orderText += "Sđt: " + phone + "\n";
@@ -583,5 +571,4 @@
       window.open("https://zalo.me/" + zaloPhone, "_blank");
     }
   </script>
-</body>
 </html>
