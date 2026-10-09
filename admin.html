@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f9; color: #333; -webkit-font-smoothing: antialiased; }
-    
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
     .login-box { background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 100%; max-width: 400px; box-sizing: border-box;}
     .login-box h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; color: #1a2935; font-size: 22px; margin-bottom: 20px;}
@@ -40,17 +39,19 @@
     .status-select { padding: 8px; border-radius: 4px; border: 1px solid #cbd5e0; font-family: 'Roboto', sans-serif; font-size: 13px; width: 100%; box-sizing: border-box; margin-bottom: 8px; background: white;}
     .btn-update { background: #0068ff; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s;}
     .btn-update:hover { background: #0055d4; }
+    .btn-delete { background: #e53e3e; }
+    .btn-delete:hover { background: #c53030; }
     .btn-logout { background: #e53e3e; }
     .btn-logout:hover { background: #c53030; }
     .stock-warning { color: #c53030; font-weight: bold; background: #fed7d7; padding: 4px 8px; border-radius: 4px; display: inline-block;}
     
     .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px);}
-    .edit-content { background: white; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border-radius: 12px; padding: 25px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    .edit-content { background: white; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; border-radius: 12px; padding: 25px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
     .edit-content h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; margin-bottom: 20px; color: #1a2935; border-bottom: 2px solid #edf2f7; padding-bottom: 10px;}
     .form-group { margin-bottom: 15px; }
     .form-group label { display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 8px; }
-    .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-family: 'Roboto', sans-serif; font-size: 14px; transition: border-color 0.2s;}
-    .form-group input:focus, .form-group textarea:focus { border-color: #0068ff; outline: none; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-family: 'Roboto', sans-serif; font-size: 14px; transition: border-color 0.2s; outline: none; background: white;}
+    .form-group input:focus, .form-group textarea:focus { border-color: #0068ff; }
     .form-group textarea { height: 80px; resize: vertical; }
     .edit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
     .btn-cancel { background: #e2e8f0; color: #4a5568; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
@@ -63,18 +64,22 @@
     @keyframes spin { 100% { transform: rotate(360deg); } }
     .loading-text { font-weight: bold; font-size: 16px; color: #0068ff; font-family: 'Montserrat', sans-serif;}
 
-    /* CSS Giao diện quản lý ảnh */
     .img-preview-box { position: relative; width: 80px; height: 80px; border: 1px solid #cbd5e0; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
     .img-preview-remove { position: absolute; top: 4px; right: 4px; background: rgba(229, 62, 62, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.2s;}
     .img-preview-remove:hover { background: #c53030; }
+
+    /* List Combo Item Component */
+    .combo-item-row { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; margin-bottom: 8px;}
+    .combo-item-name { font-weight: 500; font-size: 14px; flex: 1;}
+    .combo-item-qty { font-weight: bold; color: #2b6cb0; margin: 0 15px;}
 
     @media (max-width: 768px) {
       .header { flex-direction: column; padding: 15px; text-align: center; gap: 15px; }
       .header-actions { width: 100%; justify-content: center; }
       .content { padding: 15px; }
       .nav-tabs { padding: 0; justify-content: space-between; }
-      .tab { padding: 15px 10px; font-size: 13px; text-align: center; flex: 1; }
+      .tab { padding: 15px 5px; font-size: 12px; text-align: center; flex: 1; }
       table, thead, tbody, th, td, tr { display: block; }
       thead tr { position: absolute; top: -9999px; left: -9999px; }
       tr { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 15px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 5px;}
@@ -115,6 +120,7 @@
     <div class="nav-tabs">
       <div class="tab active" onclick="switchTab('orders', this)">📦 QUẢN LÝ ĐƠN HÀNG</div>
       <div class="tab" onclick="switchTab('inventory', this)">🏬 KHO & SẢN PHẨM</div>
+      <div class="tab" onclick="switchTab('combos', this)">🎁 QUẢN LÝ COMBO</div>
     </div>
 
     <div id="loading-overlay">
@@ -122,23 +128,15 @@
       <div class="loading-text">Đang đồng bộ dữ liệu...</div>
     </div>
 
+    <!-- TAB ĐƠN HÀNG -->
     <div id="orders" class="content active">
       <table>
-        <thead>
-          <tr>
-            <th>Mã ĐH</th>
-            <th>Thời gian</th>
-            <th>Khách hàng</th>
-            <th style="width: 28%;">Chi tiết Đơn hàng</th>
-            <th>Tổng tiền</th>
-            <th>Trạng thái</th>
-            <th style="width: 15%;">Cập nhật</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Mã ĐH</th><th>Thời gian</th><th>Khách hàng</th><th style="width: 28%;">Chi tiết Đơn hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th style="width: 15%;">Cập nhật</th></tr></thead>
         <tbody id="orders-body"></tbody>
       </table>
     </div>
 
+    <!-- TAB SẢN PHẨM -->
     <div id="inventory" class="content">
       <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
         <h3 style="margin: 0; font-size: 16px; color: #1a2935;">🚚 Cấu hình Phí Ship:</h3>
@@ -148,63 +146,45 @@
         </div>
         <button class="btn-update" onclick="updateShippingFee()" style="background: #2b6cb0;">Lưu Cấu Hình</button>
       </div>
-
       <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Hình ảnh</th>
-            <th style="width: 30%;">Sản phẩm & Mô tả</th>
-            <th>Giá bán</th>
-            <th>Tồn kho</th>
-            <th style="width: 12%;">Thao tác</th>
-          </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Hình ảnh</th><th style="width: 30%;">Sản phẩm & Mô tả</th><th>Giá bán</th><th>Tồn kho</th><th style="width: 12%;">Thao tác</th></tr></thead>
         <tbody id="inventory-body"></tbody>
+      </table>
+    </div>
+
+    <!-- TAB COMBO -->
+    <div id="combos" class="content">
+      <div style="margin-bottom: 20px;">
+        <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px;" onclick="openComboModal()">+ TẠO COMBO MỚI</button>
+      </div>
+      <table>
+        <thead><tr><th>ID Combo</th><th>Ảnh Nội Suy</th><th style="width: 30%;">Tên Combo & Thành Phần</th><th>Giá Tự Động</th><th>Kho Tự Động</th><th style="width: 15%;">Thao tác</th></tr></thead>
+        <tbody id="combos-body"></tbody>
       </table>
     </div>
   </div>
 
+  <!-- MODAL SẢN PHẨM -->
   <div id="edit-modal" class="edit-modal">
     <div class="edit-content">
       <h2>Chỉnh sửa Sản Phẩm</h2>
       <input type="hidden" id="edit-id">
-      <div class="form-group">
-        <label>Tên Sản Phẩm:</label>
-        <input type="text" id="edit-name">
-      </div>
+      <div class="form-group"><label>Tên Sản Phẩm:</label><input type="text" id="edit-name"></div>
       <div style="display:flex; gap:15px;">
-        <div class="form-group" style="flex:1;">
-          <label>Giá Gốc (VNĐ):</label>
-          <input type="number" id="edit-orig-price">
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label>Giá Bán (VNĐ):</label>
-          <input type="number" id="edit-sell-price">
-        </div>
+        <div class="form-group" style="flex:1;"><label>Giá Gốc (VNĐ):</label><input type="number" id="edit-orig-price"></div>
+        <div class="form-group" style="flex:1;"><label>Giá Bán (VNĐ):</label><input type="number" id="edit-sell-price"></div>
       </div>
-      
-      <!-- GIAO DIỆN QUẢN LÝ ẢNH MỚI -->
       <div class="form-group">
         <label>Hình Ảnh Sản Phẩm:</label>
         <div id="image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
-        
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <!-- Nút chọn file ẩn -->
           <input type="file" id="image-upload-input" multiple accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
           <button type="button" class="btn-update" style="background: #38a169; flex: 1; padding: 10px;" onclick="document.getElementById('image-upload-input').click()">📸 Tải ảnh lên</button>
           <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addManualImageLink()">🔗 Nhập link thủ công</button>
         </div>
       </div>
-
-      <div class="form-group">
-        <label>Mô tả chi tiết:</label>
-        <textarea id="edit-desc" style="height: 100px;"></textarea>
-      </div>
-      <div class="form-group">
-        <label>Số lượng tồn kho thực tế:</label>
-        <input type="number" id="edit-stock" style="font-size: 16px; font-weight: bold; color: #e53e3e;">
-      </div>
+      <div class="form-group"><label>Mô tả chi tiết:</label><textarea id="edit-desc" style="height: 100px;"></textarea></div>
+      <div class="form-group"><label>Số lượng tồn kho thực tế:</label><input type="number" id="edit-stock" style="font-size: 16px; font-weight: bold; color: #e53e3e;"></div>
       <div class="edit-actions">
         <button class="btn-cancel" onclick="closeEditModal()">Hủy bỏ</button>
         <button class="btn-save" onclick="saveProductChanges()">Lưu thay đổi</button>
@@ -212,36 +192,57 @@
     </div>
   </div>
 
+  <!-- MODAL COMBO MỚI -->
+  <div id="combo-modal" class="edit-modal">
+    <div class="edit-content">
+      <h2 id="combo-modal-title">Tạo Combo Mới</h2>
+      <input type="hidden" id="combo-edit-id">
+      <div class="form-group"><label>Tên Combo Đặc Biệt:</label><input type="text" id="combo-name" placeholder="VD: Combo Mùa Hè Năng Động"></div>
+      <div class="form-group"><label>Mô tả ngắn gọn:</label><textarea id="combo-desc" style="height: 60px;" placeholder="Dòng chữ nhỏ hiển thị dưới tên combo..."></textarea></div>
+      
+      <div style="background: #f8fafc; border: 1px dashed #cbd5e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <h4 style="margin:0 0 10px 0; color:#2d3748; font-family:'Montserrat';">Thành Phần Combo</h4>
+        <div style="display:flex; flex-wrap: wrap; gap:10px; margin-bottom: 15px;">
+          <!-- Ô chọn sản phẩm chiếm 100% chiều ngang -->
+          <select id="combo-add-prod" style="flex: 1 1 100%;"><option value="">-- Chọn sản phẩm lẻ --</option></select>
+          
+          <!-- Cụm số lượng và nút Thêm nằm ngay bên dưới -->
+          <div style="display:flex; gap:10px; width: 100%;">
+            <input type="number" id="combo-add-qty" value="1" min="1" style="width:70px; text-align:center; flex-shrink:0;">
+            <button type="button" class="btn-update" onclick="addComboItem()" style="background:#2b6cb0; flex: 1; padding: 10px; margin: 0;">Thêm vào Combo</button>
+          </div>
+        </div>
+        <div id="combo-items-list"></div>
+      </div>
+
+      <!-- Preview Giá trị thực của Combo -->
+      <div style="display:flex; justify-content:space-between; background:#edf2f7; padding:15px; border-radius:8px; font-weight:bold; margin-bottom: 20px;">
+        <div>Tổng Giá Bán: <span id="combo-preview-price" style="color:#e53e3e; font-size:18px;">0đ</span></div>
+        <div>Tồn Kho Tối Đa: <span id="combo-preview-stock" style="color:#2f855a; font-size:18px;">0</span></div>
+      </div>
+
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="closeComboModal()">Hủy bỏ</button>
+        <button class="btn-save" onclick="saveComboChanges()">Lưu Combo</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // === 1. DÁN LINK WEB APP CỦA GOOGLE SCRIPT VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
-    
-    // (Key ImgBB giờ nằm trong Script properties của Apps Script, KHÔNG để ở đây)
 
     let globalProductsData = [];
-    let currentEditImages = []; // Biến lưu mảng ảnh của sản phẩm đang sửa
+    let globalCombosData = [];
+    let currentEditImages = []; 
+    let currentComboItems = []; // Lưu trạng thái thành phần combo đang soạn thảo
 
-    function togglePassword() {
-      let passInput = document.getElementById("admin-pass");
-      passInput.type = passInput.type === "password" ? "text" : "password";
+    function togglePassword() { let p = document.getElementById("admin-pass"); p.type = p.type === "password" ? "text" : "password"; }
+    async function sha256(msg) {
+      const buffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+      return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-
-    async function sha256(message) {
-      const msgBuffer = new TextEncoder().encode(message);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    function escapeHtml(str) {
-      if (str === null || str === undefined) return '';
-      return str.toString()
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
+    function escapeHtml(str) { return (str || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+    function formatMoney(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ"; }
 
     document.addEventListener("DOMContentLoaded", function() {
       if (sessionStorage.getItem("adminToken")) {
@@ -254,44 +255,20 @@
     async function login() {
       let plainPass = document.getElementById("admin-pass").value;
       if(!plainPass) return;
-      
-      let btn = document.getElementById("btn-login");
-      btn.innerText = "Đang kiểm tra...";
-      btn.disabled = true;
-
+      let btn = document.getElementById("btn-login"); btn.innerText = "Đang kiểm tra..."; btn.disabled = true;
       try {
         let hashedPass = await sha256(plainPass);
-        let res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: "login", password: hashedPass })
-        });
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "login", password: hashedPass }) });
         let data = await res.json();
-        
-        if (data.status === "success") {
-          sessionStorage.setItem("adminToken", data.token);
-          document.getElementById("login-overlay").style.display = "none";
-          document.getElementById("admin-app").style.display = "block";
-          loadData();
-        } else {
-          document.getElementById("login-error").style.display = "block";
-        }
-      } catch (e) { alert("Lỗi mạng, không thể kết nối tới máy chủ."); }
-      
-      btn.innerText = "ĐĂNG NHẬP";
-      btn.disabled = false;
+        if (data.status === "success") { sessionStorage.setItem("adminToken", data.token); document.getElementById("login-overlay").style.display = "none"; document.getElementById("admin-app").style.display = "block"; loadData(); } 
+        else { document.getElementById("login-error").style.display = "block"; }
+      } catch (e) { alert("Lỗi mạng!"); }
+      btn.innerText = "ĐĂNG NHẬP"; btn.disabled = false;
     }
 
     async function logout() {
-      let token = sessionStorage.getItem("adminToken");
-      sessionStorage.removeItem("adminToken");
-      try {
-        await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: "logout", token: token })
-        });
-      } catch (e) {}
+      let token = sessionStorage.getItem("adminToken"); sessionStorage.removeItem("adminToken");
+      try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "logout", token: token }) }); } catch (e) {}
       location.reload();
     }
 
@@ -307,16 +284,11 @@
     function showLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
 
     async function loadData() {
-      let token = sessionStorage.getItem("adminToken");
-      showLoading(true);
+      let token = sessionStorage.getItem("adminToken"); showLoading(true);
       try {
-        let resOrders = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: "getOrders", token: token })
-        });
+        let resOrders = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getOrders", token: token }) });
         let orders = await resOrders.json();
-        if(orders.status === "error") { if (orders.code === "AUTH") { logout(); } else { alert(orders.msg || "Có lỗi xảy ra"); showLoading(false); } return; }
+        if(orders.status === "error") { if(orders.code==="AUTH") logout(); else alert(orders.msg); return; }
         renderOrders(orders);
         
         let resProducts = await fetch(API_URL + "?action=getProducts");
@@ -324,280 +296,278 @@
         
         if (resData.products) {
           globalProductsData = resData.products;
+          globalCombosData = resData.combos || [];
           document.getElementById("edit-shipping-fee").value = resData.shippingFee;
-        } else {
-          globalProductsData = resData; 
-        }
+        } else { globalProductsData = resData; }
         
         renderInventory(globalProductsData);
+        renderCombos(globalCombosData);
+        updateComboSelectOptions();
       } catch (e) { alert("Lỗi kết nối máy chủ Google!"); }
       showLoading(false);
     }
 
     function renderOrders(orders) {
-      const tbody = document.getElementById('orders-body');
-      tbody.innerHTML = "";
+      const tbody = document.getElementById('orders-body'); tbody.innerHTML = "";
       if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
-
       orders.forEach(order => {
         let selectHtml = `<select id="status-${order.row}" class="status-select">`;
-        STATUS_OPTIONS.forEach(opt => {
-          let selected = (order.status === opt) ? "selected" : "";
-          selectHtml += `<option value="${opt}" ${selected}>${opt}</option>`;
-        });
-        selectHtml += `</select>`;
-
-        tbody.innerHTML += `
-          <tr>
+        STATUS_OPTIONS.forEach(opt => { selectHtml += `<option value="${opt}" ${order.status === opt ? "selected" : ""}>${opt}</option>`; }); selectHtml += `</select>`;
+        tbody.innerHTML += `<tr>
             <td data-label="Mã ĐH"><b>${escapeHtml(order.orderId)}</b></td>
             <td data-label="Thời gian"><span style="color:#718096;">${escapeHtml(order.date)}</span></td>
-            <td data-label="Khách hàng">
-              <b>${escapeHtml(order.name)}</b><br>
-              <span style="color:#0068ff; display:inline-block; margin-top:4px;">📞 ${escapeHtml(order.phone)}</span>
-            </td>
+            <td data-label="Khách hàng"><b>${escapeHtml(order.name)}</b><br><span style="color:#0068ff; margin-top:4px;">📞 ${escapeHtml(order.phone)}</span></td>
             <td data-label="Chi tiết Đơn hàng" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${escapeHtml(order.details)}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${escapeHtml(order.total)}</td>
-            <td data-label="Trạng thái">
-              <span style="font-weight: 500; color: #2b6cb0;">${escapeHtml(order.status)}</span>
-            </td>
-            <td data-label="Thao tác">
-              ${selectHtml}
-              <button class="btn-update" onclick="updateOrderStatus(${order.row})">Lưu trạng thái</button>
-            </td>
-          </tr>
-        `;
+            <td data-label="Trạng thái"><span style="font-weight: 500; color: #2b6cb0;">${escapeHtml(order.status)}</span></td>
+            <td data-label="Thao tác">${selectHtml}<button class="btn-update" onclick="updateOrderStatus(${order.row})">Lưu</button></td>
+          </tr>`;
       });
     }
 
     function renderInventory(products) {
-      const tbody = document.getElementById('inventory-body');
-      tbody.innerHTML = "";
+      const tbody = document.getElementById('inventory-body'); tbody.innerHTML = "";
       products.forEach(p => {
-        let stockHtml = p.stock <= 2 
-            ? `<span class="stock-warning">${p.stock} (Sắp hết)</span>` 
-            : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${p.stock}</span>`;
-            
+        let stockHtml = p.stock <= 2 ? `<span class="stock-warning">${p.stock} (Sắp hết)</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${p.stock}</span>`;
         let firstImg = p.images && p.images.length > 0 ? p.images[0] : "";
-        let origHtml = p.originalPrice > 0 ? `<div style="text-decoration:line-through; color:#a0aec0; font-size:12px;">${Number(p.originalPrice).toLocaleString()}đ</div>` : '';
-
-        tbody.innerHTML += `
-          <tr>
-            <td data-label="ID Sản Phẩm" style="color:#718096; font-size: 13px;">${escapeHtml(p.id)}</td>
+        tbody.innerHTML += `<tr>
+            <td data-label="ID" style="color:#718096; font-size: 13px;">${escapeHtml(p.id)}</td>
             <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
-            <td data-label="Sản phẩm & Mô tả">
-              <b style="font-size:15px; color: #2d3748;">${escapeHtml(p.name)}</b>
-              <div style="font-size:13px; color:#718096; margin-top:6px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4;">${escapeHtml(p.desc)}</div>
-            </td>
-            <td data-label="Giá bán">
-              ${origHtml}
-              <div style="color:#e53e3e; font-weight:bold; font-size:15px;">${Number(p.price).toLocaleString()}đ</div>
-            </td>
+            <td data-label="Sản phẩm"><b style="font-size:15px;">${escapeHtml(p.name)}</b></td>
+            <td data-label="Giá bán"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(p.price)}</div></td>
             <td data-label="Tồn kho">${stockHtml}</td>
+            <td data-label="Thao tác"><button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button></td>
+          </tr>`;
+      });
+    }
+
+    // HIỂN THỊ DANH SÁCH COMBO BÊN TAB QUẢN LÝ
+    function renderCombos(combos) {
+      const tbody = document.getElementById('combos-body'); tbody.innerHTML = "";
+      if(combos.length === 0) { tbody.innerHTML = "<tr><td colspan='6'>Chưa có Combo nào. Bạn hãy tạo mới nhé!</td></tr>"; return; }
+      
+      combos.forEach(c => {
+        let itemsHtml = c.rawItems.map(i => `• ${escapeHtml(i.name)} (x${i.qty})`).join('<br>');
+        let stockHtml = c.stock <= 2 ? `<span class="stock-warning">${c.stock}</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${c.stock}</span>`;
+        let firstImg = c.images && c.images.length > 0 ? c.images[0] : "";
+        
+        tbody.innerHTML += `<tr>
+            <td data-label="ID Combo" style="color:#718096; font-size: 13px;">${escapeHtml(c.id)}</td>
+            <td data-label="Ảnh Nội Suy"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Tên & Thành Phần"><b style="font-size:15px; color:#c53030;">[COMBO] ${escapeHtml(c.name)}</b><div style="font-size:12px; color:#718096; margin-top:5px;">${itemsHtml}</div></td>
+            <td data-label="Giá Tự Động"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(c.price)}</div></td>
+            <td data-label="Kho Tự Động">${stockHtml}</td>
             <td data-label="Thao tác">
-              <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa thông tin</button>
+              <button class="btn-update" onclick="openComboModal('${c.id}')" style="margin-bottom:5px;">Sửa</button>
+              <button class="btn-update btn-delete" onclick="deleteCombo('${c.id}')">Xóa</button>
             </td>
-          </tr>
-        `;
+          </tr>`;
       });
     }
 
     async function updateOrderStatus(rowIdx) {
       let newStatus = document.getElementById(`status-${rowIdx}`).value;
-      if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Lưu ý: Chuyển sang "Đã giao..." sẽ tự động trừ kho sản phẩm)`)) return;
-
+      if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." sẽ tự động phân giải combo trừ kho SP)`)) return;
       showLoading(true);
       try {
-        let payload = { 
-          action: "updateOrderStatus", 
-          token: sessionStorage.getItem("adminToken"),
-          row: rowIdx, 
-          newStatus: newStatus 
-        };
-        let res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+        let payload = { action: "updateOrderStatus", token: sessionStorage.getItem("adminToken"), row: rowIdx, newStatus: newStatus };
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
-        if(data.status === "error") { if (data.code === "AUTH") { logout(); } else { alert(data.msg || "Có lỗi xảy ra"); showLoading(false); } return; }
-        
-        alert("Đã cập nhật trạng thái đơn hàng!");
-        loadData(); 
-      } catch (e) { alert("Lỗi cập nhật!"); showLoading(false); }
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Đã cập nhật!"); loadData(); 
+      } catch (e) { alert("Lỗi!"); showLoading(false); }
     }
     
     async function updateShippingFee() {
       let newFee = document.getElementById("edit-shipping-fee").value;
-      if (newFee === "" || !/^\d+$/.test(newFee) || Number(newFee) > 1000000) { alert("Phí ship phải là số nguyên từ 0 đến 1.000.000!"); return; }
-      
+      if (newFee === "" || !/^\d+$/.test(newFee)) { alert("Phí ship không hợp lệ!"); return; }
       showLoading(true);
       try {
-        let payload = {
-          action: "updateShippingFee",
-          token: sessionStorage.getItem("adminToken"),
-          shippingFee: parseInt(newFee) || 0
-        };
-        let res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateShippingFee", token: sessionStorage.getItem("adminToken"), shippingFee: parseInt(newFee) || 0 }) });
         let data = await res.json();
-        if(data.status === "error") { if (data.code === "AUTH") { logout(); } else { alert(data.msg || "Có lỗi xảy ra"); showLoading(false); } return; }
-        
-        alert("Đã cập nhật cấu hình Phí Ship thành công!");
-        loadData();
-      } catch(e) { alert("Lỗi cập nhật phí ship!"); showLoading(false); }
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Cập nhật Phí Ship thành công!"); loadData();
+      } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
     // ==========================================
-    // LOGIC QUẢN LÝ VÀ UPLOAD ẢNH (IMGBB)
+    // LOGIC MODAL QUẢN LÝ COMBO
     // ==========================================
-    function renderImagePreviews() {
-      const container = document.getElementById("image-preview-container");
-      container.innerHTML = "";
-      if (currentEditImages.length === 0) {
-        container.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh nào. Bạn có thể up nhiều ảnh cùng lúc.</span>";
-        return;
+    function updateComboSelectOptions() {
+      let sel = document.getElementById('combo-add-prod');
+      sel.innerHTML = '<option value="">-- Chọn sản phẩm lẻ --</option>';
+      globalProductsData.forEach(p => { sel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)} - Tồn: ${p.stock}</option>`; });
+    }
+
+    function renderComboItemsPreview() {
+      const list = document.getElementById("combo-items-list");
+      list.innerHTML = "";
+      let totalPrice = 0; let maxStock = Infinity;
+      
+      if(currentComboItems.length === 0) {
+         list.innerHTML = "<span style='font-size:13px; color:#a0aec0;'>Chưa chọn sản phẩm nào...</span>";
+         maxStock = 0;
+      } else {
+         currentComboItems.forEach((it, index) => {
+            let p = globalProductsData.find(prod => prod.id === it.id);
+            if(p) {
+               totalPrice += Number(p.price) * it.qty;
+               let possible = Math.floor(p.stock / it.qty);
+               if(possible < maxStock) maxStock = possible;
+               
+               list.innerHTML += `<div class="combo-item-row">
+                  <span class="combo-item-name">${escapeHtml(p.name)}</span>
+                  <span class="combo-item-qty">x${it.qty}</span>
+                  <button type="button" class="btn-update btn-delete" style="padding: 4px 8px; font-size:11px;" onclick="removeComboItem(${index})">Xóa</button>
+               </div>`;
+            }
+         });
+         if(maxStock === Infinity) maxStock = 0;
       }
-      currentEditImages.forEach((url, index) => {
-        container.innerHTML += `
-          <div class="img-preview-box">
-            <img src="${escapeHtml(url)}">
-            <button type="button" class="img-preview-remove" onclick="removeEditImage(${index})" title="Xóa ảnh này">✕</button>
-          </div>
-        `;
-      });
+      
+      document.getElementById("combo-preview-price").innerText = formatMoney(totalPrice);
+      document.getElementById("combo-preview-stock").innerText = maxStock;
     }
 
-    function removeEditImage(index) {
-      currentEditImages.splice(index, 1);
-      renderImagePreviews();
+    function addComboItem() {
+      let sel = document.getElementById('combo-add-prod');
+      let qtyInput = document.getElementById('combo-add-qty');
+      let id = sel.value; let qty = parseInt(qtyInput.value);
+      if(!id || isNaN(qty) || qty < 1) return;
+      
+      let existing = currentComboItems.find(i => i.id === id);
+      if(existing) existing.qty += qty;
+      else currentComboItems.push({id: id, qty: qty});
+      
+      sel.value = ""; qtyInput.value = 1;
+      renderComboItemsPreview();
     }
 
-    function addManualImageLink() {
-      let url = (prompt("Nhập link ảnh (bắt buộc bắt đầu bằng https://):") || "").trim();
-      if (!url) return;
-      let ok = false;
-      try { ok = new URL(url).protocol === "https:"; } catch (e) {}
-      if (!ok || /[\s"'<>]/.test(url)) { alert("Link không hợp lệ. Chỉ chấp nhận link https://"); return; }
-      currentEditImages.push(url);
-      renderImagePreviews();
+    function removeComboItem(index) {
+      currentComboItems.splice(index, 1);
+      renderComboItemsPreview();
     }
 
-    // Thu nhỏ + nén ảnh ở trình duyệt (tối đa 1600px, JPEG) rồi trả về chuỗi base64
-    function resizeImageToBase64(file, maxSize, quality) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        const objUrl = URL.createObjectURL(file);
-        img.onload = () => {
-          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          const ctx = canvas.getContext("2d");
-          ctx.fillStyle = "#fff";                       // nền trắng cho ảnh PNG trong suốt
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(objUrl);
-          resolve(canvas.toDataURL("image/jpeg", quality).split(",")[1]);
-        };
-        img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error("Không đọc được ảnh")); };
-        img.src = objUrl;
-      });
-    }
-
-    async function handleImageUpload(input) {
-      const files = Array.from(input.files || []);
-      if (files.length === 0) return;
-      if (files.length > 10) { alert("Mỗi lần chỉ nên tải tối đa 10 ảnh."); input.value = ""; return; }
-
-      showLoading(true);
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        if (!f.type.startsWith("image/") || f.size > 20 * 1024 * 1024) {
-          alert("Bỏ qua file " + (i + 1) + ": không phải ảnh hoặc quá lớn (>20MB).");
-          continue;
-        }
-        try {
-          const b64 = await resizeImageToBase64(f, 1600, 0.85);
-          const res = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: "uploadImage", token: sessionStorage.getItem("adminToken"), imageBase64: b64 })
-          });
-          const data = await res.json();
-          if (data.status === "success" && data.url) {
-            currentEditImages.push(data.url);
-          } else if (data.code === "AUTH") {
-            alert("Phiên đăng nhập đã hết hạn."); logout(); return;
-          } else {
-            alert("Ảnh thứ " + (i + 1) + ": " + (data.msg || "tải lên thất bại"));
-          }
-        } catch (e) {
-          alert("Lỗi khi xử lý/tải ảnh thứ " + (i + 1));
-        }
+    function openComboModal(comboId = null) {
+      updateComboSelectOptions();
+      if(comboId) {
+         let combo = globalCombosData.find(c => c.id === comboId);
+         if(!combo) return;
+         document.getElementById("combo-modal-title").innerText = "Chỉnh Sửa Combo";
+         document.getElementById("combo-edit-id").value = combo.id;
+         document.getElementById("combo-name").value = combo.name;
+         document.getElementById("combo-desc").value = combo.desc;
+         try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
+      } else {
+         document.getElementById("combo-modal-title").innerText = "Tạo Combo Mới";
+         document.getElementById("combo-edit-id").value = "";
+         document.getElementById("combo-name").value = "";
+         document.getElementById("combo-desc").value = "";
+         currentComboItems = [];
       }
-      input.value = "";
-      renderImagePreviews();
-      showLoading(false);
+      renderComboItemsPreview();
+      document.getElementById("combo-modal").style.display = "flex";
+      document.body.style.overflow = "hidden";
     }
 
-    // ==========================================
-    // LOGIC MODAL SẢN PHẨM
-    // ==========================================
-    function openEditModal(productId) {
-      let product = globalProductsData.find(p => p.id.toString() === productId.toString());
-      if (!product) return;
-      
-      document.getElementById("edit-id").value = product.id;
-      document.getElementById("edit-name").value = product.name;
-      document.getElementById("edit-orig-price").value = product.originalPrice;
-      document.getElementById("edit-sell-price").value = product.price;
-      document.getElementById("edit-desc").value = product.desc;
-      document.getElementById("edit-stock").value = product.stock;
-      
-      // Khởi tạo mảng ảnh hiện tại của sản phẩm
-      currentEditImages = product.rawImages.split('\n').map(i => i.trim()).filter(i => i !== "");
-      renderImagePreviews();
-      
-      document.getElementById("edit-modal").style.display = "flex";
-      document.body.style.overflow = "hidden"; 
-    }
-
-    function closeEditModal() {
-      document.getElementById("edit-modal").style.display = "none";
+    function closeComboModal() {
+      document.getElementById("combo-modal").style.display = "none";
       document.body.style.overflow = "auto";
     }
 
-    async function saveProductChanges() {
-      let payload = {
-        action: "updateProduct",
-        token: sessionStorage.getItem("adminToken"),
-        productId: document.getElementById("edit-id").value,
-        name: document.getElementById("edit-name").value,
-        originalPrice: document.getElementById("edit-orig-price").value,
-        price: document.getElementById("edit-sell-price").value,
-        images: currentEditImages.join('\n'), // Gộp mảng ảnh lại thành chuỗi, cách nhau bằng \n để lưu vào Sheet
-        desc: document.getElementById("edit-desc").value,
-        stock: parseInt(document.getElementById("edit-stock").value) || 0
-      };
-
-      if(!payload.name || payload.price === "") {
-        alert("Tên và Giá bán không được để trống!"); return;
-      }
-
-      showLoading(true);
-      closeEditModal();
+    async function saveComboChanges() {
+      let cId = document.getElementById("combo-edit-id").value;
+      let cName = document.getElementById("combo-name").value;
+      let cDesc = document.getElementById("combo-desc").value;
       
+      if(!cName) { alert("Tên Combo không được bỏ trống!"); return; }
+      if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
+
+      showLoading(true); closeComboModal();
+      let payload = { action: "saveCombo", token: sessionStorage.getItem("adminToken"), comboId: cId, name: cName, desc: cDesc, items: JSON.stringify(currentComboItems) };
       try {
-        let res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
-        if(data.status === "error") { if (data.code === "AUTH") { logout(); } else { alert(data.msg || "Có lỗi xảy ra"); showLoading(false); } return; }
-        
-        alert("Lưu thay đổi thành công!");
-        loadData();
-      } catch (e) { alert("Lỗi khi lưu dữ liệu!"); showLoading(false); }
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Đã lưu Combo thành công!"); loadData();
+      } catch (e) { alert("Lỗi khi lưu!"); showLoading(false); }
+    }
+
+    async function deleteCombo(comboId) {
+      if(!confirm("Bạn có chắc chắn muốn xóa Combo này không? (Thao tác này không ảnh hưởng đến sản phẩm lẻ)")) return;
+      showLoading(true);
+      try {
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deleteCombo", token: sessionStorage.getItem("adminToken"), comboId: comboId }) });
+        let data = await res.json();
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Đã xóa Combo!"); loadData();
+      } catch(e) { alert("Lỗi!"); showLoading(false); }
+    }
+
+    // ==========================================
+    // LOGIC MODAL SẢN PHẨM & UPLOAD ẢNH
+    // ==========================================
+    function renderImagePreviews() {
+      const c = document.getElementById("image-preview-container"); c.innerHTML = "";
+      if (currentEditImages.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh.</span>"; return; }
+      currentEditImages.forEach((url, idx) => {
+        c.innerHTML += `<div class="img-preview-box"><img src="${escapeHtml(url)}"><button type="button" class="img-preview-remove" onclick="removeEditImage(${idx})">✕</button></div>`;
+      });
+    }
+    function removeEditImage(idx) { currentEditImages.splice(idx, 1); renderImagePreviews(); }
+    function addManualImageLink() {
+      let url = (prompt("Nhập link ảnh (bắt buộc bắt đầu bằng https://):") || "").trim();
+      if (!url) return;
+      if (!/^https:\/\//.test(url) || /[\s"'<>]/.test(url)) { alert("Link không hợp lệ. Chỉ chấp nhận https://"); return; }
+      currentEditImages.push(url); renderImagePreviews();
+    }
+    function resizeImageToBase64(file, maxSize, quality) {
+      return new Promise((resolve, reject) => {
+        const img = new Image(); const objUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas"); canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(objUrl); resolve(canvas.toDataURL("image/jpeg", quality).split(",")[1]);
+        };
+        img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error("Lỗi đọc ảnh")); }; img.src = objUrl;
+      });
+    }
+    async function handleImageUpload(input) {
+      const files = Array.from(input.files || []); if (files.length === 0) return;
+      if (files.length > 10) { alert("Tối đa 10 ảnh."); input.value = ""; return; }
+      showLoading(true);
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        if (!f.type.startsWith("image/") || f.size > 20*1024*1024) { alert("Bỏ qua file " + (i+1)); continue; }
+        try {
+          const b64 = await resizeImageToBase64(f, 1600, 0.85);
+          const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "uploadImage", token: sessionStorage.getItem("adminToken"), imageBase64: b64 }) });
+          const data = await res.json();
+          if (data.status === "success" && data.url) { currentEditImages.push(data.url); }
+          else if (data.code === "AUTH") { logout(); return; } else { alert(data.msg); }
+        } catch (e) { alert("Lỗi tải ảnh"); }
+      }
+      input.value = ""; renderImagePreviews(); showLoading(false);
+    }
+    function openEditModal(pId) {
+      let p = globalProductsData.find(x => x.id.toString() === pId.toString()); if (!p) return;
+      document.getElementById("edit-id").value = p.id; document.getElementById("edit-name").value = p.name;
+      document.getElementById("edit-orig-price").value = p.originalPrice; document.getElementById("edit-sell-price").value = p.price;
+      document.getElementById("edit-desc").value = p.desc; document.getElementById("edit-stock").value = p.stock;
+      currentEditImages = p.rawImages.split('\n').map(i => i.trim()).filter(i => i !== ""); renderImagePreviews();
+      document.getElementById("edit-modal").style.display = "flex"; document.body.style.overflow = "hidden"; 
+    }
+    function closeEditModal() { document.getElementById("edit-modal").style.display = "none"; document.body.style.overflow = "auto"; }
+    async function saveProductChanges() {
+      let payload = { action: "updateProduct", token: sessionStorage.getItem("adminToken"), productId: document.getElementById("edit-id").value, name: document.getElementById("edit-name").value, originalPrice: document.getElementById("edit-orig-price").value, price: document.getElementById("edit-sell-price").value, images: currentEditImages.join('\n'), desc: document.getElementById("edit-desc").value, stock: parseInt(document.getElementById("edit-stock").value) || 0 };
+      if(!payload.name || payload.price === "") { alert("Thiếu Tên hoặc Giá!"); return; }
+      showLoading(true); closeEditModal();
+      try {
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); let data = await res.json();
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Lưu thành công!"); loadData();
+      } catch (e) { alert("Lỗi lưu!"); showLoading(false); }
     }
   </script>
 </body>
