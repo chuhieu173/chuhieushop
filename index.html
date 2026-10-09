@@ -15,6 +15,11 @@
     .product-card { position: relative; background: #eef2f5; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; }
     .discount-badge { position: absolute; top: 10px; right: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 3px; z-index: 10;}
     
+    /* STYLE DÀNH RIÊNG CHO COMBO ĐỂ NỔI BẬT */
+    .combo-card { border: 2px solid #ffd700; background: #fffdf0; }
+    .combo-ribbon { position: absolute; top: -5px; left: -5px; background: #e53e3e; color: white; padding: 5px 12px; font-weight: bold; font-size: 12px; z-index: 10; box-shadow: 2px 2px 4px rgba(0,0,0,0.2); border-radius: 3px; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;}
+    .combo-items-text { font-size: 12px; color: #555; margin-bottom: 10px; text-align: left; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 6px; border: 1px dashed #ccc;}
+    
     .carousel { position: relative; width: 100%; height: 200px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; overflow: hidden; background: #fff;}
     .carousel-slides { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
     .carousel-slides::-webkit-scrollbar { display: none; }
@@ -51,15 +56,9 @@
     .form-group { margin-bottom: 15px; }
     .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-family: 'Roboto', sans-serif; font-size: 15px; background: white; outline: none; transition: 0.3s;}
     .form-group input:focus, .form-group select:focus { border-color: #ee4d2d; }
-    
-    .form-group select {
-      appearance: none;
-      background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
-      background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;
-    }
+    .form-group select { appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;}
     .form-group select:disabled { background-color: #f9f9f9; cursor: not-allowed; opacity: 0.7;}
     
-    /* GIAO DIỆN LOADING CSS */
     .loader { background: #f4f4f9; bottom: 0; left: 0; overflow: hidden; position: fixed; right: 0; top: 0; z-index: 99999; transition: opacity 0.5s ease, visibility 0.5s ease; }
     .loader.hidden { opacity: 0; visibility: hidden; }
     .loader-inner { bottom: 0; height: 60px; left: 0; margin: auto; position: absolute; right: 0; top: 0; width: 100px; }
@@ -81,19 +80,12 @@
     #toast-notification { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 12px 24px; position: fixed; z-index: 10000; left: 50%; bottom: 30px; font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
     #toast-notification.show { visibility: visible; opacity: 1; bottom: 85px; }
 
-    /* GIAO DIỆN THANH TOÁN DƯỚI ĐÁY MÀN HÌNH */
-    #floating-cart { 
-      position: fixed; bottom: 0; left: 0; width: 100%; background-color: white; 
-      box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 1000; display: flex; 
-      justify-content: flex-end; align-items: center; padding: 12px 20px; box-sizing: border-box;
-      border-top: 1px solid #eee;
-    }
+    #floating-cart { position: fixed; bottom: 0; left: 0; width: 100%; background-color: white; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 1000; display: flex; justify-content: flex-end; align-items: center; padding: 12px 20px; box-sizing: border-box; border-top: 1px solid #eee;}
     .floating-right { display: flex; align-items: center; gap: 12px; }
     .floating-right .price { font-size: 16px; font-weight: bold; color: #ee4d2d; font-family: 'Montserrat', sans-serif; }
     .floating-btn { background: #ee4d2d; color: white; border: none; padding: 10px 16px; border-radius: 5px; font-size: 14px; font-weight: bold; font-family: 'Montserrat', sans-serif; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(238, 77, 45, 0.3);}
     .floating-btn:hover { background: #d33c20; transform: scale(1.02);}
 
-    /* CSS CHO MODAL PHÓNG TO ẢNH */
     .image-modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
     .image-modal-content { max-width: 95%; max-height: 90vh; object-fit: contain; border-radius: 8px; user-select: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
     .close-modal { position: absolute; top: 15px; right: 25px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 2010; line-height: 1; }
@@ -107,10 +99,7 @@
     .modal-dot { width: 10px; height: 10px; background-color: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; transition: background-color 0.3s, transform 0.2s; }
     .modal-dot:hover { background-color: rgba(255,255,255,0.8); }
     .modal-dot.active { background-color: white; transform: scale(1.2); box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-
-    @media (max-width: 600px) {
-      .modal-nav { display: none; }
-    }
+    @media (max-width: 600px) { .modal-nav { display: none; } }
   </style>
 </head>
 <body>
@@ -128,11 +117,19 @@
     <div class="loader-text" id="loading-text">ĐANG KẾT NỐI DỮ LIỆU...</div>
   </div>
   
+  <!-- KHU VỰC COMBO -->
+  <div id="combo-section" style="display: none;">
+    <h2 style="color: #e53e3e; font-size: 22px; margin-top: 10px;">🔥 COMBO ĐẶC BIỆT 🔥</h2>
+    <div class="container" id="combo-list"></div>
+    <div style="border-bottom: 2px dashed #ccc; margin: 40px auto; max-width: 300px;"></div>
+  </div>
+
+  <!-- KHU VỰC SẢN PHẨM LẺ -->
+  <h2 id="regular-title" style="display: none;">SẢN PHẨM KHÁC</h2>
   <div class="container" id="product-list"></div>
 
   <div id="toast-notification">Đã thêm sản phẩm vào giỏ hàng!</div>
 
-  <!-- THANH THANH TOÁN CỐ ĐỊNH DƯỚI ĐÁY -->
   <div id="floating-cart">
     <div class="floating-right">
       <span style="font-size: 15px; color: #555; font-weight: 600;">🛒 <span id="cart-count">0</span></span>
@@ -141,36 +138,21 @@
     </div>
   </div>
 
-  <!-- KHU VỰC GIỎ HÀNG -->
   <div class="cart-section" id="cart-section">
     <h2>Giỏ hàng của bạn</h2>
-    
     <div id="cart-items">
-      <!-- Mặc định khi mới load web sẽ hiện dòng này -->
       <div style="text-align:center; padding: 20px; color:#888; font-size: 15px; font-weight: 500;">Hãy thêm sản phẩm vào giỏ hàng</div>
     </div>
-    
     <div class="total-price" id="total-price" style="display: none;">Tổng cộng: 0đ</div>
 
-    <!-- KHUNG ĐIỀN THÔNG TIN LUÔN HIỂN THỊ -->
     <div id="checkout-form" style="margin-top: 30px;">
       <h3>Thông tin nhận hàng</h3>
       <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" required></div>
       <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" required></div>
-      
-      <div class="form-group">
-        <select id="tinh" onchange="fetchPhuong(this.value)" required>
-          <option value="">Chọn Tỉnh / Thành phố *</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <select id="phuong" required disabled>
-          <option value="">Chọn Phường / Xã *</option>
-        </select>
-      </div>
+      <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value)" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
+      <div class="form-group"><select id="phuong" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
       <div class="form-group"><input type="text" id="customer-address-detail" placeholder="Địa chỉ chi tiết (Số nhà, đường, ngõ...) *" required></div>
       <div class="form-group"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
-
       <button class="btn-primary" onclick="checkout()" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
     </div>
   </div>
@@ -187,27 +169,21 @@
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec"; 
-    
-    // === SỐ ĐIỆN THOẠI ZALO CỦA BẠN ===
     const zaloPhone = "84355967766"; 
     
     let cart = [];
     let productsData = [];
+    let combosData = [];
     let currentModalProductId = null;
     let currentModalImgIndex = 0;
-    
     let globalShippingFee = 18000;
 
     document.addEventListener("DOMContentLoaded", function() {
-      loadProducts();
-      fetchTinh(); 
-      setupModalSwipe();
+      loadProducts(); fetchTinh(); setupModalSwipe();
     });
 
     function showToast(message) {
-      let toast = document.getElementById("toast-notification");
-      toast.innerText = message;
-      toast.className = "show";
+      let toast = document.getElementById("toast-notification"); toast.innerText = message; toast.className = "show";
       setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
@@ -218,20 +194,20 @@
         
         if (resData.products) {
           productsData = resData.products;
+          combosData = resData.combos || [];
           globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
         } else {
           productsData = resData; 
         }
-        renderProducts(productsData);
+        renderData();
       } catch (error) {
-        document.getElementById('loading-text').innerHTML = "<span style='color:#ff4d4d;'>Không thể tải dữ liệu, vui lòng kiểm tra lại Link API!</span>";
+        document.getElementById('loading-text').innerHTML = "<span style='color:#ff4d4d;'>Không tải được dữ liệu!</span>";
       }
     }
 
     async function fetchTinh() {
       try {
-        let res = await fetch('https://provinces.open-api.vn/api/v2/p/');
-        let data = await res.json();
+        let res = await fetch('https://provinces.open-api.vn/api/v2/p/'); let data = await res.json();
         let html = '<option value="">Chọn Tỉnh / Thành phố *</option>';
         data.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
         document.getElementById('tinh').innerHTML = html;
@@ -239,219 +215,148 @@
     }
 
     async function fetchPhuong(idTinh) {
-      let phuongSelect = document.getElementById('phuong');
-      phuongSelect.innerHTML = '<option value="">Chọn Phường / Xã *</option>';
+      let phuongSelect = document.getElementById('phuong'); phuongSelect.innerHTML = '<option value="">Chọn Phường / Xã *</option>';
       if(!idTinh) { phuongSelect.disabled = true; return; }
       phuongSelect.disabled = false;
       try {
-        let res = await fetch(`https://provinces.open-api.vn/api/v2/p/${idTinh}?depth=2`);
-        let data = await res.json();
+        let res = await fetch(`https://provinces.open-api.vn/api/v2/p/${idTinh}?depth=2`); let data = await res.json();
         let html = '<option value="">Chọn Phường / Xã *</option>';
-        if (data.wards) {
-          data.wards.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
-        }
+        if (data.wards) data.wards.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
         phuongSelect.innerHTML = html;
       } catch (error) {}
     }
 
     function formatMoney(amount) { return Number(amount).toLocaleString('vi-VN') + "đ"; }
-
-    function escapeHtml(str) {
-      if (str === null || str === undefined) return '';
-      return str.toString()
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    function scrollCarousel(id, direction) {
-      const container = document.getElementById(`slides-${id}`);
-      const scrollAmount = container.clientWidth;
-      container.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
-    }
-
-    function openModal(productId, index) {
-      currentModalProductId = productId;
-      currentModalImgIndex = index;
-      updateModalImage();
-      document.getElementById('image-modal').style.display = 'flex';
-    }
-
+    function escapeHtml(str) { return (str || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+    function scrollCarousel(id, direction) { const c = document.getElementById(`slides-${id}`); c.scrollBy({ left: direction * c.clientWidth, behavior: 'smooth' }); }
+    function openModal(productId, index) { currentModalProductId = productId; currentModalImgIndex = index; updateModalImage(); document.getElementById('image-modal').style.display = 'flex'; }
     function closeModal() { document.getElementById('image-modal').style.display = 'none'; }
-
     function changeModalImg(delta) {
-      let product = productsData.find(p => p.id === currentModalProductId);
-      if (!product) return;
-      currentModalImgIndex += delta;
-      if (currentModalImgIndex < 0) currentModalImgIndex = product.images.length - 1;
-      if (currentModalImgIndex >= product.images.length) currentModalImgIndex = 0;
-      updateModalImage();
+      let p = [...productsData, ...combosData].find(p => p.id === currentModalProductId); if (!p) return;
+      currentModalImgIndex += delta; if (currentModalImgIndex < 0) currentModalImgIndex = p.images.length - 1; if (currentModalImgIndex >= p.images.length) currentModalImgIndex = 0; updateModalImage();
     }
-    
-    function jumpToModalImg(index) {
-      currentModalImgIndex = index;
-      updateModalImage();
-    }
-
+    function jumpToModalImg(index) { currentModalImgIndex = index; updateModalImage(); }
     function updateModalImage() {
-      let product = productsData.find(p => p.id === currentModalProductId);
-      if (product && product.images[currentModalImgIndex]) {
-        document.getElementById('modal-img').src = product.images[currentModalImgIndex];
-        document.getElementById('modal-indicator').innerText = (currentModalImgIndex + 1) + " / " + product.images.length;
-        
-        let dotsContainer = document.getElementById('modal-dots');
-        dotsContainer.innerHTML = ''; 
-        if (product.images.length > 1) {
-          for (let i = 0; i < product.images.length; i++) {
-            let dot = document.createElement('div');
-            dot.className = 'modal-dot' + (i === currentModalImgIndex ? ' active' : '');
-            dot.onclick = function(event) { event.stopPropagation(); jumpToModalImg(i); };
-            dotsContainer.appendChild(dot);
+      let p = [...productsData, ...combosData].find(p => p.id === currentModalProductId);
+      if (p && p.images[currentModalImgIndex]) {
+        document.getElementById('modal-img').src = p.images[currentModalImgIndex];
+        document.getElementById('modal-indicator').innerText = (currentModalImgIndex + 1) + " / " + p.images.length;
+        let dots = document.getElementById('modal-dots'); dots.innerHTML = ''; 
+        if (p.images.length > 1) {
+          for (let i = 0; i < p.images.length; i++) {
+            let dot = document.createElement('div'); dot.className = 'modal-dot' + (i === currentModalImgIndex ? ' active' : '');
+            dot.onclick = function(e) { e.stopPropagation(); jumpToModalImg(i); }; dots.appendChild(dot);
           }
         }
       }
     }
-
     function setupModalSwipe() {
-      const modal = document.getElementById('image-modal');
-      let touchstartX = 0; let touchendX = 0;
-      modal.addEventListener('touchstart', e => { if(e.touches.length > 1) return; touchstartX = e.changedTouches[0].screenX; });
-      modal.addEventListener('touchend', e => { if(e.changedTouches.length > 1) return; touchendX = e.changedTouches[0].screenX; handleSwipe(); });
-      function handleSwipe() {
-        if (touchendX < touchstartX - 50) changeModalImg(1);
-        if (touchendX > touchstartX + 50) changeModalImg(-1);
-      }
-      window.onclick = function(event) { if (event.target == modal) closeModal(); }
+      const modal = document.getElementById('image-modal'); let tx = 0; let tox = 0;
+      modal.addEventListener('touchstart', e => { if(e.touches.length > 1) return; tx = e.changedTouches[0].screenX; });
+      modal.addEventListener('touchend', e => { if(e.changedTouches.length > 1) return; tox = e.changedTouches[0].screenX; if (tox < tx - 50) changeModalImg(1); if (tox > tx + 50) changeModalImg(-1); });
+      window.onclick = function(e) { if (e.target == modal) closeModal(); }
     }
-
     function changeProductQty(id, delta) {
-      let input = document.getElementById('qty-' + id);
-      let val = parseInt(input.value) || 1;
-      val += delta;
-      if (val < 1) val = 1;
-      input.value = val;
+      let input = document.getElementById('qty-' + id); let val = parseInt(input.value) || 1;
+      val += delta; if (val < 1) val = 1; input.value = val;
     }
-    
-    function validateProductQty(id) {
-      let input = document.getElementById('qty-' + id);
-      let val = parseInt(input.value);
-      if (isNaN(val) || val < 1) input.value = 1;
-    }
+    function validateProductQty(id) { let input = document.getElementById('qty-' + id); let val = parseInt(input.value); if (isNaN(val) || val < 1) input.value = 1; }
 
-    function renderProducts(products) {
+    // RENDER SẢN PHẨM & COMBO
+    function renderData() {
       document.getElementById('loading').classList.add('hidden');
-      const list = document.getElementById('product-list');
       
-      products.forEach(p => {
-        let card = document.createElement('div');
-        card.className = 'product-card';
+      const cList = document.getElementById('combo-list'); cList.innerHTML = '';
+      if(combosData && combosData.length > 0) {
+        document.getElementById('combo-section').style.display = 'block';
+        document.getElementById('regular-title').style.display = 'block';
         
-        let badgeHtml = '';
-        let priceHtml = '';
-        let orig = Number(p.originalPrice) || 0;
-        let curr = Number(p.price) || 0;
-
-        if (orig > curr && curr > 0) {
-          let percent = Math.round(((orig - curr) / orig) * 100);
-          badgeHtml = `<div class="discount-badge">-${percent}%</div>`;
-          priceHtml = `<div class="original-price">${formatMoney(orig)}</div><div class="current-price">${formatMoney(curr)}</div>`;
-        } else {
-          priceHtml = `<div class="original-price" style="visibility:hidden;">0đ</div><div class="current-price">${formatMoney(curr)}</div>`;
-        }
-
-        let imagesHtml = '';
-        p.images.forEach((img, index) => {
-          imagesHtml += `<img src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" onclick="openModal('${p.id}', ${index})">`;
-        });
-
-        let arrowsHtml = '';
-        if (p.images.length > 1) {
-          arrowsHtml = `
-            <button class="carousel-btn prev" onclick="scrollCarousel('${p.id}', -1)">&#10094;</button>
-            <button class="carousel-btn next" onclick="scrollCarousel('${p.id}', 1)">&#10095;</button>
+        combosData.forEach(c => {
+          let itemsText = c.rawItems.map(i => `${i.qty}x ${i.name}`).join('<br> • ');
+          let imagesHtml = ''; c.images.forEach((img, idx) => { imagesHtml += `<img src="${escapeHtml(img)}" onclick="openModal('${c.id}', ${idx})">`; });
+          let arrowsHtml = c.images.length > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${c.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${c.id}', 1)">&#10095;</button>` : '';
+          
+          let card = document.createElement('div'); card.className = 'product-card combo-card';
+          card.innerHTML = `
+            <div class="combo-ribbon">COMBO</div>
+            <div class="carousel"><div class="carousel-slides" id="slides-${c.id}">${imagesHtml}</div>${arrowsHtml}</div>
+            <h3 style="color:#c53030; margin-top:20px;">${escapeHtml(c.name)}</h3>
+            <p>${escapeHtml(c.desc)}</p>
+            <div class="combo-items-text"><b>Gồm:</b><br> • ${itemsText}</div>
+            <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
+            <div class="qty-wrapper">
+              <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
+              <input type="number" id="qty-${c.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${c.id}')">
+              <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
+            </div>
+            <button class="btn-primary" style="background:#e53e3e;" onclick="addToCart('${c.id}', true)">🛒 Chọn Combo</button>
           `;
-        }
+          cList.appendChild(card);
+        });
+      }
+
+      const pList = document.getElementById('product-list'); pList.innerHTML = '';
+      productsData.forEach(p => {
+        let badgeHtml = ''; let priceHtml = '';
+        let orig = Number(p.originalPrice) || 0; let curr = Number(p.price) || 0;
+        if (orig > curr && curr > 0) {
+          let percent = Math.round(((orig - curr) / orig) * 100); badgeHtml = `<div class="discount-badge">-${percent}%</div>`;
+          priceHtml = `<div class="original-price">${formatMoney(orig)}</div><div class="current-price">${formatMoney(curr)}</div>`;
+        } else { priceHtml = `<div class="original-price" style="visibility:hidden;">0đ</div><div class="current-price">${formatMoney(curr)}</div>`; }
+
+        let imagesHtml = ''; p.images.forEach((img, idx) => { imagesHtml += `<img src="${escapeHtml(img)}" onclick="openModal('${p.id}', ${idx})">`; });
+        let arrowsHtml = p.images.length > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${p.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${p.id}', 1)">&#10095;</button>` : '';
         
+        let card = document.createElement('div'); card.className = 'product-card';
         card.innerHTML = `
           ${badgeHtml}
-          <div class="carousel">
-            <div class="carousel-slides" id="slides-${p.id}">${imagesHtml}</div>
-            ${arrowsHtml}
-          </div>
+          <div class="carousel"><div class="carousel-slides" id="slides-${p.id}">${imagesHtml}</div>${arrowsHtml}</div>
           <h3>${escapeHtml(p.name)}</h3>
           <p>${escapeHtml(p.desc)}</p>
           <div class="price-container">${priceHtml}</div>
-          
           <div class="qty-wrapper">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', -1)">-</button>
             <input type="number" id="qty-${p.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${p.id}')">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', 1)">+</button>
           </div>
-          
-          <button class="btn-primary" onclick="addToCart('${p.id}')">Thêm vào giỏ</button>
+          <button class="btn-primary" onclick="addToCart('${p.id}', false)">Thêm vào giỏ</button>
         `;
-        list.appendChild(card);
+        pList.appendChild(card);
       });
     }
 
-    function addToCart(id) {
-      let product = productsData.find(p => p.id === id);
+    function addToCart(id, isCombo) {
+      let product = (isCombo ? combosData : productsData).find(p => p.id === id);
       if (!product) return;
-      let name = product.name;
-      let price = Number(product.price) || 0;
-
-      let qtyInput = document.getElementById('qty-' + id);
-      let qtyToAdd = parseInt(qtyInput.value) || 1;
-
+      let qtyInput = document.getElementById('qty-' + id); let qtyToAdd = parseInt(qtyInput.value) || 1;
       let item = cart.find(i => i.id === id);
-      if (item) { item.qty += qtyToAdd; } else { cart.push({ id, name, price, qty: qtyToAdd }); }
-      
-      qtyInput.value = 1; 
-      updateCart();
-      showToast(`Đã thêm ${qtyToAdd} x [ ${name} ] vào giỏ!`);
+      if (item) { item.qty += qtyToAdd; } else { cart.push({ id, name: product.name, price: product.price, qty: qtyToAdd, isCombo: isCombo }); }
+      qtyInput.value = 1; updateCart();
+      showToast(`Đã thêm ${qtyToAdd} x [ ${product.name} ] vào giỏ!`);
     }
 
-    function changeCartQty(index, delta) {
-      cart[index].qty += delta;
-      if (cart[index].qty < 1) cart[index].qty = 1;
-      updateCart();
-    }
-    
-    function setCartQty(index, value) {
-      let val = parseInt(value);
-      if (isNaN(val) || val < 1) val = 1;
-      cart[index].qty = val;
-      updateCart();
-    }
+    function changeCartQty(index, delta) { cart[index].qty += delta; if (cart[index].qty < 1) cart[index].qty = 1; updateCart(); }
+    function setCartQty(index, value) { let val = parseInt(value); if (isNaN(val) || val < 1) val = 1; cart[index].qty = val; updateCart(); }
 
     function updateCart() {
       const cartDiv = document.getElementById('cart-items');
       const totalPriceDiv = document.getElementById('total-price');
       
-      cart.forEach(i => { if (i.qty > 99) i.qty = 99; }); // khớp giới hạn của server
+      cart.forEach(i => { if (i.qty > 99) i.qty = 99; }); 
       cartDiv.innerHTML = '';
-      let total = 0;
-      let totalQty = 0; 
+      let total = 0; let totalQty = 0; 
       const shippingFee = globalShippingFee; 
 
-      if (cart.length > 0) { 
-        totalPriceDiv.style.display = 'block'; 
-      } else { 
-        totalPriceDiv.style.display = 'none'; 
-        cartDiv.innerHTML = '<div style="text-align:center; padding: 20px; color:#888; font-size: 15px; font-weight: 500;">Hãy thêm sản phẩm vào giỏ hàng</div>';
-      }
+      if (cart.length > 0) { totalPriceDiv.style.display = 'block'; } 
+      else { totalPriceDiv.style.display = 'none'; cartDiv.innerHTML = '<div style="text-align:center; padding: 20px; color:#888; font-size: 15px; font-weight: 500;">Hãy thêm sản phẩm vào giỏ hàng</div>'; }
 
       cart.forEach((item, index) => {
-        let itemTotal = item.price * item.qty;
-        total += itemTotal;
-        totalQty += item.qty;
-        
+        let itemTotal = item.price * item.qty; total += itemTotal; totalQty += item.qty;
+        let prefix = item.isCombo ? `<span style="color:#e53e3e; font-weight:bold;">[COMBO]</span> ` : '';
         cartDiv.innerHTML += `
           <div class="cart-item">
             <div style="flex: 1; padding-right: 10px;">
-              <b style="font-size: 14px; line-height: 1.4;">${escapeHtml(item.name)}</b>
+              <b style="font-size: 14px; line-height: 1.4;">${prefix}${escapeHtml(item.name)}</b>
               <div class="cart-qty-wrapper">
                 <button class="qty-btn small" onclick="changeCartQty(${index}, -1)">-</button>
                 <input type="number" class="qty-input small" value="${item.qty}" min="1" onchange="setCartQty(${index}, this.value)">
@@ -469,16 +374,10 @@
       if (total > 0) {
         let finalTotal = total + shippingFee;
         document.getElementById('floating-total-price').innerText = formatMoney(finalTotal);
-        
-        document.getElementById('total-price').innerHTML = `
-          <div style="font-size: 0.7em; color: #666; font-weight: normal;">Tiền hàng: ${formatMoney(total)}</div>
-          <div style="font-size: 0.7em; color: #666; font-weight: normal;">Phí giao hàng: ${formatMoney(shippingFee)}</div>
-          <div style="margin-top: 5px; color: #ee4d2d;">Tổng cộng: ${formatMoney(finalTotal)}</div>
-        `;
+        document.getElementById('total-price').innerHTML = `<div style="font-size: 0.7em; color: #666; font-weight: normal;">Tiền hàng: ${formatMoney(total)}</div><div style="font-size: 0.7em; color: #666; font-weight: normal;">Phí giao hàng: ${formatMoney(shippingFee)}</div><div style="margin-top: 5px; color: #ee4d2d;">Tổng cộng: ${formatMoney(finalTotal)}</div>`;
       } else {
         document.getElementById('floating-total-price').innerText = "0đ";
       }
-      
       document.getElementById('cart-count').innerText = totalQty; 
     }
 
@@ -486,93 +385,44 @@
     
     function scrollToCart() { 
       document.getElementById('cart-section').scrollIntoView({ behavior: 'smooth' }); 
-      if (cart.length > 0) {
-        setTimeout(() => { document.getElementById('customer-name').focus(); }, 500);
-      }
+      if (cart.length > 0) setTimeout(() => { document.getElementById('customer-name').focus(); }, 500);
     }
 
     function checkout() {
-      // Bảo vệ: Chặn khách gửi đơn nếu giỏ hàng đang trống
-      if (cart.length === 0) {
-        alert("Giỏ hàng của bạn đang trống! Vui lòng chọn mua ít nhất 1 sản phẩm trước khi gửi tin nhắn đặt hàng.");
-        return;
-      }
+      if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
       const name = document.getElementById('customer-name').value;
       const phone = document.getElementById('customer-phone').value;
       const detailAddress = document.getElementById('customer-address-detail').value;
       const note = document.getElementById('customer-note').value;
-      
-      const tinhSelect = document.getElementById('tinh');
-      const phuongSelect = document.getElementById('phuong');
-      
+      const tinhSelect = document.getElementById('tinh'); const phuongSelect = document.getElementById('phuong');
       const tinhName = tinhSelect.options[tinhSelect.selectedIndex]?.text || '';
       const phuongName = phuongSelect.options[phuongSelect.selectedIndex]?.text || '';
 
-      const shippingFee = globalShippingFee; 
-
-      if (!name || !phone || !detailAddress || !tinhSelect.value || !phuongSelect.value) { 
-        alert("Vui lòng điền đầy đủ Thông tin cá nhân và Địa chỉ nhận hàng!"); 
-        return; 
-      }
+      if (!name || !phone || !detailAddress || !tinhSelect.value || !phuongSelect.value) { alert("Vui lòng điền đủ Thông tin cá nhân và Địa chỉ!"); return; }
 
       let fullAddress = `${detailAddress}, ${phuongName}, ${tinhName}`;
-
-      let orderText = "ĐƠN ĐẶT HÀNG MỚI\n";
-      orderText += "Người nhận: " + name + "\n";
-      orderText += "Sđt: " + phone + "\n";
-      orderText += "Địa chỉ: " + fullAddress + "\n";
+      let orderText = "ĐƠN ĐẶT HÀNG MỚI\nNgười nhận: " + name + "\nSđt: " + phone + "\nĐịa chỉ: " + fullAddress + "\n";
       if(note) orderText += "Ghi chú: " + note + "\n";
       orderText += "------------------------\n\n"; 
       
-      let total = 0;
-      let itemsForSheet = [];
-
+      let total = 0; let itemsForSheet = [];
       cart.forEach((item, index) => {
-        orderText += `${index + 1}. ${item.name}\n`;
-        orderText += `   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n\n`; 
-        
-        itemsForSheet.push(`- ${item.name} (x${item.qty})`);
+        let prefix = item.isCombo ? "[COMBO] " : "";
+        orderText += `${index + 1}. ${prefix}${item.name}\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n\n`; 
+        itemsForSheet.push(`- ${prefix}${item.name} (x${item.qty})`);
         total += (item.price * item.qty);
       });
-      
-      let finalTotal = total + shippingFee;
+      let finalTotal = total + globalShippingFee;
+      orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + formatMoney(globalShippingFee) + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
 
-      orderText += "------------------------\n";
-      orderText += "Tiền hàng: " + formatMoney(total) + "\n";
-      orderText += "Phí giao hàng: " + formatMoney(shippingFee) + "\n";
-      orderText += "TỔNG THANH TOÁN: " + formatMoney(finalTotal);
+      let orderData = { action: "createOrder", name: name, phone: phone, address: fullAddress, note: note, itemsText: itemsForSheet.join('\n'), total: formatMoney(finalTotal), cartJSON: JSON.stringify(cart) };
+      fetch(API_URL, { method: 'POST', body: JSON.stringify(orderData) }).catch(err => console.error(err));
 
-      let orderData = {
-        action: "createOrder",
-        name: name,
-        phone: phone, 
-        address: fullAddress,
-        note: note,
-        itemsText: itemsForSheet.join('\n'), 
-        total: formatMoney(finalTotal),
-        cartJSON: JSON.stringify(cart)
-      };
-
-      fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(orderData)
-      }).then(() => console.log("Đã đồng bộ Google Sheets"))
-        .catch(err => console.error(err));
-
-      const tempTextArea = document.createElement("textarea");
-      tempTextArea.value = orderText;
-      document.body.appendChild(tempTextArea);
-      tempTextArea.select();
-      
-      try {
-        document.execCommand("copy");
-        alert("ĐÃ LƯU ĐƠN HÀNG VÀ CHUYỂN VỀ HỆ THỐNG!\n\nHệ thống sẽ mở Zalo của Shop. Bạn chỉ cần bấm DÁN (Paste) vào khung chat để gửi đơn nhé!");
-      } catch (err) {
-        alert("Trình duyệt không hỗ trợ copy tự động. Vui lòng nhắn tin trực tiếp cho Shop nhé!");
-      }
-      document.body.removeChild(tempTextArea);
+      const temp = document.createElement("textarea"); temp.value = orderText; document.body.appendChild(temp); temp.select();
+      try { document.execCommand("copy"); alert("ĐÃ LƯU ĐƠN HÀNG!\n\nHệ thống sẽ mở Zalo. Hãy bấm DÁN (Paste) để gửi đơn cho Shop nhé!"); } 
+      catch (err) { alert("Trình duyệt không hỗ trợ copy tự động. Vui lòng nhắn tin trực tiếp cho Shop!"); }
+      document.body.removeChild(temp);
       window.open("https://zalo.me/" + zaloPhone, "_blank");
     }
   </script>
