@@ -69,7 +69,6 @@
     .img-preview-remove { position: absolute; top: 4px; right: 4px; background: rgba(229, 62, 62, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.2s;}
     .img-preview-remove:hover { background: #c53030; }
 
-    /* List Combo Item Component */
     .combo-item-row { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; margin-bottom: 8px;}
     .combo-item-name { font-weight: 500; font-size: 14px; flex: 1;}
     .combo-item-qty { font-weight: bold; color: #2b6cb0; margin: 0 15px;}
@@ -138,13 +137,17 @@
 
     <!-- TAB SẢN PHẨM -->
     <div id="inventory" class="content">
-      <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-        <h3 style="margin: 0; font-size: 16px; color: #1a2935;">🚚 Cấu hình Phí Ship:</h3>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <input type="number" id="edit-shipping-fee" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; width: 120px; font-size: 15px; font-weight: bold; color: #e53e3e;" placeholder="VD: 18000">
-          <span style="font-weight: 500;">VNĐ</span>
+      <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+          <h3 style="margin: 0; font-size: 16px; color: #1a2935;">🚚 Phí Ship:</h3>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="number" id="edit-shipping-fee" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; width: 120px; font-size: 15px; font-weight: bold; color: #e53e3e;" placeholder="VD: 18000">
+            <span style="font-weight: 500;">VNĐ</span>
+          </div>
+          <button class="btn-update" onclick="updateShippingFee()" style="background: #2b6cb0;">Lưu Cấu Hình</button>
         </div>
-        <button class="btn-update" onclick="updateShippingFee()" style="background: #2b6cb0;">Lưu Cấu Hình</button>
+        <!-- NÚT TẠO SẢN PHẨM MỚI -->
+        <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px;" onclick="openEditModal()">+ TẠO SẢN PHẨM MỚI</button>
       </div>
       <table>
         <thead><tr><th>ID</th><th>Hình ảnh</th><th style="width: 30%;">Sản phẩm & Mô tả</th><th>Giá bán</th><th>Tồn kho</th><th style="width: 12%;">Thao tác</th></tr></thead>
@@ -167,13 +170,25 @@
   <!-- MODAL SẢN PHẨM -->
   <div id="edit-modal" class="edit-modal">
     <div class="edit-content">
-      <h2>Chỉnh sửa Sản Phẩm</h2>
+      <h2 id="edit-modal-title">Chỉnh sửa Sản Phẩm</h2>
       <input type="hidden" id="edit-id">
       <div class="form-group"><label>Tên Sản Phẩm:</label><input type="text" id="edit-name"></div>
+      
+      <!-- LỰA CHỌN TRẠNG THÁI HIỂN THỊ -->
+      <div class="form-group">
+        <label>Trạng thái hiển thị (Bảo mật):</label>
+        <select id="edit-status">
+          <option value="còn hàng">👀 Còn hàng (Hiện trên web bán bình thường)</option>
+          <option value="ẩn">👻 Ẩn (Không hiện bán lẻ, CHỈ BÁN TRONG COMBO)</option>
+          <option value="hết hàng">❌ Hết hàng (Ngưng bán tạm thời)</option>
+        </select>
+      </div>
+
       <div style="display:flex; gap:15px;">
         <div class="form-group" style="flex:1;"><label>Giá Gốc (VNĐ):</label><input type="number" id="edit-orig-price"></div>
         <div class="form-group" style="flex:1;"><label>Giá Bán (VNĐ):</label><input type="number" id="edit-sell-price"></div>
       </div>
+      
       <div class="form-group">
         <label>Hình Ảnh Sản Phẩm:</label>
         <div id="image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
@@ -203,10 +218,7 @@
       <div style="background: #f8fafc; border: 1px dashed #cbd5e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
         <h4 style="margin:0 0 10px 0; color:#2d3748; font-family:'Montserrat';">Thành Phần Combo</h4>
         <div style="display:flex; flex-wrap: wrap; gap:10px; margin-bottom: 15px;">
-          <!-- Ô chọn sản phẩm chiếm 100% chiều ngang -->
           <select id="combo-add-prod" style="flex: 1 1 100%;"><option value="">-- Chọn sản phẩm lẻ --</option></select>
-          
-          <!-- Cụm số lượng và nút Thêm nằm ngay bên dưới -->
           <div style="display:flex; gap:10px; width: 100%;">
             <input type="number" id="combo-add-qty" value="1" min="1" style="width:70px; text-align:center; flex-shrink:0;">
             <button type="button" class="btn-update" onclick="addComboItem()" style="background:#2b6cb0; flex: 1; padding: 10px; margin: 0;">Thêm vào Combo</button>
@@ -215,7 +227,6 @@
         <div id="combo-items-list"></div>
       </div>
 
-      <!-- Preview Giá trị thực của Combo -->
       <div style="display:flex; justify-content:space-between; background:#edf2f7; padding:15px; border-radius:8px; font-weight:bold; margin-bottom: 20px;">
         <div>Tổng Giá Bán: <span id="combo-preview-price" style="color:#e53e3e; font-size:18px;">0đ</span></div>
         <div>Tồn Kho Tối Đa: <span id="combo-preview-stock" style="color:#2f855a; font-size:18px;">0</span></div>
@@ -234,7 +245,7 @@
     let globalProductsData = [];
     let globalCombosData = [];
     let currentEditImages = []; 
-    let currentComboItems = []; // Lưu trạng thái thành phần combo đang soạn thảo
+    let currentComboItems = []; 
 
     function togglePassword() { let p = document.getElementById("admin-pass"); p.type = p.type === "password" ? "text" : "password"; }
     async function sha256(msg) {
@@ -330,10 +341,16 @@
       products.forEach(p => {
         let stockHtml = p.stock <= 2 ? `<span class="stock-warning">${p.stock} (Sắp hết)</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${p.stock}</span>`;
         let firstImg = p.images && p.images.length > 0 ? p.images[0] : "";
+        let st = (p.status || "").toLowerCase();
+        let statusLabel = st === "ẩn" || st === "an" ? `<span style="color:#d69e2e; font-size:12px; border:1px solid #d69e2e; padding:2px 4px; border-radius:4px;">👻 Đang Ẩn</span>` : (st === "hết hàng" ? `<span style="color:#e53e3e; font-size:12px; border:1px solid #e53e3e; padding:2px 4px; border-radius:4px;">❌ Hết Hàng</span>` : `<span style="color:#38a169; font-size:12px; border:1px solid #38a169; padding:2px 4px; border-radius:4px;">👀 Đang bán</span>`);
+
         tbody.innerHTML += `<tr>
             <td data-label="ID" style="color:#718096; font-size: 13px;">${escapeHtml(p.id)}</td>
             <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
-            <td data-label="Sản phẩm"><b style="font-size:15px;">${escapeHtml(p.name)}</b></td>
+            <td data-label="Sản phẩm">
+              <b style="font-size:15px;">${escapeHtml(p.name)}</b>
+              <div style="margin-top:6px;">${statusLabel}</div>
+            </td>
             <td data-label="Giá bán"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(p.price)}</div></td>
             <td data-label="Tồn kho">${stockHtml}</td>
             <td data-label="Thao tác"><button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button></td>
@@ -341,7 +358,6 @@
       });
     }
 
-    // HIỂN THỊ DANH SÁCH COMBO BÊN TAB QUẢN LÝ
     function renderCombos(combos) {
       const tbody = document.getElementById('combos-body'); tbody.innerHTML = "";
       if(combos.length === 0) { tbody.innerHTML = "<tr><td colspan='6'>Chưa có Combo nào. Bạn hãy tạo mới nhé!</td></tr>"; return; }
@@ -396,98 +412,67 @@
     function updateComboSelectOptions() {
       let sel = document.getElementById('combo-add-prod');
       sel.innerHTML = '<option value="">-- Chọn sản phẩm lẻ --</option>';
-      globalProductsData.forEach(p => { sel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)} - Tồn: ${p.stock}</option>`; });
+      globalProductsData.forEach(p => { 
+        let st = (p.status || "").toLowerCase();
+        let suffix = (st === "ẩn" || st === "an") ? " (SP Ẩn)" : "";
+        sel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)}${suffix} - Tồn: ${p.stock}</option>`; 
+      });
     }
 
     function renderComboItemsPreview() {
-      const list = document.getElementById("combo-items-list");
-      list.innerHTML = "";
+      const list = document.getElementById("combo-items-list"); list.innerHTML = "";
       let totalPrice = 0; let maxStock = Infinity;
-      
-      if(currentComboItems.length === 0) {
-         list.innerHTML = "<span style='font-size:13px; color:#a0aec0;'>Chưa chọn sản phẩm nào...</span>";
-         maxStock = 0;
-      } else {
+      if(currentComboItems.length === 0) { list.innerHTML = "<span style='font-size:13px; color:#a0aec0;'>Chưa chọn sản phẩm nào...</span>"; maxStock = 0; } 
+      else {
          currentComboItems.forEach((it, index) => {
             let p = globalProductsData.find(prod => prod.id === it.id);
             if(p) {
                totalPrice += Number(p.price) * it.qty;
                let possible = Math.floor(p.stock / it.qty);
                if(possible < maxStock) maxStock = possible;
-               
-               list.innerHTML += `<div class="combo-item-row">
-                  <span class="combo-item-name">${escapeHtml(p.name)}</span>
-                  <span class="combo-item-qty">x${it.qty}</span>
-                  <button type="button" class="btn-update btn-delete" style="padding: 4px 8px; font-size:11px;" onclick="removeComboItem(${index})">Xóa</button>
-               </div>`;
+               list.innerHTML += `<div class="combo-item-row"><span class="combo-item-name">${escapeHtml(p.name)}</span><span class="combo-item-qty">x${it.qty}</span><button type="button" class="btn-update btn-delete" style="padding: 4px 8px; font-size:11px;" onclick="removeComboItem(${index})">Xóa</button></div>`;
             }
          });
          if(maxStock === Infinity) maxStock = 0;
       }
-      
       document.getElementById("combo-preview-price").innerText = formatMoney(totalPrice);
       document.getElementById("combo-preview-stock").innerText = maxStock;
     }
 
     function addComboItem() {
-      let sel = document.getElementById('combo-add-prod');
-      let qtyInput = document.getElementById('combo-add-qty');
+      let sel = document.getElementById('combo-add-prod'); let qtyInput = document.getElementById('combo-add-qty');
       let id = sel.value; let qty = parseInt(qtyInput.value);
       if(!id || isNaN(qty) || qty < 1) return;
-      
       let existing = currentComboItems.find(i => i.id === id);
-      if(existing) existing.qty += qty;
-      else currentComboItems.push({id: id, qty: qty});
-      
-      sel.value = ""; qtyInput.value = 1;
-      renderComboItemsPreview();
+      if(existing) existing.qty += qty; else currentComboItems.push({id: id, qty: qty});
+      sel.value = ""; qtyInput.value = 1; renderComboItemsPreview();
     }
-
-    function removeComboItem(index) {
-      currentComboItems.splice(index, 1);
-      renderComboItemsPreview();
-    }
+    function removeComboItem(index) { currentComboItems.splice(index, 1); renderComboItemsPreview(); }
 
     function openComboModal(comboId = null) {
       updateComboSelectOptions();
       if(comboId) {
-         let combo = globalCombosData.find(c => c.id === comboId);
-         if(!combo) return;
+         let combo = globalCombosData.find(c => c.id === comboId); if(!combo) return;
          document.getElementById("combo-modal-title").innerText = "Chỉnh Sửa Combo";
-         document.getElementById("combo-edit-id").value = combo.id;
-         document.getElementById("combo-name").value = combo.name;
-         document.getElementById("combo-desc").value = combo.desc;
+         document.getElementById("combo-edit-id").value = combo.id; document.getElementById("combo-name").value = combo.name; document.getElementById("combo-desc").value = combo.desc;
          try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
       } else {
          document.getElementById("combo-modal-title").innerText = "Tạo Combo Mới";
-         document.getElementById("combo-edit-id").value = "";
-         document.getElementById("combo-name").value = "";
-         document.getElementById("combo-desc").value = "";
+         document.getElementById("combo-edit-id").value = ""; document.getElementById("combo-name").value = ""; document.getElementById("combo-desc").value = "";
          currentComboItems = [];
       }
-      renderComboItemsPreview();
-      document.getElementById("combo-modal").style.display = "flex";
-      document.body.style.overflow = "hidden";
+      renderComboItemsPreview(); document.getElementById("combo-modal").style.display = "flex"; document.body.style.overflow = "hidden";
     }
-
-    function closeComboModal() {
-      document.getElementById("combo-modal").style.display = "none";
-      document.body.style.overflow = "auto";
-    }
+    function closeComboModal() { document.getElementById("combo-modal").style.display = "none"; document.body.style.overflow = "auto"; }
 
     async function saveComboChanges() {
-      let cId = document.getElementById("combo-edit-id").value;
-      let cName = document.getElementById("combo-name").value;
-      let cDesc = document.getElementById("combo-desc").value;
-      
+      let cId = document.getElementById("combo-edit-id").value; let cName = document.getElementById("combo-name").value; let cDesc = document.getElementById("combo-desc").value;
       if(!cName) { alert("Tên Combo không được bỏ trống!"); return; }
       if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
-
       showLoading(true); closeComboModal();
       let payload = { action: "saveCombo", token: sessionStorage.getItem("adminToken"), comboId: cId, name: cName, desc: cDesc, items: JSON.stringify(currentComboItems) };
       try {
-        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-        let data = await res.json();
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
         alert("Đã lưu Combo thành công!"); loadData();
       } catch (e) { alert("Lỗi khi lưu!"); showLoading(false); }
@@ -516,8 +501,7 @@
     }
     function removeEditImage(idx) { currentEditImages.splice(idx, 1); renderImagePreviews(); }
     function addManualImageLink() {
-      let url = (prompt("Nhập link ảnh (bắt buộc bắt đầu bằng https://):") || "").trim();
-      if (!url) return;
+      let url = (prompt("Nhập link ảnh (bắt buộc bắt đầu bằng https://):") || "").trim(); if (!url) return;
       if (!/^https:\/\//.test(url) || /[\s"'<>]/.test(url)) { alert("Link không hợp lệ. Chỉ chấp nhận https://"); return; }
       currentEditImages.push(url); renderImagePreviews();
     }
@@ -550,17 +534,55 @@
       }
       input.value = ""; renderImagePreviews(); showLoading(false);
     }
-    function openEditModal(pId) {
-      let p = globalProductsData.find(x => x.id.toString() === pId.toString()); if (!p) return;
-      document.getElementById("edit-id").value = p.id; document.getElementById("edit-name").value = p.name;
-      document.getElementById("edit-orig-price").value = p.originalPrice; document.getElementById("edit-sell-price").value = p.price;
-      document.getElementById("edit-desc").value = p.desc; document.getElementById("edit-stock").value = p.stock;
-      currentEditImages = p.rawImages.split('\n').map(i => i.trim()).filter(i => i !== ""); renderImagePreviews();
+    
+    // Tích hợp cho việc Sửa và Tạo mới
+    function openEditModal(pId = null) {
+      if (pId) {
+        let p = globalProductsData.find(x => x.id.toString() === pId.toString()); if (!p) return;
+        document.getElementById("edit-modal-title").innerText = "Chỉnh sửa Sản Phẩm";
+        document.getElementById("edit-id").value = p.id; 
+        document.getElementById("edit-name").value = p.name;
+        document.getElementById("edit-orig-price").value = p.originalPrice; 
+        document.getElementById("edit-sell-price").value = p.price;
+        document.getElementById("edit-desc").value = p.desc; 
+        document.getElementById("edit-stock").value = p.stock;
+        
+        let st = (p.status || "").toLowerCase();
+        document.getElementById("edit-status").value = (st === "ẩn" || st === "an") ? "ẩn" : (st === "hết hàng" ? "hết hàng" : "còn hàng");
+        
+        currentEditImages = p.rawImages.split('\n').map(i => i.trim()).filter(i => i !== ""); 
+      } else {
+        document.getElementById("edit-modal-title").innerText = "Tạo Sản Phẩm Mới";
+        document.getElementById("edit-id").value = ""; 
+        document.getElementById("edit-name").value = "";
+        document.getElementById("edit-orig-price").value = ""; 
+        document.getElementById("edit-sell-price").value = "";
+        document.getElementById("edit-desc").value = ""; 
+        document.getElementById("edit-stock").value = "0";
+        document.getElementById("edit-status").value = "còn hàng";
+        currentEditImages = []; 
+      }
+      renderImagePreviews();
       document.getElementById("edit-modal").style.display = "flex"; document.body.style.overflow = "hidden"; 
     }
+    
     function closeEditModal() { document.getElementById("edit-modal").style.display = "none"; document.body.style.overflow = "auto"; }
+    
     async function saveProductChanges() {
-      let payload = { action: "updateProduct", token: sessionStorage.getItem("adminToken"), productId: document.getElementById("edit-id").value, name: document.getElementById("edit-name").value, originalPrice: document.getElementById("edit-orig-price").value, price: document.getElementById("edit-sell-price").value, images: currentEditImages.join('\n'), desc: document.getElementById("edit-desc").value, stock: parseInt(document.getElementById("edit-stock").value) || 0 };
+      let pId = document.getElementById("edit-id").value;
+      let payload = { 
+        action: pId ? "updateProduct" : "createProduct", // Tự phân biệt Thêm hay Sửa qua pId
+        token: sessionStorage.getItem("adminToken"), 
+        productId: pId, 
+        name: document.getElementById("edit-name").value, 
+        originalPrice: document.getElementById("edit-orig-price").value, 
+        price: document.getElementById("edit-sell-price").value, 
+        images: currentEditImages.join('\n'), 
+        desc: document.getElementById("edit-desc").value, 
+        status: document.getElementById("edit-status").value,
+        stock: parseInt(document.getElementById("edit-stock").value) || 0 
+      };
+      
       if(!payload.name || payload.price === "") { alert("Thiếu Tên hoặc Giá!"); return; }
       showLoading(true); closeEditModal();
       try {
