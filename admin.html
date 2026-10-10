@@ -138,17 +138,32 @@
     <!-- TAB SẢN PHẨM -->
     <div id="inventory" class="content">
       <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
-          <h3 style="margin: 0; font-size: 16px; color: #1a2935;">🚚 Phí Ship:</h3>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="number" id="edit-shipping-fee" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; width: 120px; font-size: 15px; font-weight: bold; color: #e53e3e;" placeholder="VD: 18000">
-            <span style="font-weight: 500;">VNĐ</span>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+          <!-- Fee -->
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h3 style="margin: 0; font-size: 16px; color: #1a2935; width: 120px;">🚚 Phí Ship:</h3>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <input type="number" id="edit-shipping-fee" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; width: 120px; font-size: 15px; font-weight: bold; color: #e53e3e;" placeholder="VD: 18000">
+              <span style="font-weight: 500;">VNĐ</span>
+            </div>
+            <button class="btn-update" onclick="updateShippingFee()" style="background: #2b6cb0;">Lưu Phí Ship</button>
           </div>
-          <button class="btn-update" onclick="updateShippingFee()" style="background: #2b6cb0;">Lưu Cấu Hình</button>
+          <!-- Theme -->
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h3 style="margin: 0; font-size: 16px; color: #1a2935; width: 120px;">🎨 Giao diện:</h3>
+            <select id="edit-theme" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 15px; font-weight: bold; color: #2b6cb0; width: 170px;">
+              <option value="default">Mặc định (Sáng)</option>
+              <option value="snow">Tuyết rơi (Tối)</option>
+              <option value="space">Không gian ảo (Tối)</option>
+              <option value="particles">Hạt công nghệ (Sáng)</option>
+            </select>
+            <button class="btn-update" onclick="updateTheme()" style="background: #d69e2e;">Đổi Chủ Đề</button>
+          </div>
         </div>
         <!-- NÚT TẠO SẢN PHẨM MỚI -->
-        <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px;" onclick="openEditModal()">+ TẠO SẢN PHẨM MỚI</button>
+        <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px; height: fit-content;" onclick="openEditModal()">+ TẠO SẢN PHẨM MỚI</button>
       </div>
+
       <table>
         <thead><tr><th>ID</th><th>Hình ảnh</th><th style="width: 30%;">Sản phẩm & Mô tả</th><th>Giá bán</th><th>Tồn kho</th><th style="width: 12%;">Thao tác</th></tr></thead>
         <tbody id="inventory-body"></tbody>
@@ -174,7 +189,6 @@
       <input type="hidden" id="edit-id">
       <div class="form-group"><label>Tên Sản Phẩm:</label><input type="text" id="edit-name"></div>
       
-      <!-- LỰA CHỌN TRẠNG THÁI HIỂN THỊ -->
       <div class="form-group">
         <label>Trạng thái hiển thị (Bảo mật):</label>
         <select id="edit-status">
@@ -240,6 +254,7 @@
   </div>
 
   <script>
+    // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
 
     let globalProductsData = [];
@@ -309,6 +324,7 @@
           globalProductsData = resData.products;
           globalCombosData = resData.combos || [];
           document.getElementById("edit-shipping-fee").value = resData.shippingFee;
+          document.getElementById("edit-theme").value = resData.theme || "default";
         } else { globalProductsData = resData; }
         
         renderInventory(globalProductsData);
@@ -316,6 +332,18 @@
         updateComboSelectOptions();
       } catch (e) { alert("Lỗi kết nối máy chủ Google!"); }
       showLoading(false);
+    }
+
+    // BỔ SUNG: Chức năng cập nhật Theme
+    async function updateTheme() {
+      let theme = document.getElementById("edit-theme").value;
+      showLoading(true);
+      try {
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateTheme", token: sessionStorage.getItem("adminToken"), theme: theme }) });
+        let data = await res.json();
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Cập nhật Chủ đề thành công! Hãy ra trang khách hàng Refresh lại để xem thành quả."); loadData();
+      } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
     function renderOrders(orders) {
@@ -406,9 +434,6 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    // ==========================================
-    // LOGIC MODAL QUẢN LÝ COMBO
-    // ==========================================
     function updateComboSelectOptions() {
       let sel = document.getElementById('combo-add-prod');
       sel.innerHTML = '<option value="">-- Chọn sản phẩm lẻ --</option>';
@@ -489,9 +514,6 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    // ==========================================
-    // LOGIC MODAL SẢN PHẨM & UPLOAD ẢNH
-    // ==========================================
     function renderImagePreviews() {
       const c = document.getElementById("image-preview-container"); c.innerHTML = "";
       if (currentEditImages.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh.</span>"; return; }
@@ -535,7 +557,6 @@
       input.value = ""; renderImagePreviews(); showLoading(false);
     }
     
-    // Tích hợp cho việc Sửa và Tạo mới
     function openEditModal(pId = null) {
       if (pId) {
         let p = globalProductsData.find(x => x.id.toString() === pId.toString()); if (!p) return;
@@ -549,7 +570,6 @@
         
         let st = (p.status || "").toLowerCase();
         document.getElementById("edit-status").value = (st === "ẩn" || st === "an") ? "ẩn" : (st === "hết hàng" ? "hết hàng" : "còn hàng");
-        
         currentEditImages = p.rawImages.split('\n').map(i => i.trim()).filter(i => i !== ""); 
       } else {
         document.getElementById("edit-modal-title").innerText = "Tạo Sản Phẩm Mới";
@@ -571,7 +591,7 @@
     async function saveProductChanges() {
       let pId = document.getElementById("edit-id").value;
       let payload = { 
-        action: pId ? "updateProduct" : "createProduct", // Tự phân biệt Thêm hay Sửa qua pId
+        action: pId ? "updateProduct" : "createProduct", 
         token: sessionStorage.getItem("adminToken"), 
         productId: pId, 
         name: document.getElementById("edit-name").value, 
