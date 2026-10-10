@@ -8,8 +8,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   
   <style>
+    /* Nền chung cho hệ thống hiệu ứng */
     #particles-js { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
     
+    /* =========================================
+       GIAO DIỆN DARK-MODE HOÀN CHỈNH 
+       ========================================= */
     body.theme-dark { background: #1a1a2e; color: #e2e8f0; }
     body.theme-dark h1, body.theme-dark h2, body.theme-dark h3 { color: #fff; }
     body.theme-dark .loader { background: #1a1a2e; }
@@ -33,9 +37,11 @@
     body.theme-dark #floating-cart { background: #232336; border-top: 1px solid #4a5568; }
     body.theme-dark .floating-right span[style] { color: #cbd5e0 !important; }
 
+    /* NÚT CHỌN THEME NỔI TRÊN CÙNG */
     .theme-switcher { position: absolute; top: 15px; right: 15px; z-index: 1000; }
     .theme-switcher select { padding: 8px 12px; border-radius: 20px; border: 1px solid #cbd5e0; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.9); cursor: pointer; outline: none; font-family: 'Roboto', sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: #333; transition: 0.3s; }
     body.theme-dark .theme-switcher select { background: rgba(35, 35, 54, 0.9); border-color: #4a5568; color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    /* ========================================= */
 
     body { font-family: 'Roboto', sans-serif; margin: 0; padding: 20px; padding-bottom: 100px; background: #f4f4f9; transition: background 0.3s; }
     h1 { font-family: 'Montserrat', sans-serif; text-align: center; color: #333; transition: color 0.3s; margin-top: 40px; }
@@ -143,7 +149,6 @@
   <!-- Menu chọn Theme -->
   <div class="theme-switcher">
     <select id="user-theme-selector" onchange="userChangeTheme(this.value)">
-      <!-- ĐÃ BỔ SUNG LỰA CHỌN MẶC ĐỊNH THEO CÀI ĐẶT ADMIN -->
       <option value="shop-default">🏪 Theo cài đặt của Shop</option>
       <option value="auto">🌗 Theo giao diện Sáng/Tối của máy</option>
       <option value="default">☀️ Mặc định (Sáng)</option>
@@ -227,7 +232,6 @@
     let currentModalImgIndex = 0;
     let globalShippingFee = 18000;
     
-    // Biến lưu Theme hiện tại của Admin trên máy chủ
     let currentServerTheme = 'default';
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -244,11 +248,9 @@
       if (currentTheme === 'auto') applyTheme('auto');
     });
 
-    // Lõi chức năng gán Theme đã được nâng cấp
     function applyTheme(userChoice) {
       document.getElementById('user-theme-selector').value = userChoice;
       
-      // Nếu khách chọn "Theo cài đặt của Shop", ghi đè bằng Theme của Admin
       let themeToApply = userChoice;
       if (userChoice === 'shop-default') {
          themeToApply = currentServerTheme;
@@ -274,21 +276,22 @@
       let pConfig = {};
       
       if (themeToApply === 'snow') {
+         // ĐÃ CHỈNH SỬA: SVG Bông tuyết được "Flatten" 100%, mã hóa an toàn để vượt qua trình duyệt chặn XSS
          pConfig = {
           "particles": { 
             "number": { "value": 70 }, 
             "shape": { 
               "type": "image",
               "image": {
-                "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGxpbmUgeDE9IjEyIiB5MT0iMiIgeDI9IjEyIiB5Mj0iMjIiLz48bGluZSB4MT0iMy4zNCIgeTE9IjciIHgyPSIyMC42NiIgeTI9IjE3Ii8+PGxpbmUgeDE9IjMuMzQiIHkxPSIxNyIgeDI9IjIwLjY2IiB5Mj0iNyIvPjxwYXRoIGQ9Ik0xMCA0bDIgMiAyLTIiLz48cGF0aCBkPSJNMTAgMjBsMi0yIDIgMiIvPjxwYXRoIGQ9Ik00IDEwbDIgMi0yIDIiLz48cGF0aCBkPSJNMjAgMTBsLTIgMiAyIDIiLz48L3N2Zz4=",
-                "width": 24,
-                "height": 24
+                "src": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%27-50%20-50%20100%20100%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%272.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%20fill%3D%27none%27%3E%3Cg%20transform%3D%27rotate%2830%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%2890%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28150%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28210%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28270%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28330%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%280%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%2860%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28120%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28180%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28240%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28300%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cpolygon%20points%3D%270%2C-12%2010.39%2C-6%2010.39%2C6%200%2C12%20-10.39%2C6%20-10.39%2C-6%27%2F%3E%3C%2Fsvg%3E",
+                "width": 100,
+                "height": 100
               }
             }, 
-            "opacity": { "value": 0.7, "random": true }, 
-            "size": { "value": 12, "random": true }, 
+            "opacity": { "value": 0.8, "random": true }, 
+            "size": { "value": 14, "random": true }, 
             "line_linked": { "enable": false }, 
-            "move": { "enable": true, "speed": 1.2, "direction": "bottom", "random": true, "straight": false, "out_mode": "out" } 
+            "move": { "enable": true, "speed": 1.5, "direction": "bottom", "random": true, "straight": false, "out_mode": "out" } 
           },
           "interactivity": { "events": { "onhover": { "enable": false }, "onclick": { "enable": false } } }, "retina_detect": true
         };
@@ -322,10 +325,8 @@
           combosData = resData.combos || [];
           globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
           
-          // Lấy Theme Admin thiết lập
           currentServerTheme = resData.theme || 'default';
           
-          // Lấy Theme khách đã chọn (Nếu khách chưa chọn bao giờ, mặc định là theo Shop)
           let activeTheme = localStorage.getItem('userSelectedTheme') || 'shop-default';
           applyTheme(activeTheme);
 
