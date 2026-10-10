@@ -15,7 +15,6 @@
     .product-card { position: relative; background: #eef2f5; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; }
     .discount-badge { position: absolute; top: 10px; right: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 3px; z-index: 10;}
     
-    /* STYLE DÀNH RIÊNG CHO COMBO ĐỂ NỔI BẬT */
     .combo-card { border: 2px solid #ffd700; background: #fffdf0; }
     .combo-ribbon { position: absolute; top: -5px; left: -5px; background: #e53e3e; color: white; padding: 5px 12px; font-weight: bold; font-size: 12px; z-index: 10; box-shadow: 2px 2px 4px rgba(0,0,0,0.2); border-radius: 3px; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;}
     .combo-items-text { font-size: 12px; color: #555; margin-bottom: 10px; text-align: left; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 6px; border: 1px dashed #ccc;}
@@ -117,14 +116,12 @@
     <div class="loader-text" id="loading-text">ĐANG KẾT NỐI DỮ LIỆU...</div>
   </div>
   
-  <!-- KHU VỰC COMBO -->
   <div id="combo-section" style="display: none;">
     <h2 style="color: #e53e3e; font-size: 22px; margin-top: 10px;">🔥 COMBO ĐẶC BIỆT 🔥</h2>
     <div class="container" id="combo-list"></div>
     <div style="border-bottom: 2px dashed #ccc; margin: 40px auto; max-width: 300px;"></div>
   </div>
 
-  <!-- KHU VỰC SẢN PHẨM LẺ -->
   <h2 id="regular-title" style="display: none;">SẢN PHẨM KHÁC</h2>
   <div class="container" id="product-list"></div>
 
@@ -262,7 +259,6 @@
     }
     function validateProductQty(id) { let input = document.getElementById('qty-' + id); let val = parseInt(input.value); if (isNaN(val) || val < 1) input.value = 1; }
 
-    // RENDER SẢN PHẨM & COMBO
     function renderData() {
       document.getElementById('loading').classList.add('hidden');
       
@@ -297,6 +293,10 @@
 
       const pList = document.getElementById('product-list'); pList.innerHTML = '';
       productsData.forEach(p => {
+        // === MÀNG LỌC TỰ ĐỘNG GIẤU SẢN PHẨM ===
+        let st = (p.status || "").toLowerCase();
+        if (st === "ẩn" || st === "an" || st === "hết hàng" || st === "" || p.stock <= 0) return;
+
         let badgeHtml = ''; let priceHtml = '';
         let orig = Number(p.originalPrice) || 0; let curr = Number(p.price) || 0;
         if (orig > curr && curr > 0) {
