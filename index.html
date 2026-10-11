@@ -340,7 +340,6 @@
           combosData = resData.combos || [];
           globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
           
-          // Logic Chú thích lấy DUY NHẤT từ cột Mô tả sản phẩm (Cắt 80 ký tự) - CHỈ ÁP DỤNG CHO COMBO
           combosData.forEach(c => {
              let newImages = [];
              let newCaptions = [];
@@ -363,8 +362,6 @@
                  c.imageCaptions = c.images.map(() => desc.length > 80 ? desc.substring(0, 80) + '...' : desc);
              }
           });
-          
-          // LƯU Ý: Gỡ bỏ hoàn toàn logic tạo Caption cho Sản phẩm thường ở đây
 
           currentServerTheme = resData.theme || 'default';
           let activeTheme = localStorage.getItem('userSelectedTheme') || 'shop-default';
@@ -407,30 +404,8 @@
     function scrollCarousel(id, direction) { 
       const c = document.getElementById(`slides-${id}`); 
       if (!c) return;
-      const scrollAmount = c.clientWidth;
-      const maxScroll = c.scrollWidth - scrollAmount;
-      
-      if (!c.style.scrollBehavior) c.style.scrollBehavior = 'smooth';
-
-      if (direction === 1) {
-        if (Math.ceil(c.scrollLeft) >= maxScroll - 5) {
-          c.style.scrollBehavior = 'auto';
-          c.scrollLeft = 0;
-          setTimeout(() => { c.style.scrollBehavior = 'smooth'; }, 50);
-        } else {
-          c.style.scrollBehavior = 'smooth';
-          c.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-        }
-      } else {
-        if (Math.floor(c.scrollLeft) <= 5) {
-          c.style.scrollBehavior = 'auto';
-          c.scrollLeft = maxScroll;
-          setTimeout(() => { c.style.scrollBehavior = 'smooth'; }, 50);
-        } else {
-          c.style.scrollBehavior = 'smooth';
-          c.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-        }
-      }
+      c.style.scrollBehavior = 'smooth';
+      c.scrollBy({ left: direction * c.clientWidth, behavior: 'smooth' });
     }
 
     function openModal(productId, index) { currentModalProductId = productId; currentModalImgIndex = index; updateModalImage(); document.getElementById('image-modal').style.display = 'flex'; }
@@ -452,7 +427,6 @@
             capEl.innerText = p.imageCaptions[currentModalImgIndex];
             capEl.style.display = 'block';
         } else {
-            // Ẩn thanh Caption nếu là sản phẩm thường (không có imageCaptions)
             capEl.style.display = 'none';
         }
 
@@ -489,7 +463,21 @@
         combosData.forEach(c => {
           let itemsText = c.rawItems.map(i => `${i.qty}x ${i.name}`).join('<br> • ');
           
+          let totalImgs = c.images.length;
           let imagesHtml = ''; 
+          
+          // ĐÃ THÊM: Tạo Clone cho bức ảnh cuối cùng đặt ở vị trí đầu
+          if (totalImgs > 1) {
+            let cap = c.imageCaptions && c.imageCaptions[totalImgs-1] ? c.imageCaptions[totalImgs-1] : "";
+            let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
+            imagesHtml += `
+              <div class="carousel-item-wrap" data-clone="true">
+                <img src="${escapeHtml(c.images[totalImgs-1])}" onclick="openModal('${c.id}', ${totalImgs-1})">
+                ${capHtml}
+              </div>`; 
+          }
+          
+          // Tạo các bức ảnh gốc
           c.images.forEach((img, idx) => { 
             let cap = c.imageCaptions && c.imageCaptions[idx] ? c.imageCaptions[idx] : "";
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
@@ -499,6 +487,17 @@
                 ${capHtml}
               </div>`; 
           });
+
+          // ĐÃ THÊM: Tạo Clone cho bức ảnh đầu tiên đặt ở vị trí cuối
+          if (totalImgs > 1) {
+            let cap = c.imageCaptions && c.imageCaptions[0] ? c.imageCaptions[0] : "";
+            let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
+            imagesHtml += `
+              <div class="carousel-item-wrap" data-clone="true">
+                <img src="${escapeHtml(c.images[0])}" onclick="openModal('${c.id}', 0)">
+                ${capHtml}
+              </div>`; 
+          }
 
           let arrowsHtml = c.images.length > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${c.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${c.id}', 1)">&#10095;</button>` : '';
           
@@ -533,14 +532,32 @@
           priceHtml = `<div class="original-price">${formatMoney(orig)}</div><div class="current-price">${formatMoney(curr)}</div>`;
         } else { priceHtml = `<div class="original-price" style="visibility:hidden;">0đ</div><div class="current-price">${formatMoney(curr)}</div>`; }
 
-        // ĐÃ SỬA: Loại bỏ HTML Caption ở sản phẩm thường
+        let totalImgs = p.images.length;
         let imagesHtml = ''; 
+        
+        // ĐÃ THÊM: Tạo Clone cho bức ảnh cuối cùng đặt ở vị trí đầu
+        if (totalImgs > 1) {
+          imagesHtml += `
+            <div class="carousel-item-wrap" data-clone="true">
+              <img src="${escapeHtml(p.images[totalImgs-1])}" onclick="openModal('${p.id}', ${totalImgs-1})">
+            </div>`; 
+        }
+
+        // Tạo các bức ảnh gốc
         p.images.forEach((img, idx) => { 
           imagesHtml += `
             <div class="carousel-item-wrap">
               <img src="${escapeHtml(img)}" onclick="openModal('${p.id}', ${idx})">
             </div>`; 
         });
+
+        // ĐÃ THÊM: Tạo Clone cho bức ảnh đầu tiên đặt ở vị trí cuối
+        if (totalImgs > 1) {
+          imagesHtml += `
+            <div class="carousel-item-wrap" data-clone="true">
+              <img src="${escapeHtml(p.images[0])}" onclick="openModal('${p.id}', 0)">
+            </div>`; 
+        }
 
         let arrowsHtml = p.images.length > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${p.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${p.id}', 1)">&#10095;</button>` : '';
         
@@ -560,6 +577,35 @@
         `;
         pList.appendChild(card);
       });
+
+      // ĐÃ THÊM: Hệ thống điều hướng tự động nhảy khung hình khi chạm vào ảnh Clone
+      setTimeout(() => {
+        document.querySelectorAll('.carousel-slides').forEach(c => {
+          if (c.querySelector('[data-clone]')) {
+            // Bước 1: Khởi động - Tắt hiệu ứng trượt để nhảy tới bức ảnh gốc số 1 (bỏ qua Clone)
+            c.style.scrollBehavior = 'auto';
+            c.scrollLeft = c.clientWidth;
+            
+            // Bước 2: Bắt sự kiện người dùng kết thúc thao tác lướt/ấn nút
+            c.addEventListener('scroll', () => {
+              clearTimeout(c.snapTimeout);
+              c.snapTimeout = setTimeout(() => {
+                const maxScroll = c.scrollWidth - c.clientWidth;
+                // Nếu lướt tới Clone phía trước -> Nhảy âm thầm sang ảnh thật ở cuối
+                if (c.scrollLeft <= 5) {
+                  c.style.scrollBehavior = 'auto';
+                  c.scrollLeft = maxScroll - c.clientWidth;
+                } 
+                // Nếu lướt tới Clone phía sau -> Nhảy âm thầm sang ảnh thật ở đầu
+                else if (c.scrollLeft >= maxScroll - 5) {
+                  c.style.scrollBehavior = 'auto';
+                  c.scrollLeft = c.clientWidth;
+                }
+              }, 150); // Chờ 150ms để hoạt ảnh trượt kết thúc hoàn toàn
+            });
+          }
+        });
+      }, 100);
     }
 
     function addToCart(id, isCombo) {
