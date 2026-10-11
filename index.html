@@ -216,7 +216,10 @@
       <div class="form-group"><select id="phuong" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
       <div class="form-group"><input type="text" id="customer-address-detail" placeholder="Địa chỉ chi tiết (Số nhà, đường, ngõ...) *" required></div>
       <div class="form-group"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
-      <button class="btn-primary" onclick="checkout()" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
+      
+      <!-- ĐÃ CHỈNH SỬA: Thêm nút copy và truyền tham số cho hàm checkout -->
+      <button class="btn-primary" onclick="checkout(true)" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
+      <button class="btn-primary" onclick="checkout(false)" style="background: #4a5568; margin-top: 10px;">Chỉ copy đơn hàng</button>
     </div>
   </div>
 
@@ -466,7 +469,6 @@
           let totalImgs = c.images.length;
           let imagesHtml = ''; 
           
-          // ĐÃ THÊM: Tạo Clone cho bức ảnh cuối cùng đặt ở vị trí đầu
           if (totalImgs > 1) {
             let cap = c.imageCaptions && c.imageCaptions[totalImgs-1] ? c.imageCaptions[totalImgs-1] : "";
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
@@ -477,7 +479,6 @@
               </div>`; 
           }
           
-          // Tạo các bức ảnh gốc
           c.images.forEach((img, idx) => { 
             let cap = c.imageCaptions && c.imageCaptions[idx] ? c.imageCaptions[idx] : "";
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
@@ -488,7 +489,6 @@
               </div>`; 
           });
 
-          // ĐÃ THÊM: Tạo Clone cho bức ảnh đầu tiên đặt ở vị trí cuối
           if (totalImgs > 1) {
             let cap = c.imageCaptions && c.imageCaptions[0] ? c.imageCaptions[0] : "";
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
@@ -535,7 +535,6 @@
         let totalImgs = p.images.length;
         let imagesHtml = ''; 
         
-        // ĐÃ THÊM: Tạo Clone cho bức ảnh cuối cùng đặt ở vị trí đầu
         if (totalImgs > 1) {
           imagesHtml += `
             <div class="carousel-item-wrap" data-clone="true">
@@ -543,7 +542,6 @@
             </div>`; 
         }
 
-        // Tạo các bức ảnh gốc
         p.images.forEach((img, idx) => { 
           imagesHtml += `
             <div class="carousel-item-wrap">
@@ -551,7 +549,6 @@
             </div>`; 
         });
 
-        // ĐÃ THÊM: Tạo Clone cho bức ảnh đầu tiên đặt ở vị trí cuối
         if (totalImgs > 1) {
           imagesHtml += `
             <div class="carousel-item-wrap" data-clone="true">
@@ -578,30 +575,25 @@
         pList.appendChild(card);
       });
 
-      // ĐÃ THÊM: Hệ thống điều hướng tự động nhảy khung hình khi chạm vào ảnh Clone
       setTimeout(() => {
         document.querySelectorAll('.carousel-slides').forEach(c => {
           if (c.querySelector('[data-clone]')) {
-            // Bước 1: Khởi động - Tắt hiệu ứng trượt để nhảy tới bức ảnh gốc số 1 (bỏ qua Clone)
             c.style.scrollBehavior = 'auto';
             c.scrollLeft = c.clientWidth;
             
-            // Bước 2: Bắt sự kiện người dùng kết thúc thao tác lướt/ấn nút
             c.addEventListener('scroll', () => {
               clearTimeout(c.snapTimeout);
               c.snapTimeout = setTimeout(() => {
                 const maxScroll = c.scrollWidth - c.clientWidth;
-                // Nếu lướt tới Clone phía trước -> Nhảy âm thầm sang ảnh thật ở cuối
                 if (c.scrollLeft <= 5) {
                   c.style.scrollBehavior = 'auto';
                   c.scrollLeft = maxScroll - c.clientWidth;
                 } 
-                // Nếu lướt tới Clone phía sau -> Nhảy âm thầm sang ảnh thật ở đầu
                 else if (c.scrollLeft >= maxScroll - 5) {
                   c.style.scrollBehavior = 'auto';
                   c.scrollLeft = c.clientWidth;
                 }
-              }, 150); // Chờ 150ms để hoạt ảnh trượt kết thúc hoàn toàn
+              }, 150); 
             });
           }
         });
@@ -671,7 +663,8 @@
       if (cart.length > 0) setTimeout(() => { document.getElementById('customer-name').focus(); }, 500);
     }
 
-    function checkout() {
+    // ĐÃ CHỈNH SỬA: Thêm tham số openZalo để nhận biết nút nào được bấm
+    function checkout(openZalo) {
       if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
       const name = document.getElementById('customer-name').value;
@@ -700,13 +693,28 @@
       orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + formatMoney(globalShippingFee) + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
 
       let orderData = { action: "createOrder", name: name, phone: phone, address: fullAddress, note: note, itemsText: itemsForSheet.join('\n'), total: formatMoney(finalTotal), cartJSON: JSON.stringify(cart) };
+      
+      // Vẫn gửi đơn hàng lên máy chủ (Sheets) bình thường
       fetch(API_URL, { method: 'POST', body: JSON.stringify(orderData) }).catch(err => console.error(err));
 
       const temp = document.createElement("textarea"); temp.value = orderText; document.body.appendChild(temp); temp.select();
-      try { document.execCommand("copy"); alert("ĐÃ LƯU ĐƠN HÀNG!\n\nHệ thống sẽ mở Zalo. Hãy bấm DÁN (Paste) để gửi đơn cho Shop nhé!"); } 
+      try { 
+        document.execCommand("copy"); 
+        
+        // Kiểm tra khách bấm nút nào để hiện thông báo tương ứng
+        if (openZalo === true) {
+            alert("ĐÃ LƯU ĐƠN HÀNG!\n\nHệ thống sẽ mở Zalo. Hãy bấm DÁN (Paste) để gửi đơn cho Shop nhé!"); 
+        } else {
+            alert("Đã copy thông tin đơn hàng, hãy chủ động nhắn thông tin đơn hàng đã copy cho shop nhé!");
+        }
+      } 
       catch (err) { alert("Trình duyệt không hỗ trợ copy tự động. Vui lòng nhắn tin trực tiếp cho Shop!"); }
       document.body.removeChild(temp);
-      window.open("https://zalo.me/" + zaloPhone, "_blank");
+      
+      // Chỉ mở tab Zalo nếu khách bấm nút "Gửi tin nhắn đặt mua"
+      if (openZalo === true) {
+          window.open("https://zalo.me/" + zaloPhone, "_blank");
+      }
     }
   </script>
 </body>
