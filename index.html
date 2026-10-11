@@ -55,10 +55,14 @@
     .combo-ribbon { position: absolute; top: -5px; left: -5px; background: #e53e3e; color: white; padding: 5px 12px; font-weight: bold; font-size: 12px; z-index: 10; box-shadow: 2px 2px 4px rgba(0,0,0,0.2); border-radius: 3px; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;}
     .combo-items-text { font-size: 12px; color: #555; margin-bottom: 10px; text-align: left; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 6px; border: 1px dashed #ccc;}
     
+    /* GIAO DIỆN CAROUSEL CÓ CHÚ THÍCH (CAPTION) */
     .carousel { position: relative; width: 100%; height: 200px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; overflow: hidden; background: #fff;}
     .carousel-slides { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
     .carousel-slides::-webkit-scrollbar { display: none; }
-    .carousel-slides img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; cursor: zoom-in; }
+    .carousel-item-wrap { flex: 0 0 100%; height: 100%; position: relative; scroll-snap-align: start; }
+    .carousel-slides img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; display: block;}
+    .carousel-caption { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.65); color: #fff; font-size: 11.5px; padding: 6px 8px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; backdrop-filter: blur(2px);}
+    
     .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; z-index: 2; transition: background 0.2s; }
     .carousel-btn:hover { background: rgba(0,0,0,0.8); }
     .carousel-btn.prev { left: 4px; }
@@ -122,6 +126,10 @@
 
     .image-modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
     .image-modal-content { max-width: 95%; max-height: 90vh; object-fit: contain; border-radius: 8px; user-select: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    
+    /* GIAO DIỆN CHÚ THÍCH ẢNH LỚN TRONG MODAL */
+    #modal-caption { position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%); color: white; font-size: 14px; font-weight: 500; text-align: center; width: 90%; max-width: 500px; padding: 8px 12px; background: rgba(0,0,0,0.7); border-radius: 8px; z-index: 2010; text-shadow: 1px 1px 2px black; backdrop-filter: blur(3px); line-height: 1.4; display: none;}
+    
     .close-modal { position: absolute; top: 15px; right: 25px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 2010; line-height: 1; }
     .close-modal:hover { color: #ff4757; }
     .modal-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 2010; display: flex; align-items: center; justify-content: center; transition: background 0.3s;}
@@ -139,6 +147,7 @@
       .theme-switcher { top: 10px; right: 10px; }
       .theme-switcher select { padding: 6px 10px; font-size: 12px; }
       h1 { margin-top: 40px; font-size: 20px; } 
+      #modal-caption { font-size: 12px; bottom: 70px; }
     }
   </style>
   
@@ -215,6 +224,10 @@
     <span class="close-modal" onclick="closeModal()">&times;</span>
     <button class="modal-nav prev" onclick="changeModalImg(-1)">&#10094;</button>
     <img class="image-modal-content" id="modal-img">
+    
+    <!-- Phần hiển thị chú thích ảnh lớn -->
+    <div id="modal-caption"></div>
+    
     <button class="modal-nav next" onclick="changeModalImg(1)">&#10095;</button>
     <div id="modal-indicator" class="modal-indicator">1 / 1</div>
     <div id="modal-dots" class="modal-dots"></div>
@@ -235,6 +248,9 @@
     let currentServerTheme = 'default';
 
     document.addEventListener("DOMContentLoaded", function() {
+      let savedTheme = localStorage.getItem('userSelectedTheme');
+      if (savedTheme) applyTheme(savedTheme);
+      
       loadProducts(); fetchTinh(); setupModalSwipe();
     });
     
@@ -276,7 +292,6 @@
       let pConfig = {};
       
       if (themeToApply === 'snow') {
-         // ĐÃ CHỈNH SỬA: SVG Bông tuyết được "Flatten" 100%, mã hóa an toàn để vượt qua trình duyệt chặn XSS
          pConfig = {
           "particles": { 
             "number": { "value": 70 }, 
@@ -325,8 +340,33 @@
           combosData = resData.combos || [];
           globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
           
-          currentServerTheme = resData.theme || 'default';
+          // Logic Chú thích lấy DUY NHẤT từ cột Mô tả sản phẩm (Cắt 80 ký tự) - CHỈ ÁP DỤNG CHO COMBO
+          combosData.forEach(c => {
+             let newImages = [];
+             let newCaptions = [];
+             c.rawItems.forEach(item => {
+                let p = productsData.find(x => x.id === item.id);
+                if (p && p.images && p.images.length > 0) {
+                   if (!newImages.includes(p.images[0])) {
+                      newImages.push(p.images[0]);
+                      let desc = p.desc ? p.desc.trim() : "";
+                      let capText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
+                      newCaptions.push(capText);
+                   }
+                }
+             });
+             if(newImages.length > 0) {
+                 c.images = newImages;
+                 c.imageCaptions = newCaptions;
+             } else {
+                 let desc = c.desc ? c.desc.trim() : "";
+                 c.imageCaptions = c.images.map(() => desc.length > 80 ? desc.substring(0, 80) + '...' : desc);
+             }
+          });
           
+          // LƯU Ý: Gỡ bỏ hoàn toàn logic tạo Caption cho Sản phẩm thường ở đây
+
+          currentServerTheme = resData.theme || 'default';
           let activeTheme = localStorage.getItem('userSelectedTheme') || 'shop-default';
           applyTheme(activeTheme);
 
@@ -363,7 +403,36 @@
 
     function formatMoney(amount) { return Number(amount).toLocaleString('vi-VN') + "đ"; }
     function escapeHtml(str) { return (str || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
-    function scrollCarousel(id, direction) { const c = document.getElementById(`slides-${id}`); c.scrollBy({ left: direction * c.clientWidth, behavior: 'smooth' }); }
+    
+    function scrollCarousel(id, direction) { 
+      const c = document.getElementById(`slides-${id}`); 
+      if (!c) return;
+      const scrollAmount = c.clientWidth;
+      const maxScroll = c.scrollWidth - scrollAmount;
+      
+      if (!c.style.scrollBehavior) c.style.scrollBehavior = 'smooth';
+
+      if (direction === 1) {
+        if (Math.ceil(c.scrollLeft) >= maxScroll - 5) {
+          c.style.scrollBehavior = 'auto';
+          c.scrollLeft = 0;
+          setTimeout(() => { c.style.scrollBehavior = 'smooth'; }, 50);
+        } else {
+          c.style.scrollBehavior = 'smooth';
+          c.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+      } else {
+        if (Math.floor(c.scrollLeft) <= 5) {
+          c.style.scrollBehavior = 'auto';
+          c.scrollLeft = maxScroll;
+          setTimeout(() => { c.style.scrollBehavior = 'smooth'; }, 50);
+        } else {
+          c.style.scrollBehavior = 'smooth';
+          c.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        }
+      }
+    }
+
     function openModal(productId, index) { currentModalProductId = productId; currentModalImgIndex = index; updateModalImage(); document.getElementById('image-modal').style.display = 'flex'; }
     function closeModal() { document.getElementById('image-modal').style.display = 'none'; }
     function changeModalImg(delta) {
@@ -371,11 +440,22 @@
       currentModalImgIndex += delta; if (currentModalImgIndex < 0) currentModalImgIndex = p.images.length - 1; if (currentModalImgIndex >= p.images.length) currentModalImgIndex = 0; updateModalImage();
     }
     function jumpToModalImg(index) { currentModalImgIndex = index; updateModalImage(); }
+    
     function updateModalImage() {
       let p = [...productsData, ...combosData].find(p => p.id === currentModalProductId);
       if (p && p.images[currentModalImgIndex]) {
         document.getElementById('modal-img').src = p.images[currentModalImgIndex];
         document.getElementById('modal-indicator').innerText = (currentModalImgIndex + 1) + " / " + p.images.length;
+        
+        let capEl = document.getElementById('modal-caption');
+        if(p.imageCaptions && p.imageCaptions[currentModalImgIndex]) {
+            capEl.innerText = p.imageCaptions[currentModalImgIndex];
+            capEl.style.display = 'block';
+        } else {
+            // Ẩn thanh Caption nếu là sản phẩm thường (không có imageCaptions)
+            capEl.style.display = 'none';
+        }
+
         let dots = document.getElementById('modal-dots'); dots.innerHTML = ''; 
         if (p.images.length > 1) {
           for (let i = 0; i < p.images.length; i++) {
@@ -385,6 +465,7 @@
         }
       }
     }
+    
     function setupModalSwipe() {
       const modal = document.getElementById('image-modal'); let tx = 0; let tox = 0;
       modal.addEventListener('touchstart', e => { if(e.touches.length > 1) return; tx = e.changedTouches[0].screenX; });
@@ -407,7 +488,18 @@
         
         combosData.forEach(c => {
           let itemsText = c.rawItems.map(i => `${i.qty}x ${i.name}`).join('<br> • ');
-          let imagesHtml = ''; c.images.forEach((img, idx) => { imagesHtml += `<img src="${escapeHtml(img)}" onclick="openModal('${c.id}', ${idx})">`; });
+          
+          let imagesHtml = ''; 
+          c.images.forEach((img, idx) => { 
+            let cap = c.imageCaptions && c.imageCaptions[idx] ? c.imageCaptions[idx] : "";
+            let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
+            imagesHtml += `
+              <div class="carousel-item-wrap">
+                <img src="${escapeHtml(img)}" onclick="openModal('${c.id}', ${idx})">
+                ${capHtml}
+              </div>`; 
+          });
+
           let arrowsHtml = c.images.length > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${c.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${c.id}', 1)">&#10095;</button>` : '';
           
           let card = document.createElement('div'); card.className = 'product-card combo-card';
@@ -441,7 +533,15 @@
           priceHtml = `<div class="original-price">${formatMoney(orig)}</div><div class="current-price">${formatMoney(curr)}</div>`;
         } else { priceHtml = `<div class="original-price" style="visibility:hidden;">0đ</div><div class="current-price">${formatMoney(curr)}</div>`; }
 
-        let imagesHtml = ''; p.images.forEach((img, idx) => { imagesHtml += `<img src="${escapeHtml(img)}" onclick="openModal('${p.id}', ${idx})">`; });
+        // ĐÃ SỬA: Loại bỏ HTML Caption ở sản phẩm thường
+        let imagesHtml = ''; 
+        p.images.forEach((img, idx) => { 
+          imagesHtml += `
+            <div class="carousel-item-wrap">
+              <img src="${escapeHtml(img)}" onclick="openModal('${p.id}', ${idx})">
+            </div>`; 
+        });
+
         let arrowsHtml = p.images.length > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${p.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${p.id}', 1)">&#10095;</button>` : '';
         
         let card = document.createElement('div'); card.className = 'product-card';
