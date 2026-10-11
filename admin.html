@@ -130,7 +130,7 @@
     <!-- TAB ĐƠN HÀNG -->
     <div id="orders" class="content active">
       <table>
-        <thead><tr><th>Mã ĐH</th><th>Thời gian</th><th>Khách hàng</th><th style="width: 28%;">Chi tiết Đơn hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th style="width: 15%;">Cập nhật</th></tr></thead>
+        <thead><tr><th>Mã ĐH</th><th>Thời gian</th><th style="width: 25%;">Khách hàng</th><th style="width: 25%;">Chi tiết Đơn hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th style="width: 12%;">Cập nhật</th></tr></thead>
         <tbody id="orders-body"></tbody>
       </table>
     </div>
@@ -257,6 +257,8 @@
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
 
+    // ĐÃ THÊM: Biến lưu trữ Đơn hàng ở phạm vi toàn cục để dùng cho chức năng Copy
+    let globalOrdersData = [];
     let globalProductsData = [];
     let globalCombosData = [];
     let currentEditImages = []; 
@@ -315,7 +317,10 @@
         let resOrders = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getOrders", token: token }) });
         let orders = await resOrders.json();
         if(orders.status === "error") { if(orders.code==="AUTH") logout(); else alert(orders.msg); return; }
-        renderOrders(orders);
+        
+        // Lưu data đơn hàng ra global để dùng cho Nút Copy
+        globalOrdersData = orders;
+        renderOrders(globalOrdersData);
         
         let resProducts = await fetch(API_URL + "?action=getProducts");
         let resData = await resProducts.json();
@@ -334,7 +339,6 @@
       showLoading(false);
     }
 
-    // BỔ SUNG: Chức năng cập nhật Theme
     async function updateTheme() {
       let theme = document.getElementById("edit-theme").value;
       showLoading(true);
@@ -346,16 +350,43 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
+    // ĐÃ THÊM: Hàm Copy Thông tin khách hàng
+    function copyCustomerInfo(row) {
+        let order = globalOrdersData.find(o => o.row === row);
+        if (!order) return;
+        
+        let copyText = `Người nhận: ${order.name}\nSđt: ${order.phone}\nĐịa chỉ: ${order.address}`;
+        
+        const temp = document.createElement("textarea");
+        temp.value = copyText;
+        document.body.appendChild(temp);
+        temp.select();
+        try {
+            document.execCommand("copy");
+            alert("📋 Đã copy thông tin giao hàng thành công!");
+        } catch (err) {
+            alert("Lỗi! Trình duyệt của bạn không hỗ trợ chức năng copy tự động.");
+        }
+        document.body.removeChild(temp);
+    }
+
+    // ĐÃ CHỈNH SỬA: Hiển thị thêm địa chỉ và nút Copy
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body'); tbody.innerHTML = "";
       if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
       orders.forEach(order => {
         let selectHtml = `<select id="status-${order.row}" class="status-select">`;
         STATUS_OPTIONS.forEach(opt => { selectHtml += `<option value="${opt}" ${order.status === opt ? "selected" : ""}>${opt}</option>`; }); selectHtml += `</select>`;
+        
         tbody.innerHTML += `<tr>
             <td data-label="Mã ĐH"><b>${escapeHtml(order.orderId)}</b></td>
             <td data-label="Thời gian"><span style="color:#718096;">${escapeHtml(order.date)}</span></td>
-            <td data-label="Khách hàng"><b>${escapeHtml(order.name)}</b><br><span style="color:#0068ff; margin-top:4px;">📞 ${escapeHtml(order.phone)}</span></td>
+            <td data-label="Khách hàng">
+              <b>${escapeHtml(order.name)}</b><br>
+              <span style="color:#0068ff; margin-top:4px; display:inline-block;">📞 ${escapeHtml(order.phone)}</span><br>
+              <span style="color:#4a5568; margin-top:4px; font-size:12px; line-height:1.4; display:inline-block; max-width:220px;">📍 ${escapeHtml(order.address)}</span><br>
+              <button class="btn-update" style="background:#4a5568; margin-top:8px; font-size: 11px; padding: 4px 10px; border-radius: 4px;" onclick="copyCustomerInfo(${order.row})">📋 Copy Thông tin</button>
+            </td>
             <td data-label="Chi tiết Đơn hàng" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${escapeHtml(order.details)}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${escapeHtml(order.total)}</td>
             <td data-label="Trạng thái"><span style="font-weight: 500; color: #2b6cb0;">${escapeHtml(order.status)}</span></td>
