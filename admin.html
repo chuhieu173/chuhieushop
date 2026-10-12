@@ -229,6 +229,17 @@
       <div class="form-group"><label>Tên Combo Đặc Biệt:</label><input type="text" id="combo-name" placeholder="VD: Combo Mùa Hè Năng Động"></div>
       <div class="form-group"><label>Mô tả ngắn gọn:</label><textarea id="combo-desc" style="height: 60px;" placeholder="Dòng chữ nhỏ hiển thị dưới tên combo..."></textarea></div>
       
+      <!-- ĐÃ THÊM: Khu vực upload ảnh riêng cho Combo -->
+      <div class="form-group" style="background: #f8fafc; border: 1px dashed #cbd5e0; padding: 15px; border-radius: 8px;">
+        <label style="color:#2d3748;">Hình Ảnh Riêng Cho Combo (Sẽ xếp ở đầu danh sách ảnh):</label>
+        <div id="combo-image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="file" id="combo-image-upload-input" multiple accept="image/*" style="display: none;" onchange="handleComboImageUpload(this)">
+          <button type="button" class="btn-update" style="background: #38a169; flex: 1; padding: 10px;" onclick="document.getElementById('combo-image-upload-input').click()">📸 Tải ảnh lên</button>
+          <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addManualComboImageLink()">🔗 Nhập link thủ công</button>
+        </div>
+      </div>
+
       <div style="background: #f8fafc; border: 1px dashed #cbd5e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
         <h4 style="margin:0 0 10px 0; color:#2d3748; font-family:'Montserrat';">Thành Phần Combo</h4>
         <div style="display:flex; flex-wrap: wrap; gap:10px; margin-bottom: 15px;">
@@ -262,6 +273,7 @@
     let globalCombosData = [];
     let currentEditImages = []; 
     let currentComboItems = []; 
+    let currentComboEditImages = []; // ĐÃ THÊM
 
     function togglePassword() { let p = document.getElementById("admin-pass"); p.type = p.type === "password" ? "text" : "password"; }
     async function sha256(msg) {
@@ -367,7 +379,6 @@
         document.body.removeChild(temp);
     }
 
-    // ĐÃ THÊM: Gọi API Xóa đơn (Đánh dấu ẩn)
     async function deleteOrder(rowIdx) {
       if(!confirm("Bạn có chắc chắn muốn XÓA ẨN đơn hàng này khỏi danh sách không?\n(Dữ liệu vẫn được giữ ở Cột L trong file Google Sheets)")) return;
       showLoading(true);
@@ -380,7 +391,6 @@
       } catch (e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    // Cập nhật nút Xóa vào từng đơn hàng
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body'); tbody.innerHTML = "";
       if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
@@ -521,19 +531,62 @@
     }
     function removeComboItem(index) { currentComboItems.splice(index, 1); renderComboItemsPreview(); }
 
+    // ĐÃ THÊM: Các hàm xử lý ảnh riêng cho Combo
+    function renderComboImagePreviews() {
+      const c = document.getElementById("combo-image-preview-container"); c.innerHTML = "";
+      if (currentComboEditImages.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px; line-height: 1.5;'>Hệ thống sẽ tự động ghép ảnh từ các sản phẩm thành phần. Bạn có thể up thêm ảnh riêng của Combo tại đây.</span>"; return; }
+      currentComboEditImages.forEach((url, idx) => {
+        c.innerHTML += `<div class="img-preview-box"><img src="${escapeHtml(url)}"><button type="button" class="img-preview-remove" onclick="removeComboEditImage(${idx})">✕</button></div>`;
+      });
+    }
+    function removeComboEditImage(idx) { currentComboEditImages.splice(idx, 1); renderComboImagePreviews(); }
+    function addManualComboImageLink() {
+      let url = (prompt("Nhập link ảnh (bắt buộc bắt đầu bằng https://):") || "").trim(); if (!url) return;
+      if (!/^https:\/\//.test(url) || /[\s"'<>]/.test(url)) { alert("Link không hợp lệ. Chỉ chấp nhận https://"); return; }
+      currentComboEditImages.push(url); renderComboImagePreviews();
+    }
+    async function handleComboImageUpload(input) {
+      const files = Array.from(input.files || []); if (files.length === 0) return;
+      if (files.length > 10) { alert("Tối đa 10 ảnh."); input.value = ""; return; }
+      showLoading(true);
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        if (!f.type.startsWith("image/") || f.size > 20*1024*1024) { alert("Bỏ qua file " + (i+1)); continue; }
+        try {
+          const b64 = await resizeImageToBase64(f, 1600, 0.85);
+          const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "uploadImage", token: sessionStorage.getItem("adminToken"), imageBase64: b64 }) });
+          const data = await res.json();
+          if (data.status === "success" && data.url) { currentComboEditImages.push(data.url); }
+          else if (data.code === "AUTH") { logout(); return; } else { alert(data.msg); }
+        } catch (e) { alert("Lỗi tải ảnh"); }
+      }
+      input.value = ""; renderComboImagePreviews(); showLoading(false);
+    }
+
     function openComboModal(comboId = null) {
       updateComboSelectOptions();
       if(comboId) {
          let combo = globalCombosData.find(c => c.id === comboId); if(!combo) return;
          document.getElementById("combo-modal-title").innerText = "Chỉnh Sửa Combo";
-         document.getElementById("combo-edit-id").value = combo.id; document.getElementById("combo-name").value = combo.name; document.getElementById("combo-desc").value = combo.desc;
+         document.getElementById("combo-edit-id").value = combo.id; 
+         document.getElementById("combo-name").value = combo.name; 
+         document.getElementById("combo-desc").value = combo.desc;
+         
+         // Đọc ảnh riêng của Combo
+         currentComboEditImages = combo.rawManualImages ? combo.rawManualImages.split('\n').map(i => i.trim()).filter(i => i !== "") : [];
          try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
       } else {
          document.getElementById("combo-modal-title").innerText = "Tạo Combo Mới";
-         document.getElementById("combo-edit-id").value = ""; document.getElementById("combo-name").value = ""; document.getElementById("combo-desc").value = "";
+         document.getElementById("combo-edit-id").value = ""; 
+         document.getElementById("combo-name").value = ""; 
+         document.getElementById("combo-desc").value = "";
+         currentComboEditImages = [];
          currentComboItems = [];
       }
-      renderComboItemsPreview(); document.getElementById("combo-modal").style.display = "flex"; document.body.style.overflow = "hidden";
+      renderComboImagePreviews();
+      renderComboItemsPreview(); 
+      document.getElementById("combo-modal").style.display = "flex"; 
+      document.body.style.overflow = "hidden";
     }
     function closeComboModal() { document.getElementById("combo-modal").style.display = "none"; document.body.style.overflow = "auto"; }
 
@@ -541,8 +594,19 @@
       let cId = document.getElementById("combo-edit-id").value; let cName = document.getElementById("combo-name").value; let cDesc = document.getElementById("combo-desc").value;
       if(!cName) { alert("Tên Combo không được bỏ trống!"); return; }
       if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
+      
       showLoading(true); closeComboModal();
-      let payload = { action: "saveCombo", token: sessionStorage.getItem("adminToken"), comboId: cId, name: cName, desc: cDesc, items: JSON.stringify(currentComboItems) };
+      
+      // ĐÃ SỬA: Đính kèm mảng hình ảnh Combo vào Payload
+      let payload = { 
+        action: "saveCombo", 
+        token: sessionStorage.getItem("adminToken"), 
+        comboId: cId, 
+        name: cName, 
+        desc: cDesc, 
+        items: JSON.stringify(currentComboItems),
+        images: currentComboEditImages.join('\n')
+      };
       try {
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
