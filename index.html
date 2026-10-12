@@ -343,26 +343,30 @@
           globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
           
           combosData.forEach(c => {
-             let newImages = [];
              let newCaptions = [];
-             c.rawItems.forEach(item => {
-                let p = productsData.find(x => x.id === item.id);
-                if (p && p.images && p.images.length > 0) {
-                   if (!newImages.includes(p.images[0])) {
-                      newImages.push(p.images[0]);
-                      let desc = p.desc ? p.desc.trim() : "";
-                      let capText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
-                      newCaptions.push(capText);
+             
+             c.images.forEach(img => {
+                let foundProd = null;
+                for(let i=0; i<c.rawItems.length; i++) {
+                   let p = productsData.find(x => x.id === c.rawItems[i].id);
+                   if (p && p.images && p.images.length > 0 && p.images[0] === img) {
+                      foundProd = p;
+                      break;
                    }
                 }
+                
+                if (foundProd) {
+                   let desc = foundProd.desc ? foundProd.desc.trim() : "";
+                   let capText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
+                   newCaptions.push(capText);
+                } else {
+                   let desc = c.desc ? c.desc.trim() : "";
+                   let capText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
+                   newCaptions.push(capText);
+                }
              });
-             if(newImages.length > 0) {
-                 c.images = newImages;
-                 c.imageCaptions = newCaptions;
-             } else {
-                 let desc = c.desc ? c.desc.trim() : "";
-                 c.imageCaptions = c.images.map(() => desc.length > 80 ? desc.substring(0, 80) + '...' : desc);
-             }
+             
+             c.imageCaptions = newCaptions;
           });
 
           currentServerTheme = resData.theme || 'default';
