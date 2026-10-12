@@ -217,7 +217,6 @@
       <div class="form-group"><input type="text" id="customer-address-detail" placeholder="Địa chỉ chi tiết (Số nhà, đường, ngõ...) *" required></div>
       <div class="form-group"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
       
-      <!-- ĐÃ CHỈNH SỬA: Thêm nút copy và truyền tham số cho hàm checkout -->
       <button class="btn-primary" onclick="checkout(true)" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
       <button class="btn-primary" onclick="checkout(false)" style="background: #4a5568; margin-top: 10px;">Chỉ copy đơn hàng</button>
     </div>
@@ -575,6 +574,7 @@
         pList.appendChild(card);
       });
 
+      // Xử lý Infinite Scroll Loop
       setTimeout(() => {
         document.querySelectorAll('.carousel-slides').forEach(c => {
           if (c.querySelector('[data-clone]')) {
@@ -663,7 +663,7 @@
       if (cart.length > 0) setTimeout(() => { document.getElementById('customer-name').focus(); }, 500);
     }
 
-    // ĐÃ CHỈNH SỬA: Thêm tham số openZalo để nhận biết nút nào được bấm
+    // ĐÃ CHỈNH SỬA BỔ SUNG CHI TIẾT COMBO KHI COPY ĐƠN HÀNG
     function checkout(openZalo) {
       if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
@@ -685,7 +685,21 @@
       let total = 0; let itemsForSheet = [];
       cart.forEach((item, index) => {
         let prefix = item.isCombo ? "[COMBO] " : "";
-        orderText += `${index + 1}. ${prefix}${item.name}\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n\n`; 
+        orderText += `${index + 1}. ${prefix}${item.name}\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n`; 
+        
+        // NẾU LÀ COMBO, LIỆT KÊ CÁC SP CON
+        if (item.isCombo) {
+          let comboDetail = combosData.find(c => c.id === item.id);
+          if (comboDetail && comboDetail.rawItems) {
+            orderText += `   --- Thành phần Combo ---\n`;
+            comboDetail.rawItems.forEach(subItem => {
+              orderText += `   + ${subItem.name}\n      Giá: ${formatMoney(subItem.price)}   |   Số lượng: x${subItem.qty * item.qty}\n`;
+            });
+            orderText += `   ------------------------\n`;
+          }
+        }
+        orderText += `\n`;
+
         itemsForSheet.push(`- ${prefix}${item.name} (x${item.qty})`);
         total += (item.price * item.qty);
       });
@@ -693,15 +707,12 @@
       orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + formatMoney(globalShippingFee) + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
 
       let orderData = { action: "createOrder", name: name, phone: phone, address: fullAddress, note: note, itemsText: itemsForSheet.join('\n'), total: formatMoney(finalTotal), cartJSON: JSON.stringify(cart) };
-      
-      // Vẫn gửi đơn hàng lên máy chủ (Sheets) bình thường
       fetch(API_URL, { method: 'POST', body: JSON.stringify(orderData) }).catch(err => console.error(err));
 
       const temp = document.createElement("textarea"); temp.value = orderText; document.body.appendChild(temp); temp.select();
       try { 
         document.execCommand("copy"); 
         
-        // Kiểm tra khách bấm nút nào để hiện thông báo tương ứng
         if (openZalo === true) {
             alert("ĐÃ LƯU ĐƠN HÀNG!\n\nHệ thống sẽ mở Zalo. Hãy bấm DÁN (Paste) để gửi đơn cho Shop nhé!"); 
         } else {
@@ -711,7 +722,6 @@
       catch (err) { alert("Trình duyệt không hỗ trợ copy tự động. Vui lòng nhắn tin trực tiếp cho Shop!"); }
       document.body.removeChild(temp);
       
-      // Chỉ mở tab Zalo nếu khách bấm nút "Gửi tin nhắn đặt mua"
       if (openZalo === true) {
           window.open("https://zalo.me/" + zaloPhone, "_blank");
       }
