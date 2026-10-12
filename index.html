@@ -218,7 +218,7 @@
       <div class="form-group"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
       
       <button class="btn-primary" onclick="checkout(true)" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
-      <button class="btn-primary" onclick="checkout(false)" style="background: #4a5568; margin-top: 10px;">Chỉ copy đơn hàng</button>
+      <button class="btn-primary" onclick="checkout(false)" style="background: #4a5568; margin-top: 10px;">Copy nội dung đơn hàng</button>
     </div>
   </div>
 
@@ -574,7 +574,6 @@
         pList.appendChild(card);
       });
 
-      // Xử lý Infinite Scroll Loop
       setTimeout(() => {
         document.querySelectorAll('.carousel-slides').forEach(c => {
           if (c.querySelector('[data-clone]')) {
@@ -663,7 +662,6 @@
       if (cart.length > 0) setTimeout(() => { document.getElementById('customer-name').focus(); }, 500);
     }
 
-    // ĐÃ CHỈNH SỬA BỔ SUNG CHI TIẾT COMBO KHI COPY ĐƠN HÀNG
     function checkout(openZalo) {
       if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
@@ -687,15 +685,12 @@
         let prefix = item.isCombo ? "[COMBO] " : "";
         orderText += `${index + 1}. ${prefix}${item.name}\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n`; 
         
-        // NẾU LÀ COMBO, LIỆT KÊ CÁC SP CON
         if (item.isCombo) {
           let comboDetail = combosData.find(c => c.id === item.id);
           if (comboDetail && comboDetail.rawItems) {
-            orderText += `   --- Thành phần Combo ---\n`;
             comboDetail.rawItems.forEach(subItem => {
-              orderText += `   + ${subItem.name}\n      Giá: ${formatMoney(subItem.price)}   |   Số lượng: x${subItem.qty * item.qty}\n`;
+              orderText += `   ${subItem.name}\n      Giá: ${formatMoney(subItem.price)}   |   Số lượng: x${subItem.qty * item.qty}\n`;
             });
-            orderText += `   ------------------------\n`;
           }
         }
         orderText += `\n`;
