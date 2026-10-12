@@ -130,7 +130,7 @@
     <!-- TAB ĐƠN HÀNG -->
     <div id="orders" class="content active">
       <table>
-        <thead><tr><th>Mã ĐH</th><th>Thời gian</th><th style="width: 25%;">Khách hàng</th><th style="width: 25%;">Chi tiết Đơn hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th style="width: 12%;">Cập nhật</th></tr></thead>
+        <thead><tr><th>Mã ĐH</th><th>Thời gian</th><th style="width: 25%;">Khách hàng</th><th style="width: 25%;">Chi tiết Đơn hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th style="width: 12%;">Thao tác</th></tr></thead>
         <tbody id="orders-body"></tbody>
       </table>
     </div>
@@ -257,7 +257,6 @@
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
 
-    // ĐÃ THÊM: Biến lưu trữ Đơn hàng ở phạm vi toàn cục để dùng cho chức năng Copy
     let globalOrdersData = [];
     let globalProductsData = [];
     let globalCombosData = [];
@@ -318,7 +317,6 @@
         let orders = await resOrders.json();
         if(orders.status === "error") { if(orders.code==="AUTH") logout(); else alert(orders.msg); return; }
         
-        // Lưu data đơn hàng ra global để dùng cho Nút Copy
         globalOrdersData = orders;
         renderOrders(globalOrdersData);
         
@@ -350,7 +348,6 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    // ĐÃ THÊM: Hàm Copy Thông tin khách hàng
     function copyCustomerInfo(row) {
         let order = globalOrdersData.find(o => o.row === row);
         if (!order) return;
@@ -370,7 +367,20 @@
         document.body.removeChild(temp);
     }
 
-    // ĐÃ CHỈNH SỬA: Hiển thị thêm địa chỉ và nút Copy
+    // ĐÃ THÊM: Gọi API Xóa đơn (Đánh dấu ẩn)
+    async function deleteOrder(rowIdx) {
+      if(!confirm("Bạn có chắc chắn muốn XÓA ẨN đơn hàng này khỏi danh sách không?\n(Dữ liệu vẫn được giữ ở Cột L trong file Google Sheets)")) return;
+      showLoading(true);
+      try {
+        let payload = { action: "deleteOrder", token: sessionStorage.getItem("adminToken"), row: rowIdx };
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        let data = await res.json();
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Đã xóa ẩn đơn hàng khỏi danh sách!"); loadData(); 
+      } catch (e) { alert("Lỗi!"); showLoading(false); }
+    }
+
+    // Cập nhật nút Xóa vào từng đơn hàng
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body'); tbody.innerHTML = "";
       if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
@@ -390,7 +400,13 @@
             <td data-label="Chi tiết Đơn hàng" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${escapeHtml(order.details)}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${escapeHtml(order.total)}</td>
             <td data-label="Trạng thái"><span style="font-weight: 500; color: #2b6cb0;">${escapeHtml(order.status)}</span></td>
-            <td data-label="Thao tác">${selectHtml}<button class="btn-update" onclick="updateOrderStatus(${order.row})">Lưu</button></td>
+            <td data-label="Thao tác">
+              ${selectHtml}
+              <div style="display:flex; gap:5px; margin-top:8px;">
+                 <button class="btn-update" style="flex:1;" onclick="updateOrderStatus(${order.row})">Lưu</button>
+                 <button class="btn-update btn-delete" style="flex:1;" onclick="deleteOrder(${order.row})">Xóa</button>
+              </div>
+            </td>
           </tr>`;
       });
     }
