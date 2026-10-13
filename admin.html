@@ -72,6 +72,9 @@
     .combo-item-row { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; margin-bottom: 8px;}
     .combo-item-name { font-weight: 500; font-size: 14px; flex: 1;}
     .combo-item-qty { font-weight: bold; color: #2b6cb0; margin: 0 15px;}
+    
+    .btn-icon { background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; margin: 0 2px;}
+    .btn-icon:hover { background: #e2e8f0; color: #2d3748; border-color: #a0aec0;}
 
     @media (max-width: 768px) {
       .header { flex-direction: column; padding: 15px; text-align: center; gap: 15px; }
@@ -117,9 +120,10 @@
     </div>
 
     <div class="nav-tabs">
-      <div class="tab active" onclick="switchTab('orders', this)">📦 QUẢN LÝ ĐƠN HÀNG</div>
-      <div class="tab" onclick="switchTab('inventory', this)">🏬 KHO & SẢN PHẨM</div>
-      <div class="tab" onclick="switchTab('combos', this)">🎁 QUẢN LÝ COMBO</div>
+      <div class="tab active" onclick="switchTab('orders', this)">📦 ĐƠN HÀNG</div>
+      <div class="tab" onclick="switchTab('inventory', this)">🏬 SẢN PHẨM</div>
+      <div class="tab" onclick="switchTab('combos', this)">🎁 COMBO</div>
+      <div class="tab" onclick="switchTab('posts', this)">📐 BÀI VIẾT / SƠ ĐỒ</div>
     </div>
 
     <div id="loading-overlay">
@@ -160,7 +164,6 @@
             <button class="btn-update" onclick="updateTheme()" style="background: #d69e2e;">Đổi Chủ Đề</button>
           </div>
         </div>
-        <!-- NÚT TẠO SẢN PHẨM MỚI -->
         <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px; height: fit-content;" onclick="openEditModal()">+ TẠO SẢN PHẨM MỚI</button>
       </div>
 
@@ -180,6 +183,18 @@
         <tbody id="combos-body"></tbody>
       </table>
     </div>
+    
+    <!-- TAB BÀI VIẾT / SƠ ĐỒ -->
+    <div id="posts" class="content">
+      <div style="margin-bottom: 20px;">
+        <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px;" onclick="openPostModal()">+ TẠO BÀI VIẾT MỚI</button>
+      </div>
+      <table>
+        <thead><tr><th>STT</th><th>Hình ảnh</th><th style="width: 45%;">Tiêu đề & Nội dung</th><th style="width: 25%;">Thao tác</th></tr></thead>
+        <tbody id="posts-body"></tbody>
+      </table>
+    </div>
+    
   </div>
 
   <!-- MODAL SẢN PHẨM -->
@@ -207,9 +222,9 @@
         <label>Hình Ảnh Sản Phẩm:</label>
         <div id="image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <input type="file" id="image-upload-input" multiple accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+          <input type="file" id="image-upload-input" multiple accept="image/*" style="display: none;" onchange="handleImageUpload(this, 'product')">
           <button type="button" class="btn-update" style="background: #38a169; flex: 1; padding: 10px;" onclick="document.getElementById('image-upload-input').click()">📸 Tải ảnh lên</button>
-          <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addManualImageLink()">🔗 Nhập link thủ công</button>
+          <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addManualImageLink('product')">🔗 Nhập link thủ công</button>
         </div>
       </div>
       <div class="form-group"><label>Mô tả chi tiết:</label><textarea id="edit-desc" style="height: 100px;"></textarea></div>
@@ -233,9 +248,9 @@
         <label style="color:#2d3748;">Hình Ảnh Riêng Cho Combo (Sẽ xếp ở đầu danh sách ảnh):</label>
         <div id="combo-image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <input type="file" id="combo-image-upload-input" multiple accept="image/*" style="display: none;" onchange="handleComboImageUpload(this)">
+          <input type="file" id="combo-image-upload-input" multiple accept="image/*" style="display: none;" onchange="handleImageUpload(this, 'combo')">
           <button type="button" class="btn-update" style="background: #38a169; flex: 1; padding: 10px;" onclick="document.getElementById('combo-image-upload-input').click()">📸 Tải ảnh lên</button>
-          <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addManualComboImageLink()">🔗 Nhập link thủ công</button>
+          <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addManualImageLink('combo')">🔗 Nhập link thủ công</button>
         </div>
       </div>
 
@@ -262,6 +277,31 @@
       </div>
     </div>
   </div>
+  
+  <!-- MODAL BÀI VIẾT / SƠ ĐỒ -->
+  <div id="post-modal" class="edit-modal">
+    <div class="edit-content">
+      <h2 id="post-modal-title">Tạo Bài Viết / Sơ Đồ</h2>
+      <input type="hidden" id="post-edit-id">
+      <div class="form-group"><label>Tiêu đề bài viết:</label><input type="text" id="post-title" placeholder="VD: Sơ đồ nối dây mạch ESP32"></div>
+      <div class="form-group"><label>Nội dung / Mô tả:</label><textarea id="post-desc" style="height: 120px;" placeholder="Viết mô tả hoặc hướng dẫn vào đây..."></textarea></div>
+      
+      <div class="form-group">
+        <label>Hình Ảnh Đính Kèm (Hỗ trợ nhiều ảnh):</label>
+        <div id="post-image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="file" id="post-image-upload-input" multiple accept="image/*" style="display: none;" onchange="handleImageUpload(this, 'post')">
+          <button type="button" class="btn-update" style="background: #38a169; flex: 1; padding: 10px;" onclick="document.getElementById('post-image-upload-input').click()">📸 Tải ảnh lên</button>
+          <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addManualImageLink('post')">🔗 Nhập link thủ công</button>
+        </div>
+      </div>
+
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="closePostModal()">Hủy bỏ</button>
+        <button class="btn-save" onclick="savePostChanges()">Lưu Bài Viết</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
@@ -270,9 +310,12 @@
     let globalOrdersData = [];
     let globalProductsData = [];
     let globalCombosData = [];
+    let globalPostsData = []; // ĐÃ THÊM
+    
     let currentEditImages = []; 
     let currentComboItems = []; 
     let currentComboEditImages = [];
+    let currentPostEditImages = []; // ĐÃ THÊM
 
     function togglePassword() { let p = document.getElementById("admin-pass"); p.type = p.type === "password" ? "text" : "password"; }
     async function sha256(msg) {
@@ -337,12 +380,14 @@
         if (resData.products) {
           globalProductsData = resData.products;
           globalCombosData = resData.combos || [];
+          globalPostsData = resData.posts || []; // ĐÃ THÊM LẤY BÀI VIẾT
           document.getElementById("edit-shipping-fee").value = resData.shippingFee;
           document.getElementById("edit-theme").value = resData.theme || "default";
         } else { globalProductsData = resData; }
         
         renderInventory(globalProductsData);
         renderCombos(globalCombosData);
+        renderPosts(globalPostsData); // GỌI HÀM VẼ BẢNG
         updateComboSelectOptions();
       } catch (e) { alert("Lỗi kết nối máy chủ Google!"); }
       showLoading(false);
@@ -362,19 +407,11 @@
     function copyCustomerInfo(row) {
         let order = globalOrdersData.find(o => o.row === row);
         if (!order) return;
-        
         let copyText = `Người nhận: ${order.name}\nSđt: ${order.phone}\nĐịa chỉ: ${order.address}`;
-        
         const temp = document.createElement("textarea");
-        temp.value = copyText;
-        document.body.appendChild(temp);
-        temp.select();
-        try {
-            document.execCommand("copy");
-            alert("📋 Đã copy thông tin giao hàng thành công!");
-        } catch (err) {
-            alert("Lỗi! Trình duyệt của bạn không hỗ trợ chức năng copy tự động.");
-        }
+        temp.value = copyText; document.body.appendChild(temp); temp.select();
+        try { document.execCommand("copy"); alert("📋 Đã copy thông tin giao hàng thành công!"); } 
+        catch (err) { alert("Lỗi! Trình duyệt của bạn không hỗ trợ chức năng copy tự động."); }
         document.body.removeChild(temp);
     }
 
@@ -390,12 +427,10 @@
       } catch (e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    // ĐÃ CHỈNH SỬA: Sắp xếp đơn hoàn thành xuống dưới, đổi màu, thêm nút Zalo
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body'); tbody.innerHTML = "";
       if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
       
-      // Sắp xếp: Đơn "Hoàn thành" bị đẩy xuống cuối cùng
       let sortedOrders = [...orders].sort((a, b) => {
         if (a.status === "Hoàn thành" && b.status !== "Hoàn thành") return 1;
         if (a.status !== "Hoàn thành" && b.status === "Hoàn thành") return -1;
@@ -406,12 +441,9 @@
         let selectHtml = `<select id="status-${order.row}" class="status-select">`;
         STATUS_OPTIONS.forEach(opt => { selectHtml += `<option value="${opt}" ${order.status === opt ? "selected" : ""}>${opt}</option>`; }); selectHtml += `</select>`;
         
-        // Gán màu sắc và độ làm mờ cho Đơn Hoàn Thành
         let isCompleted = order.status === "Hoàn thành";
         let rowStyle = isCompleted ? "background-color: #f0fff4; opacity: 0.85;" : "";
         let statusColor = isCompleted ? "#38a169" : "#2b6cb0";
-        
-        // Chuẩn hóa số điện thoại cho nút Zalo
         let phoneClean = escapeHtml(order.phone).replace(/[^0-9]/g, '');
 
         tbody.innerHTML += `<tr style="${rowStyle}">
@@ -485,19 +517,163 @@
       });
     }
 
-    async function updateOrderStatus(rowIdx) {
-      let newStatus = document.getElementById(`status-${rowIdx}`).value;
-      if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." sẽ tự động phân giải combo trừ kho SP)`)) return;
+    // ĐÃ THÊM: Vẽ bảng quản lý Bài viết
+    function renderPosts(posts) {
+      const tbody = document.getElementById('posts-body'); tbody.innerHTML = "";
+      if(posts.length === 0) { tbody.innerHTML = "<tr><td colspan='4'>Chưa có bài viết/sơ đồ nào.</td></tr>"; return; }
+      
+      posts.forEach((post, index) => {
+        let firstImg = post.images && post.images.length > 0 ? post.images[0] : "https://via.placeholder.com/150?text=No+Image";
+        let descShort = post.desc.length > 60 ? post.desc.substring(0, 60) + "..." : post.desc;
+        
+        // Xác định ID của bài viết trên/dưới để làm chức năng Swap (Hoán đổi)
+        let prevId = index > 0 ? posts[index - 1].id : null;
+        let nextId = index < posts.length - 1 ? posts[index + 1].id : null;
+        
+        let upBtn = prevId ? `<button class="btn-icon" title="Đẩy lên" onclick="swapPostOrder('${post.id}', '${prevId}')">▲</button>` : `<button class="btn-icon" style="opacity:0.3; cursor:default;">▲</button>`;
+        let downBtn = nextId ? `<button class="btn-icon" title="Đẩy xuống" onclick="swapPostOrder('${post.id}', '${nextId}')">▼</button>` : `<button class="btn-icon" style="opacity:0.3; cursor:default;">▼</button>`;
+
+        tbody.innerHTML += `<tr>
+            <td data-label="STT"><b>${index + 1}</b></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:100px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e0;"></td>
+            <td data-label="Tiêu đề & Nội dung">
+              <b style="font-size:15px; color:#2b6cb0;">${escapeHtml(post.title)}</b>
+              <div style="font-size:13px; color:#718096; margin-top:4px;">${escapeHtml(descShort)}</div>
+              <div style="font-size:11px; color:#a0aec0; margin-top:4px;">Đính kèm: ${post.images.length} ảnh</div>
+            </td>
+            <td data-label="Thao tác">
+              <div style="display:flex; align-items:center; margin-bottom:5px;">
+                ${upBtn} ${downBtn}
+              </div>
+              <button class="btn-update" onclick="openPostModal('${post.id}')" style="margin-bottom:5px;">Sửa</button>
+              <button class="btn-update btn-delete" onclick="deletePost('${post.id}')">Xóa</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    async function swapPostOrder(id1, id2) {
       showLoading(true);
       try {
-        let payload = { action: "updateOrderStatus", token: sessionStorage.getItem("adminToken"), row: rowIdx, newStatus: newStatus };
+        let payload = { action: "swapPostOrder", token: sessionStorage.getItem("adminToken"), id1: id1, id2: id2 };
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
-        alert("Đã cập nhật!"); loadData(); 
-      } catch (e) { alert("Lỗi!"); showLoading(false); }
+        loadData(); // Tự động load lại sau khi đổi chỗ
+      } catch (e) { alert("Lỗi khi sắp xếp!"); showLoading(false); }
+    }
+
+    // Gộp chung bộ xử lý hiển thị ảnh trước khi upload
+    function renderImagePreviews(targetDivId, imagesArray, removeFuncStr) {
+      const c = document.getElementById(targetDivId); c.innerHTML = "";
+      if (imagesArray.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh đính kèm.</span>"; return; }
+      imagesArray.forEach((url, idx) => {
+        c.innerHTML += `<div class="img-preview-box"><img src="${escapeHtml(url)}"><button type="button" class="img-preview-remove" onclick="${removeFuncStr}(${idx})">✕</button></div>`;
+      });
     }
     
+    function removeEditImage(idx) { currentEditImages.splice(idx, 1); renderImagePreviews('image-preview-container', currentEditImages, 'removeEditImage'); }
+    function removeComboEditImage(idx) { currentComboEditImages.splice(idx, 1); renderImagePreviews('combo-image-preview-container', currentComboEditImages, 'removeComboEditImage'); }
+    function removePostEditImage(idx) { currentPostEditImages.splice(idx, 1); renderImagePreviews('post-image-preview-container', currentPostEditImages, 'removePostEditImage'); }
+
+    function addManualImageLink(type) {
+      let url = (prompt("Nhập link ảnh (bắt buộc bắt đầu bằng https://):") || "").trim(); if (!url) return;
+      if (!/^https:\/\//.test(url) || /[\s"'<>]/.test(url)) { alert("Link không hợp lệ. Chỉ chấp nhận https://"); return; }
+      if (type === 'product') { currentEditImages.push(url); renderImagePreviews('image-preview-container', currentEditImages, 'removeEditImage'); }
+      else if (type === 'combo') { currentComboEditImages.push(url); renderImagePreviews('combo-image-preview-container', currentComboEditImages, 'removeComboEditImage'); }
+      else if (type === 'post') { currentPostEditImages.push(url); renderImagePreviews('post-image-preview-container', currentPostEditImages, 'removePostEditImage'); }
+    }
+
+    function resizeImageToBase64(file, maxSize, quality) {
+      return new Promise((resolve, reject) => {
+        const img = new Image(); const objUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas"); canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(objUrl); resolve(canvas.toDataURL("image/jpeg", quality).split(",")[1]);
+        };
+        img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error("Lỗi đọc ảnh")); }; img.src = objUrl;
+      });
+    }
+
+    // Gộp chung hàm Upload
+    async function handleImageUpload(input, type) {
+      const files = Array.from(input.files || []); if (files.length === 0) return;
+      if (files.length > 20) { alert("Tối đa 20 ảnh."); input.value = ""; return; }
+      showLoading(true);
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        if (!f.type.startsWith("image/") || f.size > 20*1024*1024) continue;
+        try {
+          const b64 = await resizeImageToBase64(f, 1600, 0.85);
+          const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "uploadImage", token: sessionStorage.getItem("adminToken"), imageBase64: b64 }) });
+          const data = await res.json();
+          if (data.status === "success" && data.url) { 
+             if (type === 'product') currentEditImages.push(data.url);
+             else if (type === 'combo') currentComboEditImages.push(data.url);
+             else if (type === 'post') currentPostEditImages.push(data.url);
+          }
+          else if (data.code === "AUTH") { logout(); return; }
+        } catch (e) { alert("Lỗi tải ảnh"); }
+      }
+      input.value = ""; 
+      if (type === 'product') renderImagePreviews('image-preview-container', currentEditImages, 'removeEditImage');
+      else if (type === 'combo') renderImagePreviews('combo-image-preview-container', currentComboEditImages, 'removeComboEditImage');
+      else if (type === 'post') renderImagePreviews('post-image-preview-container', currentPostEditImages, 'removePostEditImage');
+      showLoading(false);
+    }
+
+    // --- CÁC HÀM CỦA BÀI VIẾT ---
+    function openPostModal(postId = null) {
+      if(postId) {
+         let post = globalPostsData.find(c => c.id === postId); if(!post) return;
+         document.getElementById("post-modal-title").innerText = "Chỉnh Sửa Bài Viết";
+         document.getElementById("post-edit-id").value = post.id; 
+         document.getElementById("post-title").value = post.title; 
+         document.getElementById("post-desc").value = post.desc;
+         currentPostEditImages = [...post.images];
+      } else {
+         document.getElementById("post-modal-title").innerText = "Tạo Bài Viết / Sơ Đồ Mới";
+         document.getElementById("post-edit-id").value = ""; 
+         document.getElementById("post-title").value = ""; 
+         document.getElementById("post-desc").value = "";
+         currentPostEditImages = [];
+      }
+      renderImagePreviews('post-image-preview-container', currentPostEditImages, 'removePostEditImage');
+      document.getElementById("post-modal").style.display = "flex"; 
+      document.body.style.overflow = "hidden";
+    }
+    
+    function closePostModal() { document.getElementById("post-modal").style.display = "none"; document.body.style.overflow = "auto"; }
+
+    async function savePostChanges() {
+      let pId = document.getElementById("post-edit-id").value; 
+      let title = document.getElementById("post-title").value; 
+      let desc = document.getElementById("post-desc").value;
+      if(!title) { alert("Tiêu đề không được bỏ trống!"); return; }
+      
+      showLoading(true); closePostModal();
+      let payload = { action: "savePost", token: sessionStorage.getItem("adminToken"), postId: pId, title: title, desc: desc, images: currentPostEditImages.join('\n') };
+      try {
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); let data = await res.json();
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Đã lưu Bài viết thành công!"); loadData();
+      } catch (e) { alert("Lỗi khi lưu!"); showLoading(false); }
+    }
+
+    async function deletePost(postId) {
+      if(!confirm("Bạn có chắc chắn muốn xóa bài viết này không?")) return;
+      showLoading(true);
+      try {
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deletePost", token: sessionStorage.getItem("adminToken"), postId: postId }) });
+        let data = await res.json();
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Đã xóa Bài viết!"); loadData();
+      } catch(e) { alert("Lỗi!"); showLoading(false); }
+    }
+
+    // --- CÁC HÀM CỦA SP VÀ COMBO ---
     async function updateShippingFee() {
       let newFee = document.getElementById("edit-shipping-fee").value;
       if (newFee === "" || !/^\d+$/.test(newFee)) { alert("Phí ship không hợp lệ!"); return; }
@@ -550,37 +726,6 @@
     }
     function removeComboItem(index) { currentComboItems.splice(index, 1); renderComboItemsPreview(); }
 
-    function renderComboImagePreviews() {
-      const c = document.getElementById("combo-image-preview-container"); c.innerHTML = "";
-      if (currentComboEditImages.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px; line-height: 1.5;'>Hệ thống sẽ tự động ghép ảnh từ các sản phẩm thành phần. Bạn có thể up thêm ảnh riêng của Combo tại đây.</span>"; return; }
-      currentComboEditImages.forEach((url, idx) => {
-        c.innerHTML += `<div class="img-preview-box"><img src="${escapeHtml(url)}"><button type="button" class="img-preview-remove" onclick="removeComboEditImage(${idx})">✕</button></div>`;
-      });
-    }
-    function removeComboEditImage(idx) { currentComboEditImages.splice(idx, 1); renderComboImagePreviews(); }
-    function addManualComboImageLink() {
-      let url = (prompt("Nhập link ảnh (bắt buộc bắt đầu bằng https://):") || "").trim(); if (!url) return;
-      if (!/^https:\/\//.test(url) || /[\s"'<>]/.test(url)) { alert("Link không hợp lệ. Chỉ chấp nhận https://"); return; }
-      currentComboEditImages.push(url); renderComboImagePreviews();
-    }
-    async function handleComboImageUpload(input) {
-      const files = Array.from(input.files || []); if (files.length === 0) return;
-      if (files.length > 10) { alert("Tối đa 10 ảnh."); input.value = ""; return; }
-      showLoading(true);
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        if (!f.type.startsWith("image/") || f.size > 20*1024*1024) { alert("Bỏ qua file " + (i+1)); continue; }
-        try {
-          const b64 = await resizeImageToBase64(f, 1600, 0.85);
-          const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "uploadImage", token: sessionStorage.getItem("adminToken"), imageBase64: b64 }) });
-          const data = await res.json();
-          if (data.status === "success" && data.url) { currentComboEditImages.push(data.url); }
-          else if (data.code === "AUTH") { logout(); return; } else { alert(data.msg); }
-        } catch (e) { alert("Lỗi tải ảnh"); }
-      }
-      input.value = ""; renderComboImagePreviews(); showLoading(false);
-    }
-
     function openComboModal(comboId = null) {
       updateComboSelectOptions();
       if(comboId) {
@@ -589,7 +734,6 @@
          document.getElementById("combo-edit-id").value = combo.id; 
          document.getElementById("combo-name").value = combo.name; 
          document.getElementById("combo-desc").value = combo.desc;
-         
          currentComboEditImages = combo.rawManualImages ? combo.rawManualImages.split('\n').map(i => i.trim()).filter(i => i !== "") : [];
          try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
       } else {
@@ -600,7 +744,7 @@
          currentComboEditImages = [];
          currentComboItems = [];
       }
-      renderComboImagePreviews();
+      renderImagePreviews('combo-image-preview-container', currentComboEditImages, 'removeComboEditImage');
       renderComboItemsPreview(); 
       document.getElementById("combo-modal").style.display = "flex"; 
       document.body.style.overflow = "hidden";
@@ -613,16 +757,7 @@
       if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
       
       showLoading(true); closeComboModal();
-      
-      let payload = { 
-        action: "saveCombo", 
-        token: sessionStorage.getItem("adminToken"), 
-        comboId: cId, 
-        name: cName, 
-        desc: cDesc, 
-        items: JSON.stringify(currentComboItems),
-        images: currentComboEditImages.join('\n')
-      };
+      let payload = { action: "saveCombo", token: sessionStorage.getItem("adminToken"), comboId: cId, name: cName, desc: cDesc, items: JSON.stringify(currentComboItems), images: currentComboEditImages.join('\n') };
       try {
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
@@ -641,49 +776,6 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    function renderImagePreviews() {
-      const c = document.getElementById("image-preview-container"); c.innerHTML = "";
-      if (currentEditImages.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh.</span>"; return; }
-      currentEditImages.forEach((url, idx) => {
-        c.innerHTML += `<div class="img-preview-box"><img src="${escapeHtml(url)}"><button type="button" class="img-preview-remove" onclick="removeEditImage(${idx})">✕</button></div>`;
-      });
-    }
-    function removeEditImage(idx) { currentEditImages.splice(idx, 1); renderImagePreviews(); }
-    function addManualImageLink() {
-      let url = (prompt("Nhập link ảnh (bắt buộc bắt đầu bằng https://):") || "").trim(); if (!url) return;
-      if (!/^https:\/\//.test(url) || /[\s"'<>]/.test(url)) { alert("Link không hợp lệ. Chỉ chấp nhận https://"); return; }
-      currentEditImages.push(url); renderImagePreviews();
-    }
-    function resizeImageToBase64(file, maxSize, quality) {
-      return new Promise((resolve, reject) => {
-        const img = new Image(); const objUrl = URL.createObjectURL(file);
-        img.onload = () => {
-          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-          const canvas = document.createElement("canvas"); canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
-          const ctx = canvas.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(objUrl); resolve(canvas.toDataURL("image/jpeg", quality).split(",")[1]);
-        };
-        img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error("Lỗi đọc ảnh")); }; img.src = objUrl;
-      });
-    }
-    async function handleImageUpload(input) {
-      const files = Array.from(input.files || []); if (files.length === 0) return;
-      if (files.length > 10) { alert("Tối đa 10 ảnh."); input.value = ""; return; }
-      showLoading(true);
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        if (!f.type.startsWith("image/") || f.size > 20*1024*1024) { alert("Bỏ qua file " + (i+1)); continue; }
-        try {
-          const b64 = await resizeImageToBase64(f, 1600, 0.85);
-          const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "uploadImage", token: sessionStorage.getItem("adminToken"), imageBase64: b64 }) });
-          const data = await res.json();
-          if (data.status === "success" && data.url) { currentEditImages.push(data.url); }
-          else if (data.code === "AUTH") { logout(); return; } else { alert(data.msg); }
-        } catch (e) { alert("Lỗi tải ảnh"); }
-      }
-      input.value = ""; renderImagePreviews(); showLoading(false);
-    }
-    
     function openEditModal(pId = null) {
       if (pId) {
         let p = globalProductsData.find(x => x.id.toString() === pId.toString()); if (!p) return;
@@ -709,7 +801,7 @@
         document.getElementById("edit-status").value = "còn hàng";
         currentEditImages = []; 
       }
-      renderImagePreviews();
+      renderImagePreviews('image-preview-container', currentEditImages, 'removeEditImage');
       document.getElementById("edit-modal").style.display = "flex"; document.body.style.overflow = "hidden"; 
     }
     
@@ -717,18 +809,7 @@
     
     async function saveProductChanges() {
       let pId = document.getElementById("edit-id").value;
-      let payload = { 
-        action: pId ? "updateProduct" : "createProduct", 
-        token: sessionStorage.getItem("adminToken"), 
-        productId: pId, 
-        name: document.getElementById("edit-name").value, 
-        originalPrice: document.getElementById("edit-orig-price").value, 
-        price: document.getElementById("edit-sell-price").value, 
-        images: currentEditImages.join('\n'), 
-        desc: document.getElementById("edit-desc").value, 
-        status: document.getElementById("edit-status").value,
-        stock: parseInt(document.getElementById("edit-stock").value) || 0 
-      };
+      let payload = { action: pId ? "updateProduct" : "createProduct", token: sessionStorage.getItem("adminToken"), productId: pId, name: document.getElementById("edit-name").value, originalPrice: document.getElementById("edit-orig-price").value, price: document.getElementById("edit-sell-price").value, images: currentEditImages.join('\n'), desc: document.getElementById("edit-desc").value, status: document.getElementById("edit-status").value, stock: parseInt(document.getElementById("edit-stock").value) || 0 };
       
       if(!payload.name || payload.price === "") { alert("Thiếu Tên hoặc Giá!"); return; }
       showLoading(true); closeEditModal();
