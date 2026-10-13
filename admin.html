@@ -310,12 +310,12 @@
     let globalOrdersData = [];
     let globalProductsData = [];
     let globalCombosData = [];
-    let globalPostsData = []; // ĐÃ THÊM
+    let globalPostsData = []; 
     
     let currentEditImages = []; 
     let currentComboItems = []; 
     let currentComboEditImages = [];
-    let currentPostEditImages = []; // ĐÃ THÊM
+    let currentPostEditImages = []; 
 
     function togglePassword() { let p = document.getElementById("admin-pass"); p.type = p.type === "password" ? "text" : "password"; }
     async function sha256(msg) {
@@ -380,14 +380,14 @@
         if (resData.products) {
           globalProductsData = resData.products;
           globalCombosData = resData.combos || [];
-          globalPostsData = resData.posts || []; // ĐÃ THÊM LẤY BÀI VIẾT
+          globalPostsData = resData.posts || []; 
           document.getElementById("edit-shipping-fee").value = resData.shippingFee;
           document.getElementById("edit-theme").value = resData.theme || "default";
         } else { globalProductsData = resData; }
         
         renderInventory(globalProductsData);
         renderCombos(globalCombosData);
-        renderPosts(globalPostsData); // GỌI HÀM VẼ BẢNG
+        renderPosts(globalPostsData); 
         updateComboSelectOptions();
       } catch (e) { alert("Lỗi kết nối máy chủ Google!"); }
       showLoading(false);
@@ -427,6 +427,7 @@
       } catch (e) { alert("Lỗi!"); showLoading(false); }
     }
 
+    // --- CĂN LỀ PHẢI "SỐ LƯỢNG" VÀ BỐ CỤC ĐẸP MẮT ---
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body'); tbody.innerHTML = "";
       if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
@@ -446,6 +447,23 @@
         let statusColor = isCompleted ? "#38a169" : "#2b6cb0";
         let phoneClean = escapeHtml(order.phone).replace(/[^0-9]/g, '');
 
+        // Bóc tách để hiển thị cột số lượng căn lề phải cực đẹp
+        let detailsHtml = escapeHtml(order.details).split('\n').map(line => {
+          if (line.includes('|') && line.includes('Số lượng:')) {
+            let parts = line.split('|');
+            return `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #edf2f7; padding-bottom: 4px; margin-bottom: 4px;">
+                      <span style="color: #718096; font-size: 12.5px; padding-left: 15px;">${parts[0].replace(/\s+/g, ' ').trim()}</span>
+                      <span style="color: #e53e3e; font-weight: bold; font-size: 13px;">${parts[1].trim()}</span>
+                    </div>`;
+          } else if (line.trim() !== "") {
+            let isSubItem = line.trim().startsWith('+');
+            let pad = isSubItem ? 'padding-left: 15px; font-size: 12.5px; color: #4a5568;' : 'font-size: 13.5px; color: #1a2935;';
+            let cleanLine = line.replace(/^[-\s+]+/, '');
+            return `<div style="font-weight: 600; margin-top: 8px; ${pad}">${isSubItem ? '↳' : '▪️'} ${cleanLine}</div>`;
+          }
+          return '';
+        }).join('');
+
         tbody.innerHTML += `<tr style="${rowStyle}">
             <td data-label="Mã ĐH"><b>${escapeHtml(order.orderId)}</b></td>
             <td data-label="Thời gian"><span style="color:#718096;">${escapeHtml(order.date)}</span></td>
@@ -458,7 +476,7 @@
                 <button class="btn-update" style="background:#0068ff; font-size: 11px; padding: 4px 10px; border-radius: 4px;" onclick="window.open('https://zalo.me/${phoneClean}', '_blank')">💬 Mở Zalo</button>
               </div>
             </td>
-            <td data-label="Chi tiết Đơn hàng" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${escapeHtml(order.details)}</td>
+            <td data-label="Chi tiết Đơn hàng" style="line-height: 1.5; min-width: 250px;">${detailsHtml}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${escapeHtml(order.total)}</td>
             <td data-label="Trạng thái"><span style="font-weight: bold; color: ${statusColor};">${escapeHtml(order.status)}</span></td>
             <td data-label="Thao tác">
@@ -517,7 +535,6 @@
       });
     }
 
-    // ĐÃ THÊM: Vẽ bảng quản lý Bài viết
     function renderPosts(posts) {
       const tbody = document.getElementById('posts-body'); tbody.innerHTML = "";
       if(posts.length === 0) { tbody.innerHTML = "<tr><td colspan='4'>Chưa có bài viết/sơ đồ nào.</td></tr>"; return; }
@@ -526,7 +543,6 @@
         let firstImg = post.images && post.images.length > 0 ? post.images[0] : "https://via.placeholder.com/150?text=No+Image";
         let descShort = post.desc.length > 60 ? post.desc.substring(0, 60) + "..." : post.desc;
         
-        // Xác định ID của bài viết trên/dưới để làm chức năng Swap (Hoán đổi)
         let prevId = index > 0 ? posts[index - 1].id : null;
         let nextId = index < posts.length - 1 ? posts[index + 1].id : null;
         
@@ -559,11 +575,10 @@
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
-        loadData(); // Tự động load lại sau khi đổi chỗ
+        loadData(); 
       } catch (e) { alert("Lỗi khi sắp xếp!"); showLoading(false); }
     }
 
-    // Gộp chung bộ xử lý hiển thị ảnh trước khi upload
     function renderImagePreviews(targetDivId, imagesArray, removeFuncStr) {
       const c = document.getElementById(targetDivId); c.innerHTML = "";
       if (imagesArray.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh đính kèm.</span>"; return; }
@@ -597,7 +612,6 @@
       });
     }
 
-    // Gộp chung hàm Upload
     async function handleImageUpload(input, type) {
       const files = Array.from(input.files || []); if (files.length === 0) return;
       if (files.length > 20) { alert("Tối đa 20 ảnh."); input.value = ""; return; }
@@ -624,7 +638,6 @@
       showLoading(false);
     }
 
-    // --- CÁC HÀM CỦA BÀI VIẾT ---
     function openPostModal(postId = null) {
       if(postId) {
          let post = globalPostsData.find(c => c.id === postId); if(!post) return;
@@ -673,7 +686,19 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    // --- CÁC HÀM CỦA SP VÀ COMBO ---
+    async function updateOrderStatus(rowIdx) {
+      let newStatus = document.getElementById(`status-${rowIdx}`).value;
+      if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." sẽ tự động phân giải combo trừ kho SP)`)) return;
+      showLoading(true);
+      try {
+        let payload = { action: "updateOrderStatus", token: sessionStorage.getItem("adminToken"), row: rowIdx, newStatus: newStatus };
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        let data = await res.json();
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Đã cập nhật!"); loadData(); 
+      } catch (e) { alert("Lỗi!"); showLoading(false); }
+    }
+
     async function updateShippingFee() {
       let newFee = document.getElementById("edit-shipping-fee").value;
       if (newFee === "" || !/^\d+$/.test(newFee)) { alert("Phí ship không hợp lệ!"); return; }
