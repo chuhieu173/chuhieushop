@@ -6,6 +6,7 @@
   <title>Admin - Quản Lý Cửa Hàng</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after { box-sizing: border-box; }
     body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f9; color: #333; -webkit-font-smoothing: antialiased; }
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
     .login-box { background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 100%; max-width: 400px; box-sizing: border-box;}
@@ -76,22 +77,129 @@
     .btn-icon { background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; margin: 0 2px;}
     .btn-icon:hover { background: #e2e8f0; color: #2d3748; border-color: #a0aec0;}
 
+    /* Chi tiết đơn hàng & số lượng căn phải */
+    .order-item-title {
+      font-weight: 600;
+      margin-top: 6px;
+      font-size: 13.5px;
+      color: #1a2935;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .order-item-title.is-sub {
+      padding-left: 14px;
+      font-size: 12.5px;
+      color: #4a5568;
+      margin-top: 4px;
+    }
+    .order-item-title .item-icon { flex-shrink: 0; user-select: none; }
+    .order-item-title .item-name { flex: 1; min-width: 0; }
+    .order-item-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px dashed #edf2f7;
+      padding: 3px 0 6px 0;
+      margin-bottom: 6px;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .order-item-meta.is-sub { padding-left: 14px; }
+    .order-item-price { color: #718096; font-size: 12.5px; padding-left: 16px; flex: 1; min-width: 0; }
+    .order-item-meta.is-sub .order-item-price { padding-left: 16px; }
+    .order-item-qty {
+      color: #e53e3e;
+      font-weight: bold;
+      font-size: 12.5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      text-align: right;
+      margin-left: auto;
+      background: #fff5f5;
+      border: 1px solid #fed7d7;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .customer-action-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .btn-cust-action {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+    .btn-cust-copy { background: #4a5568; color: white; }
+    .btn-cust-copy:hover { background: #2d3748; }
+    .btn-cust-zalo { background: #0068ff; color: white; }
+    .btn-cust-zalo:hover { background: #0055d4; }
+
     @media (max-width: 768px) {
       .header { flex-direction: column; padding: 15px; text-align: center; gap: 15px; }
       .header-actions { width: 100%; justify-content: center; }
-      .content { padding: 15px; }
+      .content { padding: 12px; }
       .nav-tabs { padding: 0; justify-content: space-between; }
       .tab { padding: 15px 5px; font-size: 12px; text-align: center; flex: 1; }
-      table, thead, tbody, th, td, tr { display: block; }
+      table { width: 100%; display: block; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; border: none !important; }
       thead tr { position: absolute; top: -9999px; left: -9999px; }
-      tr { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 15px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 5px;}
-      td { border: none; border-bottom: 1px dashed #e2e8f0; position: relative; padding: 12px 15px; }
-      td:last-child { border-bottom: none; }
-      td::before { content: attr(data-label); display: block; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #718096; margin-bottom: 6px; font-family: 'Montserrat', sans-serif;}
+      tbody { display: block; width: 100%; }
+      tr {
+        display: block;
+        width: 100%;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        padding: 0;
+        overflow: hidden;
+      }
+      td {
+        display: block;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        border: none;
+        border-bottom: 1px dashed #e2e8f0;
+        position: relative;
+        padding: 12px 14px;
+        word-break: break-word;
+      }
+      td:last-child { border-bottom: none; background: #f8fafc; }
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #718096;
+        margin-bottom: 6px;
+        font-family: 'Montserrat', sans-serif;
+        letter-spacing: 0.5px;
+      }
       td[align="center"] { text-align: left; }
-      td[style*="width"] { width: 100% !important; }
-      .status-select { font-size: 14px; padding: 10px;}
-      .btn-update { width: 100%; padding: 10px; font-size: 14px;}
+      .status-select { font-size: 14px; padding: 10px; width: 100%;}
+      .btn-update { padding: 10px; font-size: 14px;}
       .edit-content { padding: 20px; }
     }
   </style>
@@ -324,6 +432,20 @@
     }
     function escapeHtml(str) { return (str || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
     function formatMoney(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ"; }
+    function formatOrderDate(rawDate) {
+      if (!rawDate) return '';
+      let str = rawDate.toString().trim();
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) {
+        try {
+          let d = new Date(str);
+          if (!isNaN(d.getTime())) {
+            let pad = n => (n < 10 ? '0' : '') + n;
+            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          }
+        } catch(e) {}
+      }
+      return str;
+    }
 
     document.addEventListener("DOMContentLoaded", function() {
       if (sessionStorage.getItem("adminToken")) {
@@ -404,12 +526,25 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    function copyCustomerInfo(row) {
+    async function copyCustomerInfo(row) {
         let order = globalOrdersData.find(o => o.row === row);
         if (!order) return;
         let copyText = `Người nhận: ${order.name}\nSđt: ${order.phone}\nĐịa chỉ: ${order.address}`;
+        if (order.note) copyText += `\nGhi chú: ${order.note}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(copyText);
+            alert("📋 Đã copy thông tin giao hàng thành công!");
+            return;
+          } catch (e) {}
+        }
         const temp = document.createElement("textarea");
-        temp.value = copyText; document.body.appendChild(temp); temp.select();
+        temp.value = copyText;
+        temp.setAttribute("readonly", "");
+        temp.style.position = "absolute";
+        temp.style.left = "-9999px";
+        document.body.appendChild(temp);
+        temp.select();
         try { document.execCommand("copy"); alert("📋 Đã copy thông tin giao hàng thành công!"); } 
         catch (err) { alert("Lỗi! Trình duyệt của bạn không hỗ trợ chức năng copy tự động."); }
         document.body.removeChild(temp);
@@ -447,41 +582,53 @@
         let statusColor = isCompleted ? "#38a169" : "#2b6cb0";
         let phoneClean = escapeHtml(order.phone).replace(/[^0-9]/g, '');
 
-        // Bóc tách để hiển thị cột số lượng căn lề phải cực đẹp
+        // Bóc tách để hiển thị cột số lượng căn lề phải cực đẹp và không bị vỡ trên mobile
+        let isSub = false;
         let detailsHtml = escapeHtml(order.details).split('\n').map(line => {
+          let trimmed = line.trim();
+          if (!trimmed) return '';
           if (line.includes('|') && line.includes('Số lượng:')) {
             let parts = line.split('|');
-            return `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #edf2f7; padding-bottom: 4px; margin-bottom: 4px;">
-                      <span style="color: #718096; font-size: 12.5px; padding-left: 15px;">${parts[0].replace(/\s+/g, ' ').trim()}</span>
-                      <span style="color: #e53e3e; font-weight: bold; font-size: 13px;">${parts[1].trim()}</span>
+            let priceText = parts[0].replace(/\s+/g, ' ').trim();
+            let qtyText = parts[1].trim();
+            let subCls = isSub ? ' is-sub' : '';
+            return `<div class="order-item-meta${subCls}">
+                      <span class="order-item-price">${priceText}</span>
+                      <span class="order-item-qty">${qtyText}</span>
                     </div>`;
-          } else if (line.trim() !== "") {
-            let isSubItem = line.trim().startsWith('+');
-            let pad = isSubItem ? 'padding-left: 15px; font-size: 12.5px; color: #4a5568;' : 'font-size: 13.5px; color: #1a2935;';
-            let cleanLine = line.replace(/^[-\s+]+/, '');
-            return `<div style="font-weight: 600; margin-top: 8px; ${pad}">${isSubItem ? '↳' : '▪️'} ${cleanLine}</div>`;
+          } else {
+            isSub = trimmed.startsWith('+');
+            let cleanLine = trimmed.replace(/^[-\s+]+/, '');
+            let legacyMatch = cleanLine.match(/^(.*?)\s*\(x(\d+)\)$/);
+            let subCls = isSub ? ' is-sub' : '';
+            let icon = isSub ? '↳' : '▪️';
+            if (legacyMatch) {
+              return `<div class="order-item-title${subCls}"><span class="item-icon">${icon}</span><span class="item-name">${legacyMatch[1].trim()}</span></div>` +
+                     `<div class="order-item-meta${subCls}"><span class="order-item-price"></span><span class="order-item-qty">Số lượng: x${legacyMatch[2]}</span></div>`;
+            }
+            return `<div class="order-item-title${subCls}"><span class="item-icon">${icon}</span><span class="item-name">${cleanLine}</span></div>`;
           }
-          return '';
         }).join('');
 
         tbody.innerHTML += `<tr style="${rowStyle}">
-            <td data-label="Mã ĐH"><b>${escapeHtml(order.orderId)}</b></td>
-            <td data-label="Thời gian"><span style="color:#718096;">${escapeHtml(order.date)}</span></td>
+            <td data-label="Mã ĐH"><b style="font-family:'Montserrat',sans-serif; color:#1a2935;">${escapeHtml(order.orderId)}</b></td>
+            <td data-label="Thời gian"><span style="color:#718096; font-size:13px;">${escapeHtml(formatOrderDate(order.date))}</span></td>
             <td data-label="Khách hàng">
-              <b>${escapeHtml(order.name)}</b><br>
-              <span style="color:#0068ff; margin-top:4px; display:inline-block;">📞 ${escapeHtml(order.phone)}</span><br>
-              <span style="color:#4a5568; margin-top:4px; font-size:12px; line-height:1.4; display:inline-block; max-width:220px;">📍 ${escapeHtml(order.address)}</span><br>
-              <div style="display:flex; gap:5px; margin-top:8px; flex-wrap: wrap;">
-                <button class="btn-update" style="background:#4a5568; font-size: 11px; padding: 4px 10px; border-radius: 4px;" onclick="copyCustomerInfo(${order.row})">📋 Copy Thông tin</button>
-                <button class="btn-update" style="background:#0068ff; font-size: 11px; padding: 4px 10px; border-radius: 4px;" onclick="window.open('https://zalo.me/${phoneClean}', '_blank')">💬 Mở Zalo</button>
+              <b style="font-size:15px; color:#1a2935;">${escapeHtml(order.name)}</b><br>
+              <span style="color:#0068ff; margin-top:4px; display:inline-block; font-weight:600;"><a href="tel:${phoneClean}" style="color:#0068ff; text-decoration:none;">📞 ${escapeHtml(order.phone)}</a></span><br>
+              <div style="color:#4a5568; margin-top:4px; font-size:12.5px; line-height:1.4;">📍 ${escapeHtml(order.address)}</div>
+              ${order.note ? `<div style="color:#d69e2e; margin-top:4px; font-size:12px; font-style:italic;">📝 Ghi chú: ${escapeHtml(order.note)}</div>` : ''}
+              <div class="customer-action-row">
+                <button type="button" class="btn-cust-action btn-cust-copy" onclick="copyCustomerInfo(${order.row})">📋 Copy Thông tin</button>
+                <button type="button" class="btn-cust-action btn-cust-zalo" onclick="window.open('https://zalo.me/${phoneClean}', '_blank')">💬 Mở Zalo</button>
               </div>
             </td>
-            <td data-label="Chi tiết Đơn hàng" style="line-height: 1.5; min-width: 250px;">${detailsHtml}</td>
-            <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${escapeHtml(order.total)}</td>
+            <td data-label="Chi tiết Đơn hàng" style="line-height: 1.5;">${detailsHtml}</td>
+            <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold; font-size:15px;">${escapeHtml(order.total)}</td>
             <td data-label="Trạng thái"><span style="font-weight: bold; color: ${statusColor};">${escapeHtml(order.status)}</span></td>
             <td data-label="Thao tác">
               ${selectHtml}
-              <div style="display:flex; gap:5px; margin-top:8px;">
+              <div style="display:flex; gap:8px; margin-top:8px;">
                  <button class="btn-update" style="flex:1;" onclick="updateOrderStatus(${order.row})">Lưu</button>
                  <button class="btn-update btn-delete" style="flex:1;" onclick="deleteOrder(${order.row})">Xóa</button>
               </div>
