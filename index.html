@@ -48,6 +48,23 @@
     h2, h3 { font-family: 'Montserrat', sans-serif; text-align: center; color: #333; transition: color 0.3s; }
     .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
     
+    /* GIAO DIỆN TABS (SẢN PHẨM & SƠ ĐỒ) - ĐÃ CẢI THIỆN LÀM NỔI BẬT NÚT */
+    .main-nav-tabs { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; position: relative; z-index: 10; }
+    .tab-btn { background: #ffffff; border: 2px solid #cbd5e0; padding: 10px 20px; border-radius: 30px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: bold; cursor: pointer; color: #4a5568; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .tab-btn:hover { background: #f8fafc; border-color: #a0aec0; color: #2d3748; transform: translateY(-2px); }
+    .tab-btn.active { background: #0068ff; color: white; border-color: #0055d4; box-shadow: 0 4px 10px rgba(0, 104, 255, 0.3); }
+    body.theme-dark .tab-btn { background: #232336; border-color: #4a5568; color: #cbd5e0; }
+    body.theme-dark .tab-btn:hover { background: #2d2d44; border-color: #718096; color: #fff; }
+    body.theme-dark .tab-btn.active { background: #0068ff; color: white; border-color: #0055d4; }
+
+    /* BÀI VIẾT SƠ ĐỒ */
+    .post-card { background: #fff; padding: 20px; border-radius: 12px; width: 100%; max-width: 650px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; transition: 0.3s; box-sizing: border-box;}
+    body.theme-dark .post-card { background: #232336; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    .post-card h3 { color: #0068ff; margin-top: 15px; margin-bottom: 10px; font-size: 18px; text-align: left; transition: 0.3s;}
+    body.theme-dark .post-card h3 { color: #66b3ff; }
+    .post-card p { white-space: pre-wrap; font-size: 14.5px; text-align: justify; line-height: 1.6; color: #4a5568; margin: 0; transition: 0.3s;}
+    body.theme-dark .post-card p { color: #cbd5e0; }
+
     .product-card { position: relative; background: #eef2f5; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; color: #333; transition: 0.3s;}
     .discount-badge { position: absolute; top: 10px; right: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 3px; z-index: 10;}
     
@@ -171,6 +188,12 @@
 
   <h1>CỬA HÀNG CỦA MINH HIẾU</h1>
   
+  <!-- CÁC NÚT CHUYỂN TAB -->
+  <div class="main-nav-tabs">
+    <button id="tab-btn-products" class="tab-btn active" onclick="switchView('products')">SẢN PHẨM</button>
+    <button id="tab-btn-diagrams" class="tab-btn" onclick="switchView('diagrams')">BÀI VIẾT</button>
+  </div>
+
   <div id="loading" class="loader">
     <div class="loader-inner">
       <div class="loader-line-wrap"><div class="loader-line"></div></div>
@@ -182,14 +205,23 @@
     <div class="loader-text" id="loading-text">ĐANG KẾT NỐI DỮ LIỆU...</div>
   </div>
   
-  <div id="combo-section" style="display: none;">
-    <h2 style="color: #e53e3e; font-size: 22px; margin-top: 10px;">🔥 COMBO ĐẶC BIỆT 🔥</h2>
-    <div class="container" id="combo-list"></div>
-    <div style="border-bottom: 2px dashed #ccc; margin: 40px auto; max-width: 300px;"></div>
+  <!-- KHU VỰC HIỂN THỊ SẢN PHẨM -->
+  <div id="view-products">
+    <div id="combo-section" style="display: none;">
+      <h2 style="color: #e53e3e; font-size: 22px; margin-top: 10px;">🔥 COMBO ĐẶC BIỆT 🔥</h2>
+      <div class="container" id="combo-list"></div>
+      <div style="border-bottom: 2px dashed #ccc; margin: 40px auto; max-width: 300px;"></div>
+    </div>
+
+    <h2 id="regular-title" style="display: none;">SẢN PHẨM KHÁC</h2>
+    <div class="container" id="product-list"></div>
   </div>
 
-  <h2 id="regular-title" style="display: none;">SẢN PHẨM KHÁC</h2>
-  <div class="container" id="product-list"></div>
+  <!-- KHU VỰC HIỂN THỊ SƠ ĐỒ / BÀI VIẾT (MỚI) -->
+  <div id="view-diagrams" style="display: none;">
+    <h2 style="color: #0068ff; font-size: 22px; margin-top: 10px;">BÀI VIẾT</h2>
+    <div class="container" id="diagrams-list"></div>
+  </div>
 
   <div id="toast-notification">Đã thêm sản phẩm vào giỏ hàng!</div>
 
@@ -243,6 +275,7 @@
     let cart = [];
     let productsData = [];
     let combosData = [];
+    let postsData = []; // Khai báo mảng chứa Sơ đồ / Bài viết
     let currentModalProductId = null;
     let currentModalImgIndex = 0;
     let globalShippingFee = 18000;
@@ -256,6 +289,15 @@
       loadProducts(); fetchTinh(); setupModalSwipe();
     });
     
+    // Hàm chuyển đổi Tab
+    function switchView(viewName) {
+      document.getElementById('view-products').style.display = (viewName === 'products') ? 'block' : 'none';
+      document.getElementById('view-diagrams').style.display = (viewName === 'diagrams') ? 'block' : 'none';
+      
+      document.getElementById('tab-btn-products').classList.toggle('active', viewName === 'products');
+      document.getElementById('tab-btn-diagrams').classList.toggle('active', viewName === 'diagrams');
+    }
+
     function userChangeTheme(themeValue) {
       localStorage.setItem('userSelectedTheme', themeValue);
       applyTheme(themeValue);
@@ -340,6 +382,7 @@
         if (resData.products) {
           productsData = resData.products;
           combosData = resData.combos || [];
+          postsData = resData.posts || []; // Load thêm dữ liệu bài viết
           globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
           
           combosData.forEach(c => {
@@ -416,14 +459,18 @@
 
     function openModal(productId, index) { currentModalProductId = productId; currentModalImgIndex = index; updateModalImage(); document.getElementById('image-modal').style.display = 'flex'; }
     function closeModal() { document.getElementById('image-modal').style.display = 'none'; }
+    
     function changeModalImg(delta) {
-      let p = [...productsData, ...combosData].find(p => p.id === currentModalProductId); if (!p) return;
+      // Sửa để Modal nhận dạng được cả Bài viết/Sơ đồ
+      let p = [...productsData, ...combosData, ...postsData].find(p => p.id === currentModalProductId); if (!p) return;
       currentModalImgIndex += delta; if (currentModalImgIndex < 0) currentModalImgIndex = p.images.length - 1; if (currentModalImgIndex >= p.images.length) currentModalImgIndex = 0; updateModalImage();
     }
+    
     function jumpToModalImg(index) { currentModalImgIndex = index; updateModalImage(); }
     
     function updateModalImage() {
-      let p = [...productsData, ...combosData].find(p => p.id === currentModalProductId);
+      // Sửa để Modal nhận dạng được cả Bài viết/Sơ đồ
+      let p = [...productsData, ...combosData, ...postsData].find(p => p.id === currentModalProductId);
       if (p && p.images[currentModalImgIndex]) {
         document.getElementById('modal-img').src = p.images[currentModalImgIndex];
         document.getElementById('modal-indicator').innerText = (currentModalImgIndex + 1) + " / " + p.images.length;
@@ -457,6 +504,42 @@
       val += delta; if (val < 1) val = 1; input.value = val;
     }
     function validateProductQty(id) { let input = document.getElementById('qty-' + id); let val = parseInt(input.value); if (isNaN(val) || val < 1) input.value = 1; }
+
+    // HÀM VẼ DANH SÁCH SƠ ĐỒ / BÀI VIẾT
+    function renderPosts() {
+      const pList = document.getElementById('diagrams-list');
+      pList.innerHTML = '';
+      if (postsData.length === 0) {
+        pList.innerHTML = '<div style="text-align:center; color:#888; width:100%;">Chưa có bài viết/sơ đồ nào được đăng.</div>';
+        return;
+      }
+      
+      postsData.forEach(post => {
+        let totalImgs = post.images.length;
+        let imagesHtml = ''; 
+        
+        if (totalImgs > 1) {
+          imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[totalImgs-1])}" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
+        }
+        post.images.forEach((img, idx) => { 
+          imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(img)}" onclick="openModal('${post.id}', ${idx})"></div>`; 
+        });
+        if (totalImgs > 1) {
+          imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[0])}" onclick="openModal('${post.id}', 0)"></div>`; 
+        }
+
+        let arrowsHtml = totalImgs > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${post.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${post.id}', 1)">&#10095;</button>` : '';
+        
+        let card = document.createElement('div'); 
+        card.className = 'post-card';
+        card.innerHTML = `
+          <div class="carousel" style="height: 350px; border-radius: 8px;"><div class="carousel-slides" id="slides-${post.id}">${imagesHtml}</div>${arrowsHtml}</div>
+          <h3>${escapeHtml(post.title)}</h3>
+          <p>${escapeHtml(post.desc)}</p>
+        `;
+        pList.appendChild(card);
+      });
+    }
 
     function renderData() {
       document.getElementById('loading').classList.add('hidden');
@@ -578,7 +661,10 @@
         pList.appendChild(card);
       });
 
+      renderPosts(); // Gọi hàm vẽ bài viết Sơ đồ
+
       setTimeout(() => {
+        // Áp dụng tính năng lướt vô cực cho TẤT CẢ các vùng có dạng carousel-slides (kể cả Bài viết)
         document.querySelectorAll('.carousel-slides').forEach(c => {
           if (c.querySelector('[data-clone]')) {
             c.style.scrollBehavior = 'auto';
