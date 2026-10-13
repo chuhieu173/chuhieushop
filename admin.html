@@ -229,7 +229,6 @@
       <div class="form-group"><label>Tên Combo Đặc Biệt:</label><input type="text" id="combo-name" placeholder="VD: Combo Mùa Hè Năng Động"></div>
       <div class="form-group"><label>Mô tả ngắn gọn:</label><textarea id="combo-desc" style="height: 60px;" placeholder="Dòng chữ nhỏ hiển thị dưới tên combo..."></textarea></div>
       
-      <!-- ĐÃ THÊM: Khu vực upload ảnh riêng cho Combo -->
       <div class="form-group" style="background: #f8fafc; border: 1px dashed #cbd5e0; padding: 15px; border-radius: 8px;">
         <label style="color:#2d3748;">Hình Ảnh Riêng Cho Combo (Sẽ xếp ở đầu danh sách ảnh):</label>
         <div id="combo-image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
@@ -273,7 +272,7 @@
     let globalCombosData = [];
     let currentEditImages = []; 
     let currentComboItems = []; 
-    let currentComboEditImages = []; // ĐÃ THÊM
+    let currentComboEditImages = [];
 
     function togglePassword() { let p = document.getElementById("admin-pass"); p.type = p.type === "password" ? "text" : "password"; }
     async function sha256(msg) {
@@ -391,25 +390,45 @@
       } catch (e) { alert("Lỗi!"); showLoading(false); }
     }
 
+    // ĐÃ CHỈNH SỬA: Sắp xếp đơn hoàn thành xuống dưới, đổi màu, thêm nút Zalo
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body'); tbody.innerHTML = "";
       if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
-      orders.forEach(order => {
+      
+      // Sắp xếp: Đơn "Hoàn thành" bị đẩy xuống cuối cùng
+      let sortedOrders = [...orders].sort((a, b) => {
+        if (a.status === "Hoàn thành" && b.status !== "Hoàn thành") return 1;
+        if (a.status !== "Hoàn thành" && b.status === "Hoàn thành") return -1;
+        return 0;
+      });
+
+      sortedOrders.forEach(order => {
         let selectHtml = `<select id="status-${order.row}" class="status-select">`;
         STATUS_OPTIONS.forEach(opt => { selectHtml += `<option value="${opt}" ${order.status === opt ? "selected" : ""}>${opt}</option>`; }); selectHtml += `</select>`;
         
-        tbody.innerHTML += `<tr>
+        // Gán màu sắc và độ làm mờ cho Đơn Hoàn Thành
+        let isCompleted = order.status === "Hoàn thành";
+        let rowStyle = isCompleted ? "background-color: #f0fff4; opacity: 0.85;" : "";
+        let statusColor = isCompleted ? "#38a169" : "#2b6cb0";
+        
+        // Chuẩn hóa số điện thoại cho nút Zalo
+        let phoneClean = escapeHtml(order.phone).replace(/[^0-9]/g, '');
+
+        tbody.innerHTML += `<tr style="${rowStyle}">
             <td data-label="Mã ĐH"><b>${escapeHtml(order.orderId)}</b></td>
             <td data-label="Thời gian"><span style="color:#718096;">${escapeHtml(order.date)}</span></td>
             <td data-label="Khách hàng">
               <b>${escapeHtml(order.name)}</b><br>
               <span style="color:#0068ff; margin-top:4px; display:inline-block;">📞 ${escapeHtml(order.phone)}</span><br>
               <span style="color:#4a5568; margin-top:4px; font-size:12px; line-height:1.4; display:inline-block; max-width:220px;">📍 ${escapeHtml(order.address)}</span><br>
-              <button class="btn-update" style="background:#4a5568; margin-top:8px; font-size: 11px; padding: 4px 10px; border-radius: 4px;" onclick="copyCustomerInfo(${order.row})">📋 Copy Thông tin</button>
+              <div style="display:flex; gap:5px; margin-top:8px; flex-wrap: wrap;">
+                <button class="btn-update" style="background:#4a5568; font-size: 11px; padding: 4px 10px; border-radius: 4px;" onclick="copyCustomerInfo(${order.row})">📋 Copy Thông tin</button>
+                <button class="btn-update" style="background:#0068ff; font-size: 11px; padding: 4px 10px; border-radius: 4px;" onclick="window.open('https://zalo.me/${phoneClean}', '_blank')">💬 Mở Zalo</button>
+              </div>
             </td>
             <td data-label="Chi tiết Đơn hàng" style="white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${escapeHtml(order.details)}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold;">${escapeHtml(order.total)}</td>
-            <td data-label="Trạng thái"><span style="font-weight: 500; color: #2b6cb0;">${escapeHtml(order.status)}</span></td>
+            <td data-label="Trạng thái"><span style="font-weight: bold; color: ${statusColor};">${escapeHtml(order.status)}</span></td>
             <td data-label="Thao tác">
               ${selectHtml}
               <div style="display:flex; gap:5px; margin-top:8px;">
@@ -531,7 +550,6 @@
     }
     function removeComboItem(index) { currentComboItems.splice(index, 1); renderComboItemsPreview(); }
 
-    // ĐÃ THÊM: Các hàm xử lý ảnh riêng cho Combo
     function renderComboImagePreviews() {
       const c = document.getElementById("combo-image-preview-container"); c.innerHTML = "";
       if (currentComboEditImages.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px; line-height: 1.5;'>Hệ thống sẽ tự động ghép ảnh từ các sản phẩm thành phần. Bạn có thể up thêm ảnh riêng của Combo tại đây.</span>"; return; }
@@ -572,7 +590,6 @@
          document.getElementById("combo-name").value = combo.name; 
          document.getElementById("combo-desc").value = combo.desc;
          
-         // Đọc ảnh riêng của Combo
          currentComboEditImages = combo.rawManualImages ? combo.rawManualImages.split('\n').map(i => i.trim()).filter(i => i !== "") : [];
          try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
       } else {
@@ -597,7 +614,6 @@
       
       showLoading(true); closeComboModal();
       
-      // ĐÃ SỬA: Đính kèm mảng hình ảnh Combo vào Payload
       let payload = { 
         action: "saveCombo", 
         token: sessionStorage.getItem("adminToken"), 
