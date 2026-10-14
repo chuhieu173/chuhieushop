@@ -246,6 +246,7 @@
       <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" required></div>
       <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value)" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
       <div class="form-group"><select id="phuong" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
+      <div class="form-group"><input type="text" id="customer-address-detail" placeholder="Địa chỉ chi tiết (Số nhà, đường, ngõ...) *" required></div>
       <!-- Tạm thời ẩn phần ghi chú đặt hàng -->
       <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
       
@@ -755,16 +756,19 @@
     function checkout(openZalo) {
       if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
-      const name = document.getElementById('customer-name').value;
-      const phone = document.getElementById('customer-phone').value;
-      const detailAddress = document.getElementById('customer-address-detail').value;
+      const name = (document.getElementById('customer-name')?.value || '').trim();
+      const phone = (document.getElementById('customer-phone')?.value || '').trim();
+      const detailAddress = (document.getElementById('customer-address-detail')?.value || '').trim();
       const noteEl = document.getElementById('customer-note');
-      const note = noteEl ? noteEl.value : '';
-      const tinhSelect = document.getElementById('tinh'); const phuongSelect = document.getElementById('phuong');
-      const tinhName = tinhSelect.options[tinhSelect.selectedIndex]?.text || '';
-      const phuongName = phuongSelect.options[phuongSelect.selectedIndex]?.text || '';
+      const note = (noteEl ? noteEl.value : '').trim();
+      const tinhSelect = document.getElementById('tinh');
+      const phuongSelect = document.getElementById('phuong');
+      const tinhValue = tinhSelect ? tinhSelect.value : '';
+      const phuongValue = phuongSelect ? phuongSelect.value : '';
+      const tinhName = (tinhSelect && tinhSelect.selectedIndex >= 0) ? (tinhSelect.options[tinhSelect.selectedIndex]?.text || '') : '';
+      const phuongName = (phuongSelect && phuongSelect.selectedIndex >= 0) ? (phuongSelect.options[phuongSelect.selectedIndex]?.text || '') : '';
 
-      if (!name || !phone || !detailAddress || !tinhSelect.value || !phuongSelect.value) { alert("Vui lòng điền đủ Thông tin cá nhân và Địa chỉ!"); return; }
+      if (!name || !phone || !detailAddress || !tinhValue || !phuongValue) { alert("Vui lòng điền đủ Thông tin cá nhân và Địa chỉ!"); return; }
 
       let fullAddress = `${detailAddress}, ${phuongName}, ${tinhName}`;
       let orderText = "ĐƠN ĐẶT HÀNG MỚI\nNgười nhận: " + name + "\nSđt: " + phone + "\nĐịa chỉ: " + fullAddress + "\n";
