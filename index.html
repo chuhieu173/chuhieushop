@@ -246,8 +246,8 @@
       <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" required></div>
       <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value)" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
       <div class="form-group"><select id="phuong" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
-      <div class="form-group"><input type="text" id="customer-address-detail" placeholder="Địa chỉ chi tiết (Số nhà, đường, ngõ...) *" required></div>
-      <div class="form-group"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
+      <!-- Tạm thời ẩn phần ghi chú đặt hàng -->
+      <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
       
       <button class="btn-primary" onclick="checkout(true)" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
       <button class="btn-primary" onclick="checkout(false)" style="background: #4a5568; margin-top: 10px;">Copy nội dung đơn hàng</button>
@@ -758,7 +758,8 @@
       const name = document.getElementById('customer-name').value;
       const phone = document.getElementById('customer-phone').value;
       const detailAddress = document.getElementById('customer-address-detail').value;
-      const note = document.getElementById('customer-note').value;
+      const noteEl = document.getElementById('customer-note');
+      const note = noteEl ? noteEl.value : '';
       const tinhSelect = document.getElementById('tinh'); const phuongSelect = document.getElementById('phuong');
       const tinhName = tinhSelect.options[tinhSelect.selectedIndex]?.text || '';
       const phuongName = phuongSelect.options[phuongSelect.selectedIndex]?.text || '';
