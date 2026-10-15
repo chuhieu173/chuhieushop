@@ -94,13 +94,17 @@ class TestDOMIntegrity(unittest.TestCase):
             )
 
     def test_post_video_field_exists(self):
-        """Kiểm tra: Ô nhập Link Video 'post-video' phải tồn tại trong modal bài viết admin.html"""
+        """Kiểm tra: Ô nhập Link Video 'post-video' phải tồn tại và là textarea (hỗ trợ nhiều link) trong admin.html"""
         content = read_file('admin.html')
         collector = IDCollector()
         collector.feed(content)
         self.assertIn(
             'post-video', collector.ids,
             "LỖI: Không tìm thấy ô nhập link video (id='post-video') trong admin.html!"
+        )
+        self.assertRegex(
+            content, r'<textarea[^>]+id=[\'"]post-video[\'"]',
+            "LỖI: 'post-video' trong admin.html phải là <textarea> để hỗ trợ nhập nhiều dòng video!"
         )
 
 
@@ -244,6 +248,37 @@ class TestBusinessLogic(unittest.TestCase):
             match = yt_pattern.search(url)
             self.assertIsNotNone(match, f"Không nhận diện được link YouTube: {url}")
             self.assertEqual(match.group(1), expected_id, f"ID YouTube trích xuất sai từ: {url}")
+
+    def test_tiktok_id_extraction(self):
+        """Kiểm tra: Thuật toán nhận diện và trích xuất TikTok video ID từ nhiều dạng link"""
+        tiktok_pattern = re.compile(r'(?:tiktok\.com\/(?:.*?\/video\/|.*?\/v\/|(?:v|embed|embed\/v\d+)\/))(\d{15,22})')
+        test_urls = {
+            "https://www.tiktok.com/@creator/video/7480085501018393876": "7480085501018393876",
+            "https://www.tiktok.com/@creator/video/7480085501018393876?is_from_webapp=1&sender_device=pc": "7480085501018393876",
+            "https://tiktok.com/@user/video/7480085501018393876": "7480085501018393876",
+            "https://www.tiktok.com/v/7480085501018393876": "7480085501018393876",
+            "https://m.tiktok.com/v/7480085501018393876.html": "7480085501018393876",
+            "https://www.tiktok.com/embed/v2/7480085501018393876": "7480085501018393876",
+            "https://www.tiktok.com/embed/7480085501018393876": "7480085501018393876",
+        }
+        for url, expected_id in test_urls.items():
+            match = tiktok_pattern.search(url)
+            self.assertIsNotNone(match, f"Không nhận diện được link TikTok: {url}")
+            self.assertEqual(match.group(1), expected_id, f"ID TikTok trích xuất sai từ: {url}")
+
+    def test_multiple_video_urls_split(self):
+        """Kiểm tra: Xử lý nhiều URL video phân tách theo dòng"""
+        raw_text = """
+        https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        https://www.tiktok.com/@user/video/7480085501018393876
+        
+        https://youtu.be/dQw4w9WgXcQ
+        """
+        urls = [u.strip() for u in raw_text.split('\n') if u.strip()]
+        self.assertEqual(len(urls), 3)
+        self.assertEqual(urls[0], "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        self.assertEqual(urls[1], "https://www.tiktok.com/@user/video/7480085501018393876")
+        self.assertEqual(urls[2], "https://youtu.be/dQw4w9WgXcQ")
 
     def test_format_money_algorithm(self):
         """Kiểm tra thuật toán format tiền tệ 138000 -> 138.000đ"""

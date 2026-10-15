@@ -404,8 +404,8 @@
       <div class="form-group"><label>Tiêu đề bài viết:</label><input type="text" id="post-title" placeholder="VD: Sơ đồ nối dây mạch ESP32"></div>
       <div class="form-group"><label>Nội dung / Mô tả:</label><textarea id="post-desc" style="height: 120px;" placeholder="Viết mô tả hoặc hướng dẫn vào đây..."></textarea></div>
       <div class="form-group">
-        <label>Link Video hướng dẫn (YouTube / MP4 tùy chọn):</label>
-        <input type="text" id="post-video" placeholder="VD: https://www.youtube.com/watch?v=... hoặc https://youtu.be/...">
+        <label>Link Video hướng dẫn (Hỗ trợ nhiều link, mỗi link 1 dòng - YouTube, TikTok, MP4...):</label>
+        <textarea id="post-video" style="height: 85px; font-size: 13.5px;" placeholder="Dán link video tại đây, mỗi link 1 dòng:&#10;https://www.youtube.com/watch?v=...&#10;https://www.tiktok.com/@user/video/..."></textarea>
       </div>
       
       <div class="form-group">
@@ -734,8 +734,14 @@
       posts.forEach((post, index) => {
         let firstImg = post.images && post.images.length > 0 ? post.images[0] : "https://via.placeholder.com/150?text=No+Image";
         let descShort = post.desc.length > 60 ? post.desc.substring(0, 60) + "..." : post.desc;
-        let videoBadge = post.video ? `<span style="display:inline-block; margin-left:6px; background:#ebf8ff; color:#2b6cb0; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600; border:1px solid #bee3f8;">🎥 Có Video</span>` : '';
-        let videoInfo = post.video ? ` • 1 video` : '';
+        let videoCount = 0;
+        if (Array.isArray(post.videos)) {
+          videoCount = post.videos.length;
+        } else if (post.video && typeof post.video === 'string') {
+          videoCount = post.video.split('\n').map(s => s.trim()).filter(Boolean).length;
+        }
+        let videoBadge = videoCount > 0 ? `<span style="display:inline-block; margin-left:6px; background:#ebf8ff; color:#2b6cb0; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600; border:1px solid #bee3f8;">🎥 ${videoCount} Video</span>` : '';
+        let videoInfo = videoCount > 0 ? ` • ${videoCount} video` : '';
         
         let prevId = index > 0 ? posts[index - 1].id : null;
         let nextId = index < posts.length - 1 ? posts[index + 1].id : null;
@@ -842,7 +848,8 @@
          document.getElementById("post-edit-id").value = post.id; 
          document.getElementById("post-title").value = post.title; 
          document.getElementById("post-desc").value = post.desc;
-         document.getElementById("post-video").value = post.video || "";
+         let vStr = Array.isArray(post.videos) ? post.videos.join('\n') : (post.video || "");
+         document.getElementById("post-video").value = vStr;
          currentPostEditImages = [...(post.images || [])];
       } else {
          document.getElementById("post-modal-title").innerText = "Tạo Bài Viết / Sơ Đồ Mới";
@@ -863,7 +870,9 @@
       let pId = document.getElementById("post-edit-id").value; 
       let title = document.getElementById("post-title").value; 
       let desc = document.getElementById("post-desc").value;
-      let video = (document.getElementById("post-video")?.value || "").trim();
+      let rawVideo = (document.getElementById("post-video")?.value || "").trim();
+      let videoUrls = rawVideo.split('\n').map(u => u.trim()).filter(Boolean);
+      let video = videoUrls.join('\n');
       if(!title) { alert("Tiêu đề không được bỏ trống!"); return; }
       
       showLoading(true); closePostModal();

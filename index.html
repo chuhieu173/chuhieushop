@@ -87,6 +87,30 @@
       border: 0;
     }
 
+    /* VIDEO TIKTOK EMBED */
+    .post-tiktok-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 340px;
+      height: 580px;
+      margin: 0 auto 15px auto;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      background: #000;
+    }
+    .post-tiktok-wrapper iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    @media (max-width: 420px) {
+      .post-tiktok-wrapper {
+        max-width: 100%;
+        height: 530px;
+      }
+    }
+
     .product-card { position: relative; background: #eef2f5; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; color: #333; transition: 0.3s;}
     .discount-badge { position: absolute; top: 10px; right: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 3px; z-index: 10;}
     
@@ -528,7 +552,7 @@
     }
     function validateProductQty(id) { let input = document.getElementById('qty-' + id); let val = parseInt(input.value); if (isNaN(val) || val < 1) input.value = 1; }
 
-    // HÀM CHUYỂN LINK VIDEO THÀNH HTML EMBED (YouTube, Drive, MP4, Web)
+    // HÀM CHUYỂN LINK VIDEO THÀNH HTML EMBED (YouTube, TikTok, Drive, MP4, Web)
     function getVideoEmbedHtml(url) {
       if (!url || typeof url !== 'string') return '';
       url = url.trim();
@@ -539,6 +563,18 @@
       const ytMatch = url.match(ytRegex);
       if (ytMatch && ytMatch[1]) {
         return `<div class="post-video-wrapper"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" title="Video hướng dẫn" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></div>`;
+      }
+
+      // TikTok (hỗ trợ link video đầy đủ, embed, hoặc v/)
+      const tiktokRegex = /(?:tiktok\.com\/(?:.*?\/video\/|.*?\/v\/|(?:v|embed|embed\/v\d+)\/))(\d{15,22})/;
+      const tiktokMatch = url.match(tiktokRegex);
+      if (tiktokMatch && tiktokMatch[1]) {
+        return `<div class="post-tiktok-wrapper"><iframe src="https://www.tiktok.com/embed/v2/${tiktokMatch[1]}" title="TikTok video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen scrolling="no" loading="lazy"></iframe></div>`;
+      }
+
+      // TikTok link rút gọn (vt.tiktok.com / tiktok.com/t/) nếu chưa phân giải ID
+      if (/tiktok\.com/i.test(url)) {
+        return `<div style="margin: 10px auto; text-align: center;"><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:8px; background:#000; color:#fff; padding:10px 18px; border-radius:8px; font-weight:600; text-decoration:none; font-size:13.5px; box-shadow:0 2px 6px rgba(0,0,0,0.2);">🎵 Mở xem Video trên TikTok</a></div>`;
       }
 
       // Google Drive Preview
@@ -589,13 +625,21 @@
           carouselBlock = `<div class="carousel" style="height: 350px; border-radius: 8px; margin-bottom: 15px;"><div class="carousel-slides" id="slides-${post.id}">${imagesHtml}</div>${arrowsHtml}</div>`;
         }
 
-        let videoHtml = getVideoEmbedHtml(post.video);
+        // Hỗ trợ nhiều link video (mỗi link 1 dòng)
+        let videoUrls = [];
+        if (Array.isArray(post.videos) && post.videos.length > 0) {
+          videoUrls = post.videos;
+        } else if (typeof post.video === 'string' && post.video.trim() !== '') {
+          videoUrls = post.video.split('\n').map(u => u.trim()).filter(Boolean);
+        }
+
+        let videosHtml = videoUrls.map(u => getVideoEmbedHtml(u)).filter(Boolean).join('');
         
         let card = document.createElement('div'); 
         card.className = 'post-card';
         card.innerHTML = `
           ${carouselBlock}
-          ${videoHtml}
+          ${videosHtml}
           <h3>${escapeHtml(post.title)}</h3>
           <p>${escapeHtml(post.desc)}</p>
         `;
