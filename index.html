@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Cửa Hàng Của Minh Hiếu</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -562,14 +563,44 @@
       const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
       const ytMatch = url.match(ytRegex);
       if (ytMatch && ytMatch[1]) {
-        return `<div class="post-video-wrapper"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" title="Video hướng dẫn" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></div>`;
+        const ytId = ytMatch[1];
+        return `
+          <div class="post-video-wrapper">
+            <iframe 
+              src="https://www.youtube.com/embed/${ytId}" 
+              title="YouTube video player" 
+              frameborder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+              referrerpolicy="strict-origin-when-cross-origin" 
+              allowfullscreen>
+            </iframe>
+          </div>
+          <div style="text-align:right; margin-top:-8px; margin-bottom:12px;">
+            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="font-size:12px; color:#718096; text-decoration:none;">🔗 Mở xem trên YouTube</a>
+          </div>`;
       }
 
-      // TikTok (hỗ trợ link video đầy đủ, embed, hoặc v/)
-      const tiktokRegex = /(?:tiktok\.com\/(?:.*?\/video\/|.*?\/v\/|(?:v|embed|embed\/v\d+)\/))(\d{15,22})/;
+      // TikTok (hỗ trợ link video đầy đủ: @user/video/id, v/id, embed/id, player/v1/id)
+      const tiktokRegex = /(?:tiktok\.com\/(?:.*?\/video\/|.*?\/v\/|(?:v|embed|embed\/v\d+|player\/v\d+)\/))(\d{15,22})/;
       const tiktokMatch = url.match(tiktokRegex);
       if (tiktokMatch && tiktokMatch[1]) {
-        return `<div class="post-tiktok-wrapper"><iframe src="https://www.tiktok.com/embed/v2/${tiktokMatch[1]}" title="TikTok video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen scrolling="no" loading="lazy"></iframe></div>`;
+        const tiktokId = tiktokMatch[1];
+        return `
+          <div class="post-tiktok-wrapper">
+            <iframe 
+              src="https://www.tiktok.com/player/v1/${tiktokId}?music_info=1&description=1" 
+              title="TikTok video player" 
+              frameborder="0" 
+              allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+              referrerpolicy="strict-origin-when-cross-origin" 
+              allowfullscreen>
+            </iframe>
+          </div>
+          <div style="text-align:center; margin-top:-6px; margin-bottom:14px;">
+            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:#fe2c55; text-decoration:none; font-weight:600; padding:5px 12px; border-radius:6px; background:rgba(254,44,85,0.08); border:1px solid rgba(254,44,85,0.2);">
+              🎵 Mở xem trực tiếp trên TikTok
+            </a>
+          </div>`;
       }
 
       // TikTok link rút gọn (vt.tiktok.com / tiktok.com/t/) nếu chưa phân giải ID
@@ -580,7 +611,7 @@
       // Google Drive Preview
       const gdriveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
       if (gdriveMatch && gdriveMatch[1]) {
-        return `<div class="post-video-wrapper"><iframe src="https://drive.google.com/file/d/${gdriveMatch[1]}/preview" allow="autoplay" allowfullscreen loading="lazy"></iframe></div>`;
+        return `<div class="post-video-wrapper"><iframe src="https://drive.google.com/file/d/${gdriveMatch[1]}/preview" allow="autoplay" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`;
       }
 
       // File video trực tiếp (.mp4, .webm, .ogg)

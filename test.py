@@ -251,20 +251,43 @@ class TestBusinessLogic(unittest.TestCase):
 
     def test_tiktok_id_extraction(self):
         """Kiểm tra: Thuật toán nhận diện và trích xuất TikTok video ID từ nhiều dạng link"""
-        tiktok_pattern = re.compile(r'(?:tiktok\.com\/(?:.*?\/video\/|.*?\/v\/|(?:v|embed|embed\/v\d+)\/))(\d{15,22})')
+        tiktok_pattern = re.compile(r'(?:tiktok\.com\/(?:.*?\/video\/|.*?\/v\/|(?:v|embed|embed\/v\d+|player\/v\d+)\/))(\d{15,22})')
         test_urls = {
             "https://www.tiktok.com/@creator/video/7480085501018393876": "7480085501018393876",
             "https://www.tiktok.com/@creator/video/7480085501018393876?is_from_webapp=1&sender_device=pc": "7480085501018393876",
             "https://tiktok.com/@user/video/7480085501018393876": "7480085501018393876",
+            "https://www.tiktok.com/@air.remix/video/7683439596537007380": "7683439596537007380",
             "https://www.tiktok.com/v/7480085501018393876": "7480085501018393876",
             "https://m.tiktok.com/v/7480085501018393876.html": "7480085501018393876",
             "https://www.tiktok.com/embed/v2/7480085501018393876": "7480085501018393876",
             "https://www.tiktok.com/embed/7480085501018393876": "7480085501018393876",
+            "https://www.tiktok.com/player/v1/7683439596537007380": "7683439596537007380",
         }
         for url, expected_id in test_urls.items():
             match = tiktok_pattern.search(url)
             self.assertIsNotNone(match, f"Không nhận diện được link TikTok: {url}")
             self.assertEqual(match.group(1), expected_id, f"ID TikTok trích xuất sai từ: {url}")
+
+    def test_video_embed_anti_error153_and_player(self):
+        """Kiểm tra: Cấu hình chống YouTube Error 153 và TikTok Player chính quy trong index.html"""
+        content = read_file('index.html')
+        admin_content = read_file('admin.html')
+        
+        # 1. Thẻ meta referrer trong <head>
+        self.assertIn('<meta name="referrer" content="strict-origin-when-cross-origin">', content,
+                      "LỖI: index.html thiếu <meta name=\"referrer\" content=\"strict-origin-when-cross-origin\"> để chống YouTube Error 153!")
+        self.assertIn('<meta name="referrer" content="strict-origin-when-cross-origin">', admin_content,
+                      "LỖI: admin.html thiếu <meta name=\"referrer\" content=\"strict-origin-when-cross-origin\">!")
+
+        # 2. YouTube iframe: có referrerpolicy, không có loading="lazy" (gây lỗi cấu hình 153)
+        self.assertRegex(content, r'<iframe[^>]+src=[\'"]https://www\.youtube\.com/embed/\${ytId}[\'"][^>]+referrerpolicy=[\'"]strict-origin-when-cross-origin[\'"]',
+                         "LỖI: YouTube iframe phải có referrerpolicy=\"strict-origin-when-cross-origin\"!")
+        self.assertNotRegex(content, r'<iframe[^>]+src=[\'"]https://www\.youtube\.com/embed/\${ytId}[\'"][^>]+loading=[\'"]lazy[\'"]',
+                            "LỖI: YouTube iframe không được dùng loading=\"lazy\" vì gây YouTube Error 153!")
+
+        # 3. TikTok iframe: sử dụng player/v1 chính thức của TikTok
+        self.assertIn('https://www.tiktok.com/player/v1/${tiktokId}?music_info=1&description=1', content,
+                      "LỖI: TikTok embed phải sử dụng player/v1 chính thức!")
 
     def test_multiple_video_urls_split(self):
         """Kiểm tra: Xử lý nhiều URL video phân tách theo dòng"""
