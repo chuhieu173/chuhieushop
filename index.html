@@ -65,6 +65,28 @@
     .post-card p { white-space: pre-wrap; font-size: 14.5px; text-align: justify; line-height: 1.6; color: #4a5568; margin: 0; transition: 0.3s;}
     body.theme-dark .post-card p { color: #cbd5e0; }
 
+    /* VIDEO EMBED BÀI VIẾT / SƠ ĐỒ */
+    .post-video-wrapper {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%; /* Tỉ lệ chuẩn 16:9 */
+      height: 0;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #000;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .post-video-wrapper iframe,
+    .post-video-wrapper video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
     .product-card { position: relative; background: #eef2f5; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; color: #333; transition: 0.3s;}
     .discount-badge { position: absolute; top: 10px; right: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 3px; z-index: 10;}
     
@@ -506,35 +528,74 @@
     }
     function validateProductQty(id) { let input = document.getElementById('qty-' + id); let val = parseInt(input.value); if (isNaN(val) || val < 1) input.value = 1; }
 
+    // HÀM CHUYỂN LINK VIDEO THÀNH HTML EMBED (YouTube, Drive, MP4, Web)
+    function getVideoEmbedHtml(url) {
+      if (!url || typeof url !== 'string') return '';
+      url = url.trim();
+      if (!url) return '';
+
+      // YouTube (hỗ trợ watch?v=, youtu.be/, shorts/, embed/)
+      const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+      const ytMatch = url.match(ytRegex);
+      if (ytMatch && ytMatch[1]) {
+        return `<div class="post-video-wrapper"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" title="Video hướng dẫn" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></div>`;
+      }
+
+      // Google Drive Preview
+      const gdriveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (gdriveMatch && gdriveMatch[1]) {
+        return `<div class="post-video-wrapper"><iframe src="https://drive.google.com/file/d/${gdriveMatch[1]}/preview" allow="autoplay" allowfullscreen loading="lazy"></iframe></div>`;
+      }
+
+      // File video trực tiếp (.mp4, .webm, .ogg)
+      if (/\.(mp4|webm|ogg)($|\?)/i.test(url)) {
+        return `<div class="post-video-wrapper"><video controls playsinline preload="metadata"><source src="${escapeHtml(url)}" type="video/mp4">Trình duyệt không hỗ trợ thẻ video.</video></div>`;
+      }
+
+      // Link web / video khác fallback
+      if (/^https?:\/\//i.test(url)) {
+        return `<div style="margin: 10px 0;"><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:8px; background:#edf2f7; color:#2b6cb0; padding:9px 15px; border-radius:6px; font-weight:600; text-decoration:none; font-size:13.5px; border:1px solid #cbd5e0;">▶️ Mở Video hướng dẫn</a></div>`;
+      }
+
+      return '';
+    }
+
     // HÀM VẼ DANH SÁCH SƠ ĐỒ / BÀI VIẾT
     function renderPosts() {
       const pList = document.getElementById('diagrams-list');
       pList.innerHTML = '';
-      if (postsData.length === 0) {
+      if (!postsData || postsData.length === 0) {
         pList.innerHTML = '<div style="text-align:center; color:#888; width:100%;">Chưa có bài viết/sơ đồ nào được đăng.</div>';
         return;
       }
       
       postsData.forEach(post => {
-        let totalImgs = post.images.length;
+        let totalImgs = (post.images && Array.isArray(post.images)) ? post.images.length : 0;
         let imagesHtml = ''; 
+        let carouselBlock = '';
         
-        if (totalImgs > 1) {
-          imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[totalImgs-1])}" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
-        }
-        post.images.forEach((img, idx) => { 
-          imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(img)}" onclick="openModal('${post.id}', ${idx})"></div>`; 
-        });
-        if (totalImgs > 1) {
-          imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[0])}" onclick="openModal('${post.id}', 0)"></div>`; 
+        if (totalImgs > 0) {
+          if (totalImgs > 1) {
+            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[totalImgs-1])}" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
+          }
+          post.images.forEach((img, idx) => { 
+            imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(img)}" onclick="openModal('${post.id}', ${idx})"></div>`; 
+          });
+          if (totalImgs > 1) {
+            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[0])}" onclick="openModal('${post.id}', 0)"></div>`; 
+          }
+
+          let arrowsHtml = totalImgs > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${post.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${post.id}', 1)">&#10095;</button>` : '';
+          carouselBlock = `<div class="carousel" style="height: 350px; border-radius: 8px; margin-bottom: 15px;"><div class="carousel-slides" id="slides-${post.id}">${imagesHtml}</div>${arrowsHtml}</div>`;
         }
 
-        let arrowsHtml = totalImgs > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${post.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${post.id}', 1)">&#10095;</button>` : '';
+        let videoHtml = getVideoEmbedHtml(post.video);
         
         let card = document.createElement('div'); 
         card.className = 'post-card';
         card.innerHTML = `
-          <div class="carousel" style="height: 350px; border-radius: 8px;"><div class="carousel-slides" id="slides-${post.id}">${imagesHtml}</div>${arrowsHtml}</div>
+          ${carouselBlock}
+          ${videoHtml}
           <h3>${escapeHtml(post.title)}</h3>
           <p>${escapeHtml(post.desc)}</p>
         `;

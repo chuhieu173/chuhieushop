@@ -154,6 +154,16 @@
     .btn-cust-zalo:hover { background: #0055d4; }
 
     @media (max-width: 768px) {
+      #login-overlay {
+        justify-content: flex-start;
+        padding-top: 50px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .login-box {
+        margin-top: 15px;
+        padding: 30px 20px;
+      }
       .header { flex-direction: column; padding: 15px; text-align: center; gap: 15px; }
       .header-actions { width: 100%; justify-content: center; }
       .content { padding: 12px; }
@@ -393,6 +403,10 @@
       <input type="hidden" id="post-edit-id">
       <div class="form-group"><label>Tiêu đề bài viết:</label><input type="text" id="post-title" placeholder="VD: Sơ đồ nối dây mạch ESP32"></div>
       <div class="form-group"><label>Nội dung / Mô tả:</label><textarea id="post-desc" style="height: 120px;" placeholder="Viết mô tả hoặc hướng dẫn vào đây..."></textarea></div>
+      <div class="form-group">
+        <label>Link Video hướng dẫn (YouTube / MP4 tùy chọn):</label>
+        <input type="text" id="post-video" placeholder="VD: https://www.youtube.com/watch?v=... hoặc https://youtu.be/...">
+      </div>
       
       <div class="form-group">
         <label>Hình Ảnh Đính Kèm (Hỗ trợ nhiều ảnh):</label>
@@ -447,8 +461,39 @@
       return str;
     }
 
+    const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 ngày (1 tuần)
+
+    function getAdminToken() {
+      let token = localStorage.getItem("adminToken");
+      let expiry = localStorage.getItem("adminTokenExpiry");
+      if (!token) {
+        token = sessionStorage.getItem("adminToken");
+        if (token) {
+          setAdminToken(token);
+          return token;
+        }
+        return null;
+      }
+      if (expiry && Date.now() > parseInt(expiry, 10)) {
+        clearAdminToken();
+        return null;
+      }
+      return token;
+    }
+
+    function setAdminToken(token) {
+      localStorage.setItem("adminToken", token);
+      localStorage.setItem("adminTokenExpiry", String(Date.now() + SESSION_DURATION_MS));
+    }
+
+    function clearAdminToken() {
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminTokenExpiry");
+      sessionStorage.removeItem("adminToken");
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-      if (sessionStorage.getItem("adminToken")) {
+      if (getAdminToken()) {
         document.getElementById("login-overlay").style.display = "none";
         document.getElementById("admin-app").style.display = "block";
         loadData();
@@ -463,15 +508,15 @@
         let hashedPass = await sha256(plainPass);
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "login", password: hashedPass }) });
         let data = await res.json();
-        if (data.status === "success") { sessionStorage.setItem("adminToken", data.token); document.getElementById("login-overlay").style.display = "none"; document.getElementById("admin-app").style.display = "block"; loadData(); } 
+        if (data.status === "success") { setAdminToken(data.token); document.getElementById("login-overlay").style.display = "none"; document.getElementById("admin-app").style.display = "block"; loadData(); } 
         else { document.getElementById("login-error").style.display = "block"; }
       } catch (e) { alert("Lỗi mạng!"); }
       btn.innerText = "ĐĂNG NHẬP"; btn.disabled = false;
     }
 
     async function logout() {
-      let token = sessionStorage.getItem("adminToken"); sessionStorage.removeItem("adminToken");
-      try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "logout", token: token }) }); } catch (e) {}
+      let token = getAdminToken(); clearAdminToken();
+      try { if (token) await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "logout", token: token }) }); } catch (e) {}
       location.reload();
     }
 
@@ -487,7 +532,7 @@
     function showLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
 
     async function loadData() {
-      let token = sessionStorage.getItem("adminToken"); showLoading(true);
+      let token = getAdminToken(); showLoading(true);
       try {
         let resOrders = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getOrders", token: token }) });
         let orders = await resOrders.json();
@@ -519,7 +564,7 @@
       let theme = document.getElementById("edit-theme").value;
       showLoading(true);
       try {
-        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateTheme", token: sessionStorage.getItem("adminToken"), theme: theme }) });
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateTheme", token: getAdminToken(), theme: theme }) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
         alert("Cập nhật Chủ đề thành công! Hãy ra trang khách hàng Refresh lại để xem thành quả."); loadData();
@@ -554,7 +599,7 @@
       if(!confirm("Bạn có chắc chắn muốn XÓA ẨN đơn hàng này khỏi danh sách không?\n(Dữ liệu vẫn được giữ ở Cột L trong file Google Sheets)")) return;
       showLoading(true);
       try {
-        let payload = { action: "deleteOrder", token: sessionStorage.getItem("adminToken"), row: rowIdx };
+        let payload = { action: "deleteOrder", token: getAdminToken(), row: rowIdx };
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
@@ -689,6 +734,8 @@
       posts.forEach((post, index) => {
         let firstImg = post.images && post.images.length > 0 ? post.images[0] : "https://via.placeholder.com/150?text=No+Image";
         let descShort = post.desc.length > 60 ? post.desc.substring(0, 60) + "..." : post.desc;
+        let videoBadge = post.video ? `<span style="display:inline-block; margin-left:6px; background:#ebf8ff; color:#2b6cb0; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600; border:1px solid #bee3f8;">🎥 Có Video</span>` : '';
+        let videoInfo = post.video ? ` • 1 video` : '';
         
         let prevId = index > 0 ? posts[index - 1].id : null;
         let nextId = index < posts.length - 1 ? posts[index + 1].id : null;
@@ -700,9 +747,12 @@
             <td data-label="STT"><b>${index + 1}</b></td>
             <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:100px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e0;"></td>
             <td data-label="Tiêu đề & Nội dung">
-              <b style="font-size:15px; color:#2b6cb0;">${escapeHtml(post.title)}</b>
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <b style="font-size:15px; color:#2b6cb0;">${escapeHtml(post.title)}</b>
+                ${videoBadge}
+              </div>
               <div style="font-size:13px; color:#718096; margin-top:4px;">${escapeHtml(descShort)}</div>
-              <div style="font-size:11px; color:#a0aec0; margin-top:4px;">Đính kèm: ${post.images.length} ảnh</div>
+              <div style="font-size:11px; color:#a0aec0; margin-top:4px;">Đính kèm: ${post.images.length} ảnh${videoInfo}</div>
             </td>
             <td data-label="Thao tác">
               <div style="display:flex; align-items:center; margin-bottom:5px;">
@@ -718,7 +768,7 @@
     async function swapPostOrder(id1, id2) {
       showLoading(true);
       try {
-        let payload = { action: "swapPostOrder", token: sessionStorage.getItem("adminToken"), id1: id1, id2: id2 };
+        let payload = { action: "swapPostOrder", token: getAdminToken(), id1: id1, id2: id2 };
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
@@ -768,7 +818,7 @@
         if (!f.type.startsWith("image/") || f.size > 20*1024*1024) continue;
         try {
           const b64 = await resizeImageToBase64(f, 1600, 0.85);
-          const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "uploadImage", token: sessionStorage.getItem("adminToken"), imageBase64: b64 }) });
+          const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "uploadImage", token: getAdminToken(), imageBase64: b64 }) });
           const data = await res.json();
           if (data.status === "success" && data.url) { 
              if (type === 'product') currentEditImages.push(data.url);
@@ -792,12 +842,14 @@
          document.getElementById("post-edit-id").value = post.id; 
          document.getElementById("post-title").value = post.title; 
          document.getElementById("post-desc").value = post.desc;
-         currentPostEditImages = [...post.images];
+         document.getElementById("post-video").value = post.video || "";
+         currentPostEditImages = [...(post.images || [])];
       } else {
          document.getElementById("post-modal-title").innerText = "Tạo Bài Viết / Sơ Đồ Mới";
          document.getElementById("post-edit-id").value = ""; 
          document.getElementById("post-title").value = ""; 
          document.getElementById("post-desc").value = "";
+         document.getElementById("post-video").value = "";
          currentPostEditImages = [];
       }
       renderImagePreviews('post-image-preview-container', currentPostEditImages, 'removePostEditImage');
@@ -811,10 +863,11 @@
       let pId = document.getElementById("post-edit-id").value; 
       let title = document.getElementById("post-title").value; 
       let desc = document.getElementById("post-desc").value;
+      let video = (document.getElementById("post-video")?.value || "").trim();
       if(!title) { alert("Tiêu đề không được bỏ trống!"); return; }
       
       showLoading(true); closePostModal();
-      let payload = { action: "savePost", token: sessionStorage.getItem("adminToken"), postId: pId, title: title, desc: desc, images: currentPostEditImages.join('\n') };
+      let payload = { action: "savePost", token: getAdminToken(), postId: pId, title: title, desc: desc, video: video, images: currentPostEditImages.join('\n') };
       try {
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
@@ -826,7 +879,7 @@
       if(!confirm("Bạn có chắc chắn muốn xóa bài viết này không?")) return;
       showLoading(true);
       try {
-        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deletePost", token: sessionStorage.getItem("adminToken"), postId: postId }) });
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deletePost", token: getAdminToken(), postId: postId }) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
         alert("Đã xóa Bài viết!"); loadData();
@@ -838,7 +891,7 @@
       if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." sẽ tự động phân giải combo trừ kho SP)`)) return;
       showLoading(true);
       try {
-        let payload = { action: "updateOrderStatus", token: sessionStorage.getItem("adminToken"), row: rowIdx, newStatus: newStatus };
+        let payload = { action: "updateOrderStatus", token: getAdminToken(), row: rowIdx, newStatus: newStatus };
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
@@ -851,7 +904,7 @@
       if (newFee === "" || !/^\d+$/.test(newFee)) { alert("Phí ship không hợp lệ!"); return; }
       showLoading(true);
       try {
-        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateShippingFee", token: sessionStorage.getItem("adminToken"), shippingFee: parseInt(newFee) || 0 }) });
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateShippingFee", token: getAdminToken(), shippingFee: parseInt(newFee) || 0 }) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
         alert("Cập nhật Phí Ship thành công!"); loadData();
@@ -929,7 +982,7 @@
       if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
       
       showLoading(true); closeComboModal();
-      let payload = { action: "saveCombo", token: sessionStorage.getItem("adminToken"), comboId: cId, name: cName, desc: cDesc, items: JSON.stringify(currentComboItems), images: currentComboEditImages.join('\n') };
+      let payload = { action: "saveCombo", token: getAdminToken(), comboId: cId, name: cName, desc: cDesc, items: JSON.stringify(currentComboItems), images: currentComboEditImages.join('\n') };
       try {
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
@@ -941,7 +994,7 @@
       if(!confirm("Bạn có chắc chắn muốn xóa Combo này không? (Thao tác này không ảnh hưởng đến sản phẩm lẻ)")) return;
       showLoading(true);
       try {
-        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deleteCombo", token: sessionStorage.getItem("adminToken"), comboId: comboId }) });
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deleteCombo", token: getAdminToken(), comboId: comboId }) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
         alert("Đã xóa Combo!"); loadData();
@@ -981,7 +1034,7 @@
     
     async function saveProductChanges() {
       let pId = document.getElementById("edit-id").value;
-      let payload = { action: pId ? "updateProduct" : "createProduct", token: sessionStorage.getItem("adminToken"), productId: pId, name: document.getElementById("edit-name").value, originalPrice: document.getElementById("edit-orig-price").value, price: document.getElementById("edit-sell-price").value, images: currentEditImages.join('\n'), desc: document.getElementById("edit-desc").value, status: document.getElementById("edit-status").value, stock: parseInt(document.getElementById("edit-stock").value) || 0 };
+      let payload = { action: pId ? "updateProduct" : "createProduct", token: getAdminToken(), productId: pId, name: document.getElementById("edit-name").value, originalPrice: document.getElementById("edit-orig-price").value, price: document.getElementById("edit-sell-price").value, images: currentEditImages.join('\n'), desc: document.getElementById("edit-desc").value, status: document.getElementById("edit-status").value, stock: parseInt(document.getElementById("edit-stock").value) || 0 };
       
       if(!payload.name || payload.price === "") { alert("Thiếu Tên hoặc Giá!"); return; }
       showLoading(true); closeEditModal();

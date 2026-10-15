@@ -93,6 +93,16 @@ class TestDOMIntegrity(unittest.TestCase):
                 f"LỖI NGHIÊM TRỌNG: Trường cốt lõi '{label}' (id='{field_id}') bị thiếu trong index.html!"
             )
 
+    def test_post_video_field_exists(self):
+        """Kiểm tra: Ô nhập Link Video 'post-video' phải tồn tại trong modal bài viết admin.html"""
+        content = read_file('admin.html')
+        collector = IDCollector()
+        collector.feed(content)
+        self.assertIn(
+            'post-video', collector.ids,
+            "LỖI: Không tìm thấy ô nhập link video (id='post-video') trong admin.html!"
+        )
+
 
 class TestSyntaxAndParsing(unittest.TestCase):
     """Kiểm tra cú pháp JavaScript & HTML của toàn bộ dự án"""
@@ -192,9 +202,48 @@ class TestAPIConsistency(unittest.TestCase):
             "LỖI: STATUS_OPTIONS trong admin.html không khớp với Code.gs!"
         )
 
+    def test_session_duration_one_week(self):
+        """Kiểm tra: Thời gian hết hạn phiên đăng nhập admin phải được thiết lập là 7 ngày (1 tuần)"""
+        codegs = read_file('Code.gs')
+        admin = read_file('admin.html')
+
+        # Code.gs: SESSION_DURATION_SEC = 7 * 24 * 60 * 60 (hoặc 604800)
+        gs_m = re.search(r'const\s+SESSION_DURATION_SEC\s*=\s*([^;]+);', codegs)
+        self.assertTrue(bool(gs_m), "LỖI: Không tìm thấy SESSION_DURATION_SEC trong Code.gs")
+        sec_val = eval(gs_m.group(1).strip())
+        self.assertEqual(sec_val, 7 * 24 * 60 * 60, f"LỖI: SESSION_DURATION_SEC trong Code.gs không phải 7 ngày: {sec_val}")
+
+        # admin.html: SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000
+        adm_m = re.search(r'const\s+SESSION_DURATION_MS\s*=\s*([^;]+);', admin)
+        self.assertTrue(bool(adm_m), "LỖI: Không tìm thấy SESSION_DURATION_MS trong admin.html")
+        ms_val = eval(adm_m.group(1).strip())
+        self.assertEqual(ms_val, 7 * 24 * 60 * 60 * 1000, f"LỖI: SESSION_DURATION_MS trong admin.html không phải 7 ngày: {ms_val}")
+
 
 class TestBusinessLogic(unittest.TestCase):
     """Kiểm tra các thuật toán và logic cốt lõi"""
+
+    def test_admin_mobile_login_css(self):
+        """Kiểm tra: CSS trên Mobile phải đẩy khung login lên trên để tránh bị bàn phím ảo che lấp"""
+        admin = read_file('admin.html')
+        self.assertIn("justify-content: flex-start", admin, "LỖI: Thiếu justify-content: flex-start cho #login-overlay trên mobile")
+        self.assertIn("padding-top: 50px", admin, "LỖI: Thiếu padding-top: 50px cho #login-overlay trên mobile")
+
+    def test_youtube_id_extraction(self):
+        """Kiểm tra: Thuật toán nhận diện và trích xuất YouTube ID từ mọi dạng link người dùng nhập"""
+        yt_pattern = re.compile(r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})')
+        test_urls = {
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ": "dQw4w9WgXcQ",
+            "https://youtu.be/dQw4w9WgXcQ": "dQw4w9WgXcQ",
+            "https://www.youtube.com/shorts/dQw4w9WgXcQ": "dQw4w9WgXcQ",
+            "https://www.youtube.com/embed/dQw4w9WgXcQ": "dQw4w9WgXcQ",
+            "https://m.youtube.com/watch?v=dQw4w9WgXcQ&feature=share": "dQw4w9WgXcQ",
+            "http://youtube.com/watch?v=dQw4w9WgXcQ": "dQw4w9WgXcQ"
+        }
+        for url, expected_id in test_urls.items():
+            match = yt_pattern.search(url)
+            self.assertIsNotNone(match, f"Không nhận diện được link YouTube: {url}")
+            self.assertEqual(match.group(1), expected_id, f"ID YouTube trích xuất sai từ: {url}")
 
     def test_format_money_algorithm(self):
         """Kiểm tra thuật toán format tiền tệ 138000 -> 138.000đ"""
