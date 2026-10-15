@@ -289,6 +289,29 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('https://www.tiktok.com/player/v1/${tiktokId}?music_info=1&description=1', content,
                       "LỖI: TikTok embed phải sử dụng player/v1 chính thức!")
 
+        # 4. Google Drive: có class chuyên dụng post-gdrive-wrapper, hỗ trợ fullscreen & autoplay, có nút mở trực tiếp
+        self.assertIn('.post-gdrive-wrapper', content,
+                      "LỖI: index.html thiếu class .post-gdrive-wrapper để chống vỡ giao diện trên mobile!")
+        self.assertRegex(content, r'<iframe[^>]+src=[\'"]https://drive\.google\.com/file/d/\${gdriveId}/preview[\'"][^>]+allow=[\'"]autoplay;\s*encrypted-media;\s*fullscreen[\'"]',
+                         "LỖI: Google Drive iframe phải cấp quyền autoplay; encrypted-media; fullscreen!")
+        self.assertIn('Mở xem trên Google Drive', content,
+                      "LỖI: Thiếu nút bấm mở xem trực tiếp trên Google Drive!")
+
+    def test_gdrive_id_extraction(self):
+        """Kiểm tra: Thuật toán nhận diện và trích xuất Google Drive file ID từ mọi dạng link chia sẻ"""
+        gdrive_pattern = re.compile(r'(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=))([a-zA-Z0-9_-]+)')
+        test_urls = {
+            "https://drive.google.com/file/d/1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA/view?usp=sharing": "1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA",
+            "https://drive.google.com/file/d/1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA/view": "1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA",
+            "https://drive.google.com/file/d/1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA/preview": "1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA",
+            "https://drive.google.com/open?id=1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA": "1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA",
+            "https://drive.google.com/uc?id=1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA": "1ePv_ZKOLLjInM7Yz9Kj4ewQP59yzzJsA",
+        }
+        for url, expected_id in test_urls.items():
+            match = gdrive_pattern.search(url)
+            self.assertIsNotNone(match, f"Không nhận diện được link Google Drive: {url}")
+            self.assertEqual(match.group(1), expected_id, f"ID Google Drive trích xuất sai từ: {url}")
+
     def test_multiple_video_urls_split(self):
         """Kiểm tra: Xử lý nhiều URL video phân tách theo dòng"""
         raw_text = """

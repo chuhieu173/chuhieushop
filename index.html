@@ -112,6 +112,39 @@
       }
     }
 
+    /* VIDEO GOOGLE DRIVE EMBED (Tối ưu chống vỡ giao diện controls trên mobile) */
+    .post-gdrive-wrapper {
+      position: relative;
+      width: 100%;
+      padding-bottom: 60%;
+      height: 0;
+      min-height: 280px;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #000;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .post-gdrive-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    @media (max-width: 600px) {
+      .post-gdrive-wrapper {
+        min-height: 270px;
+        padding-bottom: 75%; /* Tăng chiều cao trên mobile để thanh công cụ của Google Drive không đè lên giao diện phát */
+      }
+    }
+    body.theme-dark .post-gdrive-link {
+      color: #66b3ff !important;
+      background: rgba(102, 179, 255, 0.12) !important;
+      border-color: rgba(102, 179, 255, 0.3) !important;
+    }
+
     .product-card { position: relative; background: #eef2f5; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; color: #333; transition: 0.3s;}
     .discount-badge { position: absolute; top: 10px; right: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 3px; z-index: 10;}
     
@@ -608,10 +641,27 @@
         return `<div style="margin: 10px auto; text-align: center;"><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:8px; background:#000; color:#fff; padding:10px 18px; border-radius:8px; font-weight:600; text-decoration:none; font-size:13.5px; box-shadow:0 2px 6px rgba(0,0,0,0.2);">🎵 Mở xem Video trên TikTok</a></div>`;
       }
 
-      // Google Drive Preview
-      const gdriveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+      // Google Drive Preview (hỗ trợ link /file/d/, open?id=, uc?id=)
+      const gdriveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=))([a-zA-Z0-9_-]+)/;
+      const gdriveMatch = url.match(gdriveRegex);
       if (gdriveMatch && gdriveMatch[1]) {
-        return `<div class="post-video-wrapper"><iframe src="https://drive.google.com/file/d/${gdriveMatch[1]}/preview" allow="autoplay" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`;
+        const gdriveId = gdriveMatch[1];
+        return `
+          <div class="post-gdrive-wrapper">
+            <iframe 
+              src="https://drive.google.com/file/d/${gdriveId}/preview" 
+              title="Google Drive video player" 
+              frameborder="0" 
+              allow="autoplay; encrypted-media; fullscreen" 
+              referrerpolicy="strict-origin-when-cross-origin" 
+              allowfullscreen>
+            </iframe>
+          </div>
+          <div style="text-align:center; margin-top:-2px; margin-bottom:14px;">
+            <a href="https://drive.google.com/file/d/${gdriveId}/view" target="_blank" rel="noopener noreferrer" class="post-gdrive-link" style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:#1a73e8; text-decoration:none; font-weight:600; padding:6px 14px; border-radius:6px; background:rgba(26,115,232,0.08); border:1px solid rgba(26,115,232,0.25); transition:0.2s;">
+              📁 Mở xem trên Google Drive
+            </a>
+          </div>`;
       }
 
       // File video trực tiếp (.mp4, .webm, .ogg)
