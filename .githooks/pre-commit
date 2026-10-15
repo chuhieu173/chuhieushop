@@ -1,0 +1,23 @@
+#!/bin/sh
+# Git Pre-commit Hook cho Chú Hiếu Shop
+# Tự động chạy bộ test kiểm tra toàn bộ project trước khi cho phép commit
+
+echo "================================================================="
+echo "🔍 Đang tự động kiểm tra chất lượng code (Pre-commit Hook)..."
+echo "================================================================="
+
+python3 test.py
+STATUS=$?
+
+if [ $STATUS -ne 0 ]; then
+  echo ""
+  echo "❌ PHÁT HIỆN LỖI! Commit đã bị chặn lại để tránh sót bug lên kho code."
+  echo "👉 Vui lòng xem thông báo lỗi chi tiết ở trên và khắc phục trước khi commit lại."
+  echo ""
+  exit 1
+fi
+
+echo ""
+echo "✅ Code hoàn hảo! Tiến hành commit..."
+echo ""
+exit 0
