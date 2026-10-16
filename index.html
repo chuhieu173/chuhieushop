@@ -246,6 +246,96 @@
       h1 { margin-top: 40px; font-size: 20px; } 
       #modal-caption { font-size: 12px; bottom: 70px; }
     }
+
+    /* GIAO DIỆN PHÂN LOẠI SẢN PHẨM (VARIANTS) TRÊN INDEX */
+    .variant-selector-wrapper {
+      margin: 8px 0 12px 0;
+      text-align: left;
+    }
+    .variant-selector-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    body.theme-dark .variant-selector-title {
+      color: #a0aec0;
+    }
+    .variant-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .variant-chip {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e0;
+      color: #2d3748;
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      user-select: none;
+    }
+    .variant-chip:hover {
+      border-color: #0068ff;
+      color: #0068ff;
+      background: #f0f7ff;
+    }
+    .variant-chip.active {
+      background: #ebf8ff;
+      border-color: #0068ff;
+      color: #0068ff;
+      font-weight: 700;
+      box-shadow: 0 0 0 1px #0068ff;
+    }
+    .variant-chip.out-of-stock {
+      opacity: 0.5;
+      text-decoration: line-through;
+      background: #edf2f7;
+    }
+    body.theme-dark .variant-chip {
+      background: #2a2a3e;
+      border-color: #4a5568;
+      color: #e2e8f0;
+    }
+    body.theme-dark .variant-chip:hover {
+      border-color: #66b3ff;
+      color: #66b3ff;
+      background: #32324a;
+    }
+    body.theme-dark .variant-chip.active {
+      background: #203354;
+      border-color: #66b3ff;
+      color: #66b3ff;
+      box-shadow: 0 0 0 1px #66b3ff;
+    }
+    body.theme-dark .variant-chip.out-of-stock {
+      background: #1e1e2d;
+      color: #718096;
+    }
+    .cart-variant-tag {
+      display: inline-block;
+      font-size: 11.5px;
+      color: #2b6cb0;
+      background: #ebf8ff;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-top: 3px;
+      font-weight: 600;
+      border: 1px solid #bee3f8;
+    }
+    body.theme-dark .cart-variant-tag {
+      background: #1a2a40;
+      color: #66b3ff;
+      border-color: #2c4a6f;
+    }
   </style>
   
   <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
@@ -357,6 +447,7 @@
     let productsData = [];
     let combosData = [];
     let postsData = []; // Khai báo mảng chứa Sơ đồ / Bài viết
+    let selectedVariants = {};
     let currentModalProductId = null;
     let currentModalImgIndex = 0;
     let globalShippingFee = 18000;
@@ -798,12 +889,51 @@
         let st = (p.status || "").toLowerCase();
         if (st === "ẩn" || st === "an" || st === "hết hàng" || st === "" || p.stock <= 0) return;
 
+        // Bổ sung ảnh biến thể vào danh sách ảnh sản phẩm (nếu chưa có)
+        if (p.variants && p.variants.length > 0) {
+          p.variants.forEach(v => {
+            if (v.image && !p.images.includes(v.image)) {
+              p.images.push(v.image);
+            }
+          });
+        }
+
+        // Khởi tạo biến thể được chọn mặc định (loại đầu tiên)
+        if (p.variants && p.variants.length > 0 && !selectedVariants[p.id]) {
+          selectedVariants[p.id] = p.variants[0].id;
+        }
+
+        let activeVar = (p.variants && p.variants.length > 0) ? (p.variants.find(v => String(v.id) === String(selectedVariants[p.id])) || p.variants[0]) : null;
+
+        let orig = activeVar ? (Number(activeVar.originalPrice) || 0) : (Number(p.originalPrice) || 0);
+        let curr = activeVar ? (Number(activeVar.price) || 0) : (Number(p.price) || 0);
+        let currentStock = activeVar ? (Number(activeVar.stock) || 0) : (Number(p.stock) || 0);
+        let isOos = currentStock <= 0;
+
         let badgeHtml = ''; let priceHtml = '';
-        let orig = Number(p.originalPrice) || 0; let curr = Number(p.price) || 0;
         if (orig > curr && curr > 0) {
           let percent = Math.round(((orig - curr) / orig) * 100); badgeHtml = `<div class="discount-badge">-${percent}%</div>`;
           priceHtml = `<div class="original-price">${formatMoney(orig)}</div><div class="current-price">${formatMoney(curr)}</div>`;
         } else { priceHtml = `<div class="original-price" style="visibility:hidden;">0đ</div><div class="current-price">${formatMoney(curr)}</div>`; }
+
+        let chipsHtml = '';
+        if (p.variants && p.variants.length > 0) {
+          chipsHtml = `
+            <div class="variant-selector-wrapper">
+              <div class="variant-selector-title">Phân loại:</div>
+              <div class="variant-chips" id="variant-chips-${p.id}">
+          `;
+          p.variants.forEach(v => {
+            let isAct = activeVar && String(v.id) === String(activeVar.id);
+            let varOos = (Number(v.stock) || 0) <= 0;
+            chipsHtml += `
+              <button type="button" class="variant-chip${isAct ? ' active' : ''}${varOos ? ' out-of-stock' : ''}" onclick="selectProductVariant('${p.id}', '${v.id}')">
+                ${escapeHtml(v.name)}
+              </button>
+            `;
+          });
+          chipsHtml += `</div></div>`;
+        }
 
         let totalImgs = p.images.length;
         let imagesHtml = ''; 
@@ -831,19 +961,24 @@
 
         let arrowsHtml = p.images.length > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${p.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${p.id}', 1)">&#10095;</button>` : '';
         
+        let addBtnStyle = isOos ? 'background:#a0aec0; cursor:not-allowed;' : '';
+        let addBtnText = isOos ? '❌ Hết hàng' : 'Thêm vào giỏ';
+        let addBtnDisabled = isOos ? 'disabled' : '';
+
         let card = document.createElement('div'); card.className = 'product-card';
         card.innerHTML = `
-          ${badgeHtml}
+          <div id="badge-wrap-${p.id}">${badgeHtml}</div>
           <div class="carousel"><div class="carousel-slides" id="slides-${p.id}">${imagesHtml}</div>${arrowsHtml}</div>
           <h3>${escapeHtml(p.name)}</h3>
           <p>${escapeHtml(p.desc)}</p>
-          <div class="price-container">${priceHtml}</div>
+          ${chipsHtml}
+          <div class="price-container" id="price-container-${p.id}">${priceHtml}</div>
           <div class="qty-wrapper">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', -1)">-</button>
             <input type="number" id="qty-${p.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${p.id}')">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', 1)">+</button>
           </div>
-          <button class="btn-primary" onclick="addToCart('${p.id}', false)">Thêm vào giỏ</button>
+          <button class="btn-primary" id="add-btn-${p.id}" style="${addBtnStyle}" ${addBtnDisabled} onclick="addToCart('${p.id}', false)">${addBtnText}</button>
         `;
         pList.appendChild(card);
       });
@@ -876,14 +1011,154 @@
       }, 100);
     }
 
+    function jumpCarouselToIndex(id, imgIdx, totalImgs) {
+      const c = document.getElementById(`slides-${id}`);
+      if (!c) return;
+      let targetIndex = (totalImgs > 1) ? (imgIdx + 1) : imgIdx;
+      c.style.scrollBehavior = 'smooth';
+      c.scrollLeft = targetIndex * c.clientWidth;
+    }
+
+    function selectProductVariant(prodId, variantId) {
+      selectedVariants[prodId] = variantId;
+      let p = productsData.find(x => String(x.id) === String(prodId));
+      if (!p || !p.variants) return;
+      let v = p.variants.find(x => String(x.id) === String(variantId)) || p.variants[0];
+      if (!v) return;
+
+      // Cập nhật trạng thái active cho các nút chips
+      let chipsContainer = document.getElementById(`variant-chips-${prodId}`);
+      if (chipsContainer) {
+        let buttons = chipsContainer.querySelectorAll('.variant-chip');
+        p.variants.forEach((itemVar, idx) => {
+          if (buttons[idx]) {
+            if (String(itemVar.id) === String(variantId)) buttons[idx].classList.add('active');
+            else buttons[idx].classList.remove('active');
+          }
+        });
+      }
+
+      // Cập nhật giá bán & huy hiệu giảm giá
+      let priceContainer = document.getElementById(`price-container-${prodId}`);
+      let badgeWrap = document.getElementById(`badge-wrap-${prodId}`);
+      let orig = Number(v.originalPrice) || 0;
+      let curr = Number(v.price) || 0;
+
+      if (priceContainer) {
+        let priceHtml = '';
+        if (orig > curr && curr > 0) {
+          priceHtml = `<div class="original-price">${formatMoney(orig)}</div><div class="current-price">${formatMoney(curr)}</div>`;
+        } else {
+          priceHtml = `<div class="original-price" style="visibility:hidden;">0đ</div><div class="current-price">${formatMoney(curr)}</div>`;
+        }
+        priceContainer.innerHTML = priceHtml;
+      }
+
+      if (badgeWrap) {
+        if (orig > curr && curr > 0) {
+          let percent = Math.round(((orig - curr) / orig) * 100);
+          badgeWrap.innerHTML = `<div class="discount-badge">-${percent}%</div>`;
+        } else {
+          badgeWrap.innerHTML = '';
+        }
+      }
+
+      // Cập nhật trạng thái nút Thêm vào giỏ
+      let addBtn = document.getElementById(`add-btn-${prodId}`);
+      let isOos = (Number(v.stock) || 0) <= 0;
+      if (addBtn) {
+        if (isOos) {
+          addBtn.innerText = "❌ Hết hàng";
+          addBtn.disabled = true;
+          addBtn.style.background = "#a0aec0";
+          addBtn.style.cursor = "not-allowed";
+        } else {
+          addBtn.innerText = "Thêm vào giỏ";
+          addBtn.disabled = false;
+          addBtn.style.background = "#0068ff";
+          addBtn.style.cursor = "pointer";
+        }
+      }
+
+      // Đổi ảnh Carousel sang ảnh của phân loại (nếu có)
+      if (v.image && p.images && p.images.length > 0) {
+        let imgIdx = p.images.indexOf(v.image);
+        if (imgIdx >= 0) {
+          jumpCarouselToIndex(prodId, imgIdx, p.images.length);
+        }
+      }
+    }
+
     function addToCart(id, isCombo) {
-      let product = (isCombo ? combosData : productsData).find(p => p.id === id);
+      if (isCombo) {
+        let product = combosData.find(p => p.id === id);
+        if (!product) return;
+        let qtyInput = document.getElementById('qty-' + id);
+        let qtyToAdd = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+        let item = cart.find(i => i.id === id && i.isCombo);
+        if (item) {
+          item.qty += qtyToAdd;
+        } else {
+          cart.push({ id, name: product.name, price: Number(product.price) || 0, qty: qtyToAdd, isCombo: true });
+        }
+        if (qtyInput) qtyInput.value = 1;
+        updateCart();
+        showToast(`Đã thêm ${qtyToAdd} x [ ${product.name} ] vào giỏ!`);
+        return;
+      }
+
+      let product = productsData.find(p => p.id === id);
       if (!product) return;
-      let qtyInput = document.getElementById('qty-' + id); let qtyToAdd = parseInt(qtyInput.value) || 1;
-      let item = cart.find(i => i.id === id);
-      if (item) { item.qty += qtyToAdd; } else { cart.push({ id, name: product.name, price: product.price, qty: qtyToAdd, isCombo: isCombo }); }
-      qtyInput.value = 1; updateCart();
-      showToast(`Đã thêm ${qtyToAdd} x [ ${product.name} ] vào giỏ!`);
+      let qtyInput = document.getElementById('qty-' + id);
+      let qtyToAdd = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+
+      if (product.variants && product.variants.length > 0) {
+        let currentVarId = selectedVariants[id] || product.variants[0].id;
+        let v = product.variants.find(x => String(x.id) === String(currentVarId)) || product.variants[0];
+        if (!v) return;
+
+        if ((Number(v.stock) || 0) <= 0) {
+          alert("Phân loại '" + v.name + "' hiện đã hết hàng!");
+          return;
+        }
+
+        let existing = cart.find(i => i.id === id && String(i.variantId) === String(v.id) && !i.isCombo);
+        if (existing) {
+          existing.qty += qtyToAdd;
+        } else {
+          cart.push({
+            id: id,
+            name: product.name,
+            variantId: v.id,
+            variantName: v.name,
+            price: Number(v.price) || 0,
+            qty: qtyToAdd,
+            image: v.image || (product.images && product.images[0]) || "",
+            isCombo: false
+          });
+        }
+
+        if (qtyInput) qtyInput.value = 1;
+        updateCart();
+        showToast(`Đã thêm ${qtyToAdd} x [ ${product.name} (${v.name}) ] vào giỏ!`);
+      } else {
+        let existing = cart.find(i => i.id === id && !i.variantId && !i.isCombo);
+        if (existing) {
+          existing.qty += qtyToAdd;
+        } else {
+          cart.push({
+            id: id,
+            name: product.name,
+            price: Number(product.price) || 0,
+            qty: qtyToAdd,
+            isCombo: false
+          });
+        }
+
+        if (qtyInput) qtyInput.value = 1;
+        updateCart();
+        showToast(`Đã thêm ${qtyToAdd} x [ ${product.name} ] vào giỏ!`);
+      }
     }
 
     function changeCartQty(index, delta) { cart[index].qty += delta; if (cart[index].qty < 1) cart[index].qty = 1; updateCart(); }
@@ -904,10 +1179,12 @@
       cart.forEach((item, index) => {
         let itemTotal = item.price * item.qty; total += itemTotal; totalQty += item.qty;
         let prefix = item.isCombo ? `<span style="color:#e53e3e; font-weight:bold;">[COMBO]</span> ` : '';
+        let variantTag = item.variantName ? `<div class="cart-variant-tag">Phân loại: ${escapeHtml(item.variantName)}</div>` : '';
         cartDiv.innerHTML += `
           <div class="cart-item">
             <div style="flex: 1; padding-right: 10px;">
               <b style="font-size: 14px; line-height: 1.4;">${prefix}${escapeHtml(item.name)}</b>
+              ${variantTag}
               <div class="cart-qty-wrapper">
                 <button class="qty-btn small" onclick="changeCartQty(${index}, -1)">-</button>
                 <input type="number" class="qty-input small" value="${item.qty}" min="1" onchange="setCartQty(${index}, this.value)">
@@ -964,7 +1241,8 @@
       let total = 0; let itemsForSheet = [];
       cart.forEach((item, index) => {
         let prefix = item.isCombo ? "[COMBO] " : "";
-        orderText += `${index + 1}. ${prefix}${item.name}\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n`; 
+        let varText = item.variantName ? ` [Phân loại: ${item.variantName}]` : "";
+        orderText += `${index + 1}. ${prefix}${item.name}${varText}\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n`; 
         
         if (item.isCombo) {
           let comboDetail = combosData.find(c => c.id === item.id);
@@ -976,7 +1254,7 @@
         }
         orderText += `\n`;
 
-        itemsForSheet.push(`- ${prefix}${item.name} (x${item.qty})`);
+        itemsForSheet.push(`- ${prefix}${item.name}${varText} (x${item.qty})`);
         total += (item.price * item.qty);
       });
       let finalTotal = total + globalShippingFee;

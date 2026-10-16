@@ -372,6 +372,150 @@
       .btn-update { padding: 10px; font-size: 14px;}
       .edit-content { padding: 20px; }
     }
+
+    /* GIAO DIỆN PHÂN LOẠI SẢN PHẨM (VARIANTS) */
+    .variant-section-card {
+      background: #f8fafc;
+      border: 1.5px dashed #cbd5e0;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 15px;
+    }
+    .variant-toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      color: #2b6cb0;
+      user-select: none;
+    }
+    .variant-toggle-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .variant-row {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: relative;
+    }
+    .variant-row-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .variant-row-title {
+      font-weight: 600;
+      font-size: 13px;
+      color: #4a5568;
+    }
+    .variant-btn-delete {
+      background: #fed7d7;
+      color: #e53e3e;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .variant-btn-delete:hover {
+      background: #feb2b2;
+    }
+    .variant-fields-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 600px) {
+      .variant-fields-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .variant-field-item label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #718096;
+      margin-bottom: 4px;
+    }
+    .variant-field-item input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 5px;
+      font-size: 13px;
+      box-sizing: border-box;
+      outline: none;
+    }
+    .variant-field-item input:focus {
+      border-color: #0068ff;
+    }
+    .variant-image-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 6px;
+      border-top: 1px dashed #edf2f7;
+    }
+    .variant-thumb {
+      width: 38px;
+      height: 38px;
+      border-radius: 4px;
+      object-fit: cover;
+      border: 1px solid #cbd5e0;
+      background: #edf2f7;
+    }
+    .variant-img-btn {
+      background: #edf2f7;
+      color: #4a5568;
+      border: 1px solid #cbd5e0;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .variant-img-btn:hover {
+      background: #e2e8f0;
+    }
+    .btn-add-variant {
+      width: 100%;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      border: 1px dashed #63b3ed;
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 6px;
+    }
+    .btn-add-variant:hover {
+      background: #bee3f8;
+    }
+    .variant-badge {
+      display: inline-block;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #bee3f8;
+      margin-left: 4px;
+    }
   </style>
 </head>
 <body>
@@ -496,6 +640,25 @@
         <div class="form-group" style="flex:1;"><label>Giá Bán (VNĐ):</label><input type="number" id="edit-sell-price"></div>
       </div>
       
+      <!-- CẤU HÌNH PHÂN LOẠI SẢN PHẨM -->
+      <div class="variant-section-card">
+        <label class="variant-toggle-label">
+          <input type="checkbox" id="edit-has-variants" onchange="toggleVariantsSection(this.checked)">
+          <span>🏷️ Bật phân loại hàng (nhiều loại, giá & kho riêng)</span>
+        </label>
+        
+        <div id="variants-config-box" style="display: none; margin-top: 12px;">
+          <div style="font-size: 12px; color: #4a5568; margin-bottom: 10px; background: #ebf8ff; padding: 8px 10px; border-radius: 5px; border-left: 3px solid #3182ce;">
+            💡 <b>Gợi ý:</b> Khi bật phân loại, hãy điền tên từng loại (VD: <i>OLED 0.96 inch</i>), giá bán và tồn kho riêng. Giá hiển thị và tổng tồn kho của sản phẩm sẽ được tự động tính toán từ các phân loại này.
+          </div>
+          <div id="variants-list-container">
+            <!-- Danh sách từng dòng phân loại -->
+          </div>
+          <button type="button" class="btn-add-variant" onclick="addNewVariantRow()">+ Thêm phân loại mới</button>
+          <input type="file" id="variant-file-input" accept="image/*" style="display: none;" onchange="handleVariantFileUpload(this)">
+        </div>
+      </div>
+      
       <div class="form-group">
         <label>Hình Ảnh Sản Phẩm:</label>
         <div id="image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 40px;"></div>
@@ -609,6 +772,8 @@
     let currentComboItems = []; 
     let currentComboEditImages = [];
     let currentPostEditImages = []; 
+    let currentProductVariants = [];
+    let uploadingVariantIndex = -1;
 
     function togglePassword() { let p = document.getElementById("admin-pass"); p.type = p.type === "password" ? "text" : "password"; }
     async function sha256(msg) {
@@ -856,19 +1021,41 @@
     function renderInventory(products) {
       const tbody = document.getElementById('inventory-body'); tbody.innerHTML = "";
       products.forEach(p => {
+        let hasVars = p.variants && p.variants.length > 0;
+        let variantBadge = hasVars ? `<span class="variant-badge">🏷️ ${p.variants.length} loại</span>` : '';
         let stockHtml = p.stock <= 2 ? `<span class="stock-warning">${p.stock} (Sắp hết)</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${p.stock}</span>`;
+        if (hasVars) {
+          stockHtml += `<div style="font-size:11.5px; color:#718096; margin-top:2px;">(${p.variants.length} phân loại)</div>`;
+        }
         let firstImg = p.images && p.images.length > 0 ? p.images[0] : "";
         let st = (p.status || "").toLowerCase();
         let statusLabel = st === "ẩn" || st === "an" ? `<span style="color:#d69e2e; font-size:12px; border:1px solid #d69e2e; padding:2px 4px; border-radius:4px;">👻 Đang Ẩn</span>` : (st === "hết hàng" ? `<span style="color:#e53e3e; font-size:12px; border:1px solid #e53e3e; padding:2px 4px; border-radius:4px;">❌ Hết Hàng</span>` : `<span style="color:#38a169; font-size:12px; border:1px solid #38a169; padding:2px 4px; border-radius:4px;">👀 Đang bán</span>`);
+
+        let priceHtml = "";
+        if (hasVars) {
+          let prices = p.variants.map(v => Number(v.price) || 0).filter(pr => pr > 0);
+          if (prices.length > 0) {
+            let minP = Math.min(...prices);
+            let maxP = Math.max(...prices);
+            priceHtml = minP === maxP ? formatMoney(minP) : `${formatMoney(minP)} - ${formatMoney(maxP)}`;
+          } else {
+            priceHtml = formatMoney(p.price);
+          }
+        } else {
+          priceHtml = formatMoney(p.price);
+        }
 
         tbody.innerHTML += `<tr>
             <td data-label="ID" style="color:#718096; font-size: 13px;">${escapeHtml(p.id)}</td>
             <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Sản phẩm">
-              <b style="font-size:15px;">${escapeHtml(p.name)}</b>
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <b style="font-size:15px;">${escapeHtml(p.name)}</b>
+                ${variantBadge}
+              </div>
               <div style="margin-top:6px;">${statusLabel}</div>
             </td>
-            <td data-label="Giá bán"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(p.price)}</div></td>
+            <td data-label="Giá bán"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${priceHtml}</div></td>
             <td data-label="Tồn kho">${stockHtml}</td>
             <td data-label="Thao tác"><button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button></td>
           </tr>`;
@@ -1103,55 +1290,89 @@
       }
 
       globalProductsData.forEach(p => {
-        let existing = currentComboItems.find(i => String(i.id) === String(p.id));
-        let isSelected = Boolean(existing);
-        let qty = existing ? (parseInt(existing.qty) || 1) : 1;
-        let firstImg = (p.images && p.images.length > 0) ? p.images[0] : "https://via.placeholder.com/80?text=SP";
+        let hasVars = p.variants && p.variants.length > 0;
+        let itemsToRender = [];
+        if (hasVars) {
+          p.variants.forEach(v => {
+            itemsToRender.push({
+              key: `${p.id}_${v.id}`,
+              prodId: p.id,
+              variantId: v.id,
+              name: `${p.name} - ${v.name}`,
+              price: v.price,
+              stock: v.stock,
+              image: v.image || (p.images && p.images[0]) || "https://via.placeholder.com/80?text=SP",
+              isVariant: true
+            });
+          });
+        } else {
+          itemsToRender.push({
+            key: `${p.id}`,
+            prodId: p.id,
+            variantId: '',
+            name: p.name,
+            price: p.price,
+            stock: p.stock,
+            image: (p.images && p.images[0]) || "https://via.placeholder.com/80?text=SP",
+            isVariant: false
+          });
+        }
+
         let st = (p.status || "").toLowerCase();
         let hiddenBadge = (st === "ẩn" || st === "an") ? '<span style="color:#d69e2e; font-size:11px; margin-left:4px;">(Ẩn)</span>' : '';
 
-        let row = document.createElement("div");
-        row.className = "combo-product-item" + (isSelected ? " selected" : "");
-        row.id = `combo-row-${p.id}`;
-        row.dataset.prodId = p.id;
-        row.dataset.prodName = (p.name || "").toLowerCase();
+        itemsToRender.forEach(item => {
+          let existing = currentComboItems.find(i => String(i.id) === String(item.prodId) && String(i.variantId || '') === String(item.variantId || ''));
+          let isSelected = Boolean(existing);
+          let qty = existing ? (parseInt(existing.qty) || 1) : 1;
+          let variantTag = item.isVariant ? '<span style="display:inline-block; font-size:11px; color:#2b6cb0; background:#ebf8ff; padding:1px 5px; border-radius:3px; margin-left:4px;">🏷️ Phân loại</span>' : '';
 
-        row.innerHTML = `
-          <div class="combo-item-left">
-            <input type="checkbox" class="combo-item-checkbox" id="combo-chk-${p.id}" ${isSelected ? "checked" : ""} onchange="onComboItemCheck('${p.id}', this.checked)">
-            <img src="${escapeHtml(firstImg)}" class="combo-item-thumb" alt="${escapeHtml(p.name)}" onclick="toggleComboProductClick('${p.id}')">
-            <div class="combo-item-details" onclick="toggleComboProductClick('${p.id}')" style="cursor:pointer;">
-              <div class="combo-item-title">${escapeHtml(p.name)}${hiddenBadge}</div>
-              <div class="combo-item-sub">
-                <span style="color:#e53e3e; font-weight:600;">${formatMoney(p.price)}</span>
-                <span style="margin: 0 4px; color:#cbd5e0;">|</span>
-                <span>Kho: <b style="color:${p.stock <= 2 ? '#e53e3e' : '#2f855a'};">${p.stock}</b></span>
+          let row = document.createElement("div");
+          row.className = "combo-product-item" + (isSelected ? " selected" : "");
+          row.id = `combo-row-${item.key}`;
+          row.dataset.prodId = item.prodId;
+          row.dataset.variantId = item.variantId;
+          row.dataset.prodName = (item.name || "").toLowerCase();
+
+          row.innerHTML = `
+            <div class="combo-item-left">
+              <input type="checkbox" class="combo-item-checkbox" id="combo-chk-${item.key}" ${isSelected ? "checked" : ""} onchange="onComboItemCheck('${item.prodId}', this.checked, '${item.variantId}')">
+              <img src="${escapeHtml(item.image)}" class="combo-item-thumb" alt="${escapeHtml(item.name)}" onclick="toggleComboProductClick('${item.prodId}', '${item.variantId}')">
+              <div class="combo-item-details" onclick="toggleComboProductClick('${item.prodId}', '${item.variantId}')" style="cursor:pointer;">
+                <div class="combo-item-title">${escapeHtml(item.name)}${variantTag}${hiddenBadge}</div>
+                <div class="combo-item-sub">
+                  <span style="color:#e53e3e; font-weight:600;">${formatMoney(item.price)}</span>
+                  <span style="margin: 0 4px; color:#cbd5e0;">|</span>
+                  <span>Kho: <b style="color:${item.stock <= 2 ? '#e53e3e' : '#2f855a'};">${item.stock}</b></span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="combo-qty-stepper">
-            <button type="button" class="combo-qty-btn" title="Giảm số lượng" onclick="stepComboQty('${p.id}', -1)">-</button>
-            <input type="number" id="combo-qty-${p.id}" class="combo-qty-input" value="${qty}" min="1" max="999" onchange="onComboQtyInputChange('${p.id}', this.value)">
-            <button type="button" class="combo-qty-btn" title="Tăng số lượng (Bấm + để tăng thành 2, 3...)" onclick="stepComboQty('${p.id}', 1)">+</button>
-          </div>
-        `;
-        container.appendChild(row);
+            <div class="combo-qty-stepper">
+              <button type="button" class="combo-qty-btn" title="Giảm số lượng" onclick="stepComboQty('${item.prodId}', -1, '${item.variantId}')">-</button>
+              <input type="number" id="combo-qty-${item.key}" class="combo-qty-input" value="${qty}" min="1" max="999" onchange="onComboQtyInputChange('${item.prodId}', this.value, '${item.variantId}')">
+              <button type="button" class="combo-qty-btn" title="Tăng số lượng (Bấm + để tăng thành 2, 3...)" onclick="stepComboQty('${item.prodId}', 1, '${item.variantId}')">+</button>
+            </div>
+          `;
+          container.appendChild(row);
+        });
       });
 
       updateComboSummary();
     }
 
-    function toggleComboProductClick(prodId) {
-      let chk = document.getElementById(`combo-chk-${prodId}`);
+    function toggleComboProductClick(prodId, variantId = '') {
+      let key = variantId ? `${prodId}_${variantId}` : prodId;
+      let chk = document.getElementById(`combo-chk-${key}`);
       if (chk) {
         chk.checked = !chk.checked;
-        onComboItemCheck(prodId, chk.checked);
+        onComboItemCheck(prodId, chk.checked, variantId);
       }
     }
 
-    function onComboItemCheck(prodId, isChecked) {
-      let existingIndex = currentComboItems.findIndex(i => String(i.id) === String(prodId));
-      let qtyInput = document.getElementById(`combo-qty-${prodId}`);
+    function onComboItemCheck(prodId, isChecked, variantId = '') {
+      let key = variantId ? `${prodId}_${variantId}` : prodId;
+      let existingIndex = currentComboItems.findIndex(i => String(i.id) === String(prodId) && String(i.variantId || '') === String(variantId || ''));
+      let qtyInput = document.getElementById(`combo-qty-${key}`);
       let qty = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
       if (qty < 1) qty = 1;
 
@@ -1159,7 +1380,7 @@
         if (existingIndex >= 0) {
           currentComboItems[existingIndex].qty = qty;
         } else {
-          currentComboItems.push({ id: prodId, qty: qty });
+          currentComboItems.push({ id: prodId, variantId: variantId || '', qty: qty });
         }
       } else {
         if (existingIndex >= 0) {
@@ -1167,7 +1388,7 @@
         }
       }
 
-      let row = document.getElementById(`combo-row-${prodId}`);
+      let row = document.getElementById(`combo-row-${key}`);
       if (row) {
         if (isChecked) row.classList.add("selected");
         else row.classList.remove("selected");
@@ -1176,15 +1397,16 @@
       updateComboSummary();
     }
 
-    function stepComboQty(prodId, delta) {
-      let qtyInput = document.getElementById(`combo-qty-${prodId}`);
-      let chk = document.getElementById(`combo-chk-${prodId}`);
+    function stepComboQty(prodId, delta, variantId = '') {
+      let key = variantId ? `${prodId}_${variantId}` : prodId;
+      let qtyInput = document.getElementById(`combo-qty-${key}`);
+      let chk = document.getElementById(`combo-chk-${key}`);
       let curVal = parseInt(qtyInput ? qtyInput.value : "1") || 1;
-      let existingIndex = currentComboItems.findIndex(i => String(i.id) === String(prodId));
+      let existingIndex = currentComboItems.findIndex(i => String(i.id) === String(prodId) && String(i.variantId || '') === String(variantId || ''));
 
       if (delta > 0 && (!chk || !chk.checked)) {
         if (chk) chk.checked = true;
-        let row = document.getElementById(`combo-row-${prodId}`);
+        let row = document.getElementById(`combo-row-${key}`);
         if (row) row.classList.add("selected");
 
         if (existingIndex >= 0) {
@@ -1192,7 +1414,7 @@
           currentComboItems[existingIndex].qty = curVal;
         } else {
           curVal = 1;
-          currentComboItems.push({ id: prodId, qty: curVal });
+          currentComboItems.push({ id: prodId, variantId: variantId || '', qty: curVal });
         }
         if (qtyInput) qtyInput.value = curVal;
         updateComboSummary();
@@ -1202,7 +1424,7 @@
       let newVal = curVal + delta;
       if (newVal < 1) {
         if (chk) chk.checked = false;
-        let row = document.getElementById(`combo-row-${prodId}`);
+        let row = document.getElementById(`combo-row-${key}`);
         if (row) row.classList.remove("selected");
         if (existingIndex >= 0) currentComboItems.splice(existingIndex, 1);
         if (qtyInput) qtyInput.value = 1;
@@ -1212,13 +1434,13 @@
 
       if (qtyInput) qtyInput.value = newVal;
       if (chk) chk.checked = true;
-      let row = document.getElementById(`combo-row-${prodId}`);
+      let row = document.getElementById(`combo-row-${key}`);
       if (row) row.classList.add("selected");
 
       if (existingIndex >= 0) {
         currentComboItems[existingIndex].qty = newVal;
       } else {
-        currentComboItems.push({ id: prodId, qty: newVal });
+        currentComboItems.push({ id: prodId, variantId: variantId || '', qty: newVal });
       }
 
       updateComboSummary();
@@ -1227,35 +1449,42 @@
     function toggleSelectAllComboProducts(isChecked) {
       currentComboItems = [];
       globalProductsData.forEach(p => {
-        let chk = document.getElementById(`combo-chk-${p.id}`);
-        let qtyInput = document.getElementById(`combo-qty-${p.id}`);
-        let row = document.getElementById(`combo-row-${p.id}`);
-        let qty = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
-        if (qty < 1) qty = 1;
+        let hasVars = p.variants && p.variants.length > 0;
+        let itemsToToggle = hasVars ? p.variants.map(v => ({ variantId: v.id })) : [{ variantId: '' }];
+        itemsToToggle.forEach(item => {
+          let vId = item.variantId;
+          let key = vId ? `${p.id}_${vId}` : p.id;
+          let chk = document.getElementById(`combo-chk-${key}`);
+          let qtyInput = document.getElementById(`combo-qty-${key}`);
+          let row = document.getElementById(`combo-row-${key}`);
+          let qty = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+          if (qty < 1) qty = 1;
 
-        if (chk) chk.checked = isChecked;
-        if (row) {
-          if (isChecked) row.classList.add("selected");
-          else row.classList.remove("selected");
-        }
+          if (chk) chk.checked = isChecked;
+          if (row) {
+            if (isChecked) row.classList.add("selected");
+            else row.classList.remove("selected");
+          }
 
-        if (isChecked) {
-          currentComboItems.push({ id: p.id, qty: qty });
-        }
+          if (isChecked) {
+            currentComboItems.push({ id: p.id, variantId: vId || '', qty: qty });
+          }
+        });
       });
 
       updateComboSummary();
     }
 
-    function onComboQtyInputChange(prodId, val) {
+    function onComboQtyInputChange(prodId, val, variantId = '') {
+      let key = variantId ? `${prodId}_${variantId}` : prodId;
       let qty = parseInt(val);
-      let chk = document.getElementById(`combo-chk-${prodId}`);
-      let row = document.getElementById(`combo-row-${prodId}`);
-      let existingIndex = currentComboItems.findIndex(i => String(i.id) === String(prodId));
+      let chk = document.getElementById(`combo-chk-${key}`);
+      let row = document.getElementById(`combo-row-${key}`);
+      let existingIndex = currentComboItems.findIndex(i => String(i.id) === String(prodId) && String(i.variantId || '') === String(variantId || ''));
 
       if (isNaN(qty) || qty < 1) {
         qty = 1;
-        let qtyInput = document.getElementById(`combo-qty-${prodId}`);
+        let qtyInput = document.getElementById(`combo-qty-${key}`);
         if (qtyInput) qtyInput.value = 1;
         if (chk) chk.checked = false;
         if (row) row.classList.remove("selected");
@@ -1266,7 +1495,7 @@
         if (existingIndex >= 0) {
           currentComboItems[existingIndex].qty = qty;
         } else {
-          currentComboItems.push({ id: prodId, qty: qty });
+          currentComboItems.push({ id: prodId, variantId: variantId || '', qty: qty });
         }
       }
 
@@ -1279,7 +1508,8 @@
       rows.forEach(r => {
         let name = r.dataset.prodName || "";
         let id = (r.dataset.prodId || "").toLowerCase();
-        if (!term || name.includes(term) || id.includes(term)) {
+        let vid = (r.dataset.variantId || "").toLowerCase();
+        if (!term || name.includes(term) || id.includes(term) || vid.includes(term)) {
           r.style.display = "flex";
         } else {
           r.style.display = "none";
@@ -1291,7 +1521,12 @@
       let totalPrice = 0;
       let maxStock = Infinity;
       let selectedCount = currentComboItems.length;
-      let totalCount = globalProductsData ? globalProductsData.length : 0;
+      let totalCount = 0;
+
+      globalProductsData.forEach(p => {
+        if (p.variants && p.variants.length > 0) totalCount += p.variants.length;
+        else totalCount += 1;
+      });
 
       if (selectedCount === 0) {
         maxStock = 0;
@@ -1299,8 +1534,17 @@
         currentComboItems.forEach(it => {
           let p = globalProductsData.find(prod => String(prod.id) === String(it.id));
           if (p) {
-            totalPrice += (Number(p.price) || 0) * it.qty;
-            let possible = Math.floor((Number(p.stock) || 0) / it.qty);
+            let itemPrice = Number(p.price) || 0;
+            let itemStock = Number(p.stock) || 0;
+            if (it.variantId && p.variants && p.variants.length > 0) {
+              let v = p.variants.find(x => String(x.id) === String(it.variantId));
+              if (v) {
+                itemPrice = Number(v.price) || 0;
+                itemStock = Number(v.stock) || 0;
+              }
+            }
+            totalPrice += itemPrice * it.qty;
+            let possible = Math.floor(itemStock / it.qty);
             if (possible < maxStock) maxStock = possible;
           }
         });
@@ -1377,6 +1621,192 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
+    // === CÁC HÀM XỬ LÝ PHÂN LOẠI SẢN PHẨM (VARIANTS) ===
+    function toggleVariantsSection(checked) {
+      const box = document.getElementById('variants-config-box');
+      if (box) box.style.display = checked ? 'block' : 'none';
+      const sellPriceInput = document.getElementById('edit-sell-price');
+      const stockInput = document.getElementById('edit-stock');
+
+      if (checked) {
+        if (currentProductVariants.length === 0) {
+          addNewVariantRow();
+        } else {
+          recalculateVariantTotals();
+        }
+        if (sellPriceInput) sellPriceInput.placeholder = "Tự động tính từ phân loại";
+        if (stockInput) stockInput.placeholder = "Tự động tính từ phân loại";
+      } else {
+        if (sellPriceInput) sellPriceInput.placeholder = "";
+        if (stockInput) stockInput.placeholder = "";
+      }
+    }
+
+    function addNewVariantRow(initialData = null) {
+      let defaultPrice = document.getElementById('edit-sell-price').value || '';
+      let defaultOrig = document.getElementById('edit-orig-price').value || '';
+      let newVar = initialData || {
+        id: 'var_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        name: '',
+        price: defaultPrice,
+        originalPrice: defaultOrig,
+        stock: 10,
+        image: ''
+      };
+      currentProductVariants.push(newVar);
+      renderVariantEditRows();
+      recalculateVariantTotals();
+    }
+
+    function removeVariantRow(idx) {
+      if (currentProductVariants.length <= 1) {
+        if (confirm("Xóa phân loại cuối cùng sẽ tắt chế độ phân loại cho sản phẩm này?")) {
+          currentProductVariants = [];
+          document.getElementById('edit-has-variants').checked = false;
+          toggleVariantsSection(false);
+        }
+        return;
+      }
+      currentProductVariants.splice(idx, 1);
+      renderVariantEditRows();
+      recalculateVariantTotals();
+    }
+
+    function updateVariantField(idx, field, val) {
+      if (currentProductVariants[idx]) {
+        currentProductVariants[idx][field] = val;
+        if (field === 'price' || field === 'stock') {
+          recalculateVariantTotals();
+        }
+      }
+    }
+
+    function recalculateVariantTotals() {
+      const chk = document.getElementById('edit-has-variants');
+      if (!chk || !chk.checked) return;
+      if (currentProductVariants.length === 0) return;
+
+      let prices = currentProductVariants.map(v => parseInt(v.price) || 0).filter(p => p > 0);
+      let minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      let totalStock = currentProductVariants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0);
+
+      if (minPrice > 0) {
+        document.getElementById('edit-sell-price').value = minPrice;
+      }
+      document.getElementById('edit-stock').value = totalStock;
+    }
+
+    function renderVariantEditRows() {
+      const container = document.getElementById('variants-list-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (currentProductVariants.length === 0) {
+        container.innerHTML = '<div style="color:#a0aec0; font-size:12px; text-align:center; padding:10px;">Chưa có phân loại nào. Hãy bấm "+ Thêm phân loại mới".</div>';
+        return;
+      }
+
+      currentProductVariants.forEach((v, idx) => {
+        let row = document.createElement('div');
+        row.className = 'variant-row';
+
+        let imgThumb = v.image ? `<img src="${escapeHtml(v.image)}" class="variant-thumb" alt="Ảnh loại">` : `<div class="variant-thumb" style="display:flex;align-items:center;justify-content:center;font-size:11px;color:#a0aec0;">Chưa có</div>`;
+        let removeImgBtn = v.image ? `<button type="button" class="variant-img-btn" style="color:#e53e3e;" onclick="removeVariantImage(${idx})">✕ Xóa ảnh</button>` : '';
+
+        row.innerHTML = `
+          <div class="variant-row-header">
+            <span class="variant-row-title">🏷️ Phân loại #${idx + 1}</span>
+            <button type="button" class="variant-btn-delete" onclick="removeVariantRow(${idx})">✕ Xóa loại này</button>
+          </div>
+          <div class="variant-fields-grid">
+            <div class="variant-field-item">
+              <label>Tên phân loại (*):</label>
+              <input type="text" value="${escapeHtml(v.name || '')}" placeholder="VD: OLED 0.96 inch" oninput="updateVariantField(${idx}, 'name', this.value)">
+            </div>
+            <div class="variant-field-item">
+              <label>Giá bán (VNĐ) (*):</label>
+              <input type="number" value="${v.price || ''}" placeholder="45000" oninput="updateVariantField(${idx}, 'price', this.value)">
+            </div>
+            <div class="variant-field-item">
+              <label>Giá gốc (VNĐ):</label>
+              <input type="number" value="${v.originalPrice || ''}" placeholder="60000" oninput="updateVariantField(${idx}, 'originalPrice', this.value)">
+            </div>
+            <div class="variant-field-item">
+              <label>Tồn kho riêng (*):</label>
+              <input type="number" value="${v.stock !== undefined ? v.stock : 10}" placeholder="10" oninput="updateVariantField(${idx}, 'stock', this.value)">
+            </div>
+          </div>
+          <div class="variant-image-bar">
+            ${imgThumb}
+            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+              <button type="button" class="variant-img-btn" onclick="triggerUploadVariantImage(${idx})">📸 Tải ảnh</button>
+              <button type="button" class="variant-img-btn" onclick="promptManualVariantImage(${idx})">🔗 Link ảnh</button>
+              ${removeImgBtn}
+            </div>
+            <span style="font-size:11px; color:#718096; margin-left:auto;">(Khách chọn loại sẽ đổi sang ảnh này)</span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function triggerUploadVariantImage(idx) {
+      uploadingVariantIndex = idx;
+      let input = document.getElementById('variant-file-input');
+      if (input) input.click();
+    }
+
+    async function handleVariantFileUpload(input) {
+      const file = (input.files || [])[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/") || file.size > 20*1024*1024) {
+        alert("File ảnh không hợp lệ hoặc quá lớn (>20MB)!");
+        input.value = "";
+        return;
+      }
+      showLoading(true);
+      try {
+        const b64 = await resizeImageToBase64(file, 1600, 0.85);
+        const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "uploadImage", token: getAdminToken(), imageBase64: b64 }) });
+        const data = await res.json();
+        if (data.status === "success" && data.url) {
+          if (uploadingVariantIndex >= 0 && currentProductVariants[uploadingVariantIndex]) {
+            currentProductVariants[uploadingVariantIndex].image = data.url;
+            renderVariantEditRows();
+          }
+        } else if (data.code === "AUTH") {
+          logout();
+          return;
+        } else {
+          alert(data.msg || "Lỗi tải ảnh!");
+        }
+      } catch (e) {
+        alert("Lỗi khi tải ảnh phân loại!");
+      }
+      input.value = "";
+      showLoading(false);
+    }
+
+    function promptManualVariantImage(idx) {
+      let url = (prompt("Nhập link ảnh cho phân loại này (bắt đầu bằng https://):") || "").trim();
+      if (!url) return;
+      if (!/^https:\/\//.test(url) || /[\s"'<>]/.test(url)) {
+        alert("Link không hợp lệ. Chỉ chấp nhận https://");
+        return;
+      }
+      if (currentProductVariants[idx]) {
+        currentProductVariants[idx].image = url;
+        renderVariantEditRows();
+      }
+    }
+
+    function removeVariantImage(idx) {
+      if (currentProductVariants[idx]) {
+        currentProductVariants[idx].image = "";
+        renderVariantEditRows();
+      }
+    }
+
     function openEditModal(pId = null) {
       if (pId) {
         let p = globalProductsData.find(x => x.id.toString() === pId.toString()); if (!p) return;
@@ -1391,6 +1821,18 @@
         let st = (p.status || "").toLowerCase();
         document.getElementById("edit-status").value = (st === "ẩn" || st === "an") ? "ẩn" : (st === "hết hàng" ? "hết hàng" : "còn hàng");
         currentEditImages = p.rawImages.split('\n').map(i => i.trim()).filter(i => i !== ""); 
+
+        if (p.variants && p.variants.length > 0) {
+          currentProductVariants = JSON.parse(JSON.stringify(p.variants));
+          document.getElementById('edit-has-variants').checked = true;
+          document.getElementById('variants-config-box').style.display = 'block';
+          renderVariantEditRows();
+        } else {
+          currentProductVariants = [];
+          document.getElementById('edit-has-variants').checked = false;
+          document.getElementById('variants-config-box').style.display = 'none';
+          renderVariantEditRows();
+        }
       } else {
         document.getElementById("edit-modal-title").innerText = "Tạo Sản Phẩm Mới";
         document.getElementById("edit-id").value = ""; 
@@ -1401,6 +1843,10 @@
         document.getElementById("edit-stock").value = "0";
         document.getElementById("edit-status").value = "còn hàng";
         currentEditImages = []; 
+        currentProductVariants = [];
+        document.getElementById('edit-has-variants').checked = false;
+        document.getElementById('variants-config-box').style.display = 'none';
+        renderVariantEditRows();
       }
       renderImagePreviews('image-preview-container', currentEditImages, 'removeEditImage');
       document.getElementById("edit-modal").style.display = "flex"; document.body.style.overflow = "hidden"; 
@@ -1410,7 +1856,40 @@
     
     async function saveProductChanges() {
       let pId = document.getElementById("edit-id").value;
-      let payload = { action: pId ? "updateProduct" : "createProduct", token: getAdminToken(), productId: pId, name: document.getElementById("edit-name").value, originalPrice: document.getElementById("edit-orig-price").value, price: document.getElementById("edit-sell-price").value, images: currentEditImages.join('\n'), desc: document.getElementById("edit-desc").value, status: document.getElementById("edit-status").value, stock: parseInt(document.getElementById("edit-stock").value) || 0 };
+      let hasVariants = document.getElementById("edit-has-variants").checked;
+
+      if (hasVariants) {
+        if (currentProductVariants.length === 0) {
+          alert("Vui lòng thêm ít nhất 1 phân loại hàng hoặc tắt chế độ phân loại!");
+          return;
+        }
+        for (let i = 0; i < currentProductVariants.length; i++) {
+          let v = currentProductVariants[i];
+          if (!v.name || !v.name.trim()) {
+            alert("Vui lòng nhập tên cho Phân loại #" + (i + 1) + "!");
+            return;
+          }
+          if (v.price === "" || isNaN(v.price) || Number(v.price) < 0) {
+            alert("Giá bán của Phân loại '" + v.name + "' không hợp lệ!");
+            return;
+          }
+        }
+        recalculateVariantTotals();
+      }
+
+      let payload = {
+        action: pId ? "updateProduct" : "createProduct",
+        token: getAdminToken(),
+        productId: pId,
+        name: document.getElementById("edit-name").value,
+        originalPrice: document.getElementById("edit-orig-price").value,
+        price: document.getElementById("edit-sell-price").value,
+        images: currentEditImages.join('\n'),
+        desc: document.getElementById("edit-desc").value,
+        status: document.getElementById("edit-status").value,
+        stock: parseInt(document.getElementById("edit-stock").value) || 0,
+        variants: hasVariants ? JSON.stringify(currentProductVariants) : ""
+      };
       
       if(!payload.name || payload.price === "") { alert("Thiếu Tên hoặc Giá!"); return; }
       showLoading(true); closeEditModal();

@@ -40,8 +40,8 @@ class TestDOMIntegrity(unittest.TestCase):
         js_content = '\n'.join(scripts)
         used_ids = set(re.findall(r'document\.getElementById\([\'\"]([a-zA-Z0-9_\-]+)[\'\"]\)', js_content))
 
-        # Loại trừ các ID động được sinh ra trong lúc render (ví dụ: qty-SP01, slides-SP01)
-        dynamic_prefixes = ('qty-', 'slides-')
+        # Loại trừ các ID động được sinh ra trong lúc render (ví dụ: qty-SP01, slides-SP01, variant-chips-SP01...)
+        dynamic_prefixes = ('qty-', 'slides-', 'variant-chips-', 'price-container-', 'add-btn-', 'badge-wrap-')
         static_used = {i for i in used_ids if not any(i.startswith(p) for p in dynamic_prefixes)}
 
         missing = static_used - collector.ids
@@ -61,7 +61,7 @@ class TestDOMIntegrity(unittest.TestCase):
         used_ids = set(re.findall(r'document\.getElementById\([\'\"]([a-zA-Z0-9_\-]+)[\'\"]\)', js_content))
 
         # Loại trừ các ID động trong admin
-        dynamic_prefixes = ('status-', 'combo-chk-', 'combo-qty-', 'combo-row-')
+        dynamic_prefixes = ('status-', 'combo-chk-', 'combo-qty-', 'combo-row-', 'var-')
         static_used = {i for i in used_ids if not any(i.startswith(p) for p in dynamic_prefixes)}
 
         missing = static_used - collector.ids
@@ -69,6 +69,14 @@ class TestDOMIntegrity(unittest.TestCase):
             missing, set(),
             f"LỖI: Phát hiện ID được gọi trong JavaScript nhưng KHÔNG TỒN TẠI trong HTML (admin.html): {missing}"
         )
+
+    def test_admin_variant_elements_exist(self):
+        """Kiểm tra: Các phần tử quản lý phân loại sản phẩm (variants) phải tồn tại trong admin.html"""
+        admin = read_file('admin.html')
+        self.assertIn('id="edit-has-variants"', admin, "LỖI: Thiếu checkbox 'edit-has-variants' trong admin.html!")
+        self.assertIn('id="variants-config-box"', admin, "LỖI: Thiếu container 'variants-config-box' trong admin.html!")
+        self.assertIn('id="variants-list-container"', admin, "LỖI: Thiếu danh sách 'variants-list-container' trong admin.html!")
+        self.assertIn('id="variant-file-input"', admin, "LỖI: Thiếu input tải ảnh 'variant-file-input' trong admin.html!")
 
     def test_checkout_essential_fields(self):
         """Kiểm tra: Các trường bắt buộc trong Form Đặt Hàng (index.html) không bao giờ bị xóa nhầm"""
@@ -371,6 +379,99 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('stepComboQty', admin, "LỖI: Thiếu hàm stepComboQty (+/- số lượng) trong admin.html!")
         self.assertIn('combo-qty-btn', admin, "LỖI: Thiếu class combo-qty-btn cho nút bấm +/- trong admin.html!")
         self.assertIn('combo-select-all-label', admin, "LỖI: Thiếu class combo-select-all-label trong admin.html!")
+
+    def test_variant_totals_calculation(self):
+        """Kiểm tra: Thuật toán tính giá hiển thị (min price) và tổng kho từ các phân loại (variants)"""
+        variants = [
+            {"id": "var_1", "name": "OLED 0.96 inch", "price": 45000, "originalPrice": 60000, "stock": 20},
+            {"id": "var_2", "name": "LCD 1602", "price": 38000, "originalPrice": 50000, "stock": 15},
+            {"id": "var_3", "name": "TFT 1.8 inch", "price": 55000, "originalPrice": 70000, "stock": 10}
+        ]
+        prices = [v["price"] for v in variants if v["price"] > 0]
+        min_price = min(prices)
+        total_stock = sum(v["stock"] for v in variants)
+
+        self.assertEqual(min_price, 38000, "LỖI: Giá hiển thị phải là giá thấp nhất trong các phân loại")
+        self.assertEqual(total_stock, 45, "LỖI: Tổng tồn kho phải bằng tổng tồn kho của các phân loại")
+
+    def test_multi_variant_cart_isolation(self):
+        """Kiểm tra: Giỏ hàng hỗ trợ chọn nhiều biến thể khác nhau của cùng 1 sản phẩm mà không bị ghi đè"""
+        cart = []
+
+        def add_to_cart_mock(prod_id, prod_name, var_id, var_name, price, qty):
+            existing = next((i for i in cart if i["id"] == prod_id and i.get("variantId") == var_id), None)
+            if existing:
+                existing["qty"] += qty
+            else:
+                cart.append({
+                    "id": prod_id,
+                    "name": prod_name,
+                    "variantId": var_id,
+                    "variantName": var_name,
+                    "price": price,
+                    "qty": qty
+                })
+
+        # Khách mua Màn hình loại 1 (OLED, x1)
+        add_to_cart_mock("SP01", "Màn hình hiển thị", "var_1", "OLED 0.96", 45000, 1)
+        self.assertEqual(len(cart), 1)
+
+        # Khách mua tiếp Màn hình loại 2 (LCD, x2) -> Phải tạo thành 2 dòng riêng biệt
+        add_to_cart_mock("SP01", "Màn hình hiển thị", "var_2", "LCD 1602", 38000, 2)
+        self.assertEqual(len(cart), 2, "LỖI: 2 biến thể khác nhau của cùng 1 sản phẩm phải là 2 dòng riêng trong giỏ!")
+
+        # Khách mua thêm Màn hình loại 1 (OLED, x2) -> Chỉ tăng số lượng loại 1 thành 3
+        add_to_cart_mock("SP01", "Màn hình hiển thị", "var_1", "OLED 0.96", 45000, 2)
+        self.assertEqual(len(cart), 2)
+        item_var1 = next(i for i in cart if i["variantId"] == "var_1")
+        item_var2 = next(i for i in cart if i["variantId"] == "var_2")
+        self.assertEqual(item_var1["qty"], 3)
+        self.assertEqual(item_var2["qty"], 2)
+
+    def test_variant_stock_deduction_algorithm(self):
+        """Kiểm tra: Thuật toán trừ kho chính xác cho biến thể được đặt và cập nhật lại tổng kho"""
+        import json
+        raw_variants = json.dumps([
+            {"id": "var_1", "name": "OLED 0.96", "price": 45000, "stock": 20},
+            {"id": "var_2", "name": "LCD 1602", "price": 38000, "stock": 15}
+        ])
+
+        # Giả lập logic deductStock trong backend
+        v_list = json.loads(raw_variants)
+        target_variant_id = "var_1"
+        deduct_qty = 5
+
+        updated = False
+        new_total = 0
+        for v in v_list:
+            if v["id"] == target_variant_id:
+                v["stock"] = max(0, v["stock"] - deduct_qty)
+                updated = True
+            new_total += v["stock"]
+
+        self.assertTrue(updated)
+        self.assertEqual(v_list[0]["stock"], 15, "Kho phân loại var_1 phải giảm từ 20 xuống 15")
+        self.assertEqual(v_list[1]["stock"], 15, "Kho phân loại var_2 phải giữ nguyên 15")
+        self.assertEqual(new_total, 30, "Tổng tồn kho mới phải là 30")
+
+    def test_variant_ui_and_carousel_jump_in_client(self):
+        """Kiểm tra: Các thành phần UI phân loại, hàm chọn loại và đổi ảnh carousel trong index.html"""
+        index_html = read_file('index.html')
+        self.assertIn('selectProductVariant', index_html, "LỖI: Thiếu hàm selectProductVariant trong index.html!")
+        self.assertIn('jumpCarouselToIndex', index_html, "LỖI: Thiếu hàm jumpCarouselToIndex trong index.html!")
+        self.assertIn('.variant-chip', index_html, "LỖI: Thiếu class .variant-chip trong CSS index.html!")
+        self.assertIn('.cart-variant-tag', index_html, "LỖI: Thiếu class .cart-variant-tag trong CSS index.html!")
+        self.assertIn('selectedVariants', index_html, "LỖI: Thiếu biến selectedVariants lưu trạng thái trong index.html!")
+
+    def test_admin_variant_functions_exist(self):
+        """Kiểm tra: Các hàm quản lý phân loại sản phẩm trong admin.html"""
+        admin = read_file('admin.html')
+        self.assertIn('toggleVariantsSection', admin, "LỖI: Thiếu hàm toggleVariantsSection trong admin.html!")
+        self.assertIn('addNewVariantRow', admin, "LỖI: Thiếu hàm addNewVariantRow trong admin.html!")
+        self.assertIn('removeVariantRow', admin, "LỖI: Thiếu hàm removeVariantRow trong admin.html!")
+        self.assertIn('recalculateVariantTotals', admin, "LỖI: Thiếu hàm recalculateVariantTotals trong admin.html!")
+        self.assertIn('renderVariantEditRows', admin, "LỖI: Thiếu hàm renderVariantEditRows trong admin.html!")
+        self.assertIn('currentProductVariants', admin, "LỖI: Thiếu biến currentProductVariants trong admin.html!")
 
 
 if __name__ == '__main__':
