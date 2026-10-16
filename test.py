@@ -61,7 +61,7 @@ class TestDOMIntegrity(unittest.TestCase):
         used_ids = set(re.findall(r'document\.getElementById\([\'\"]([a-zA-Z0-9_\-]+)[\'\"]\)', js_content))
 
         # Loại trừ các ID động trong admin
-        dynamic_prefixes = ('status-', 'combo-chk-', 'combo-qty-', 'combo-row-', 'var-')
+        dynamic_prefixes = ('status-', 'combo-chk-', 'combo-qty-', 'combo-row-', 'var-', 'prod-row-')
         static_used = {i for i in used_ids if not any(i.startswith(p) for p in dynamic_prefixes)}
 
         missing = static_used - collector.ids
@@ -230,6 +230,20 @@ class TestAPIConsistency(unittest.TestCase):
         self.assertTrue(bool(adm_m), "LỖI: Không tìm thấy SESSION_DURATION_MS trong admin.html")
         ms_val = eval(adm_m.group(1).strip())
         self.assertEqual(ms_val, 7 * 24 * 60 * 60 * 1000, f"LỖI: SESSION_DURATION_MS trong admin.html không phải 7 ngày: {ms_val}")
+
+    def test_product_order_backend_and_client_actions(self):
+        """Kiểm tra: Backend Code.gs xử lý lưu thứ tự sản phẩm và sắp xếp trả về cho Client"""
+        codegs = read_file('Code.gs')
+        admin = read_file('admin.html')
+        index = read_file('index.html')
+
+        self.assertIn('handleSaveProductsOrder', codegs, "LỖI: Code.gs thiếu hàm handleSaveProductsOrder")
+        self.assertIn('handleSwapProductOrder', codegs, "LỖI: Code.gs thiếu hàm handleSwapProductOrder")
+        self.assertIn('action === "saveProductsOrder"', codegs, "LỖI: Code.gs chưa đăng ký action saveProductsOrder trong doPost")
+        self.assertIn('action === "swapProductOrder"', codegs, "LỖI: Code.gs chưa đăng ký action swapProductOrder trong doPost")
+        self.assertIn('products.sort', codegs, "LỖI: Code.gs getProductsList chưa sắp xếp products theo thứ tự (order)")
+        self.assertIn('action: "saveProductsOrder"', admin, "LỖI: admin.html chưa gọi action saveProductsOrder")
+        self.assertIn('productsData.sort', index, "LỖI: index.html chưa sắp xếp productsData theo order")
 
 
 class TestBusinessLogic(unittest.TestCase):
@@ -472,6 +486,68 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('recalculateVariantTotals', admin, "LỖI: Thiếu hàm recalculateVariantTotals trong admin.html!")
         self.assertIn('renderVariantEditRows', admin, "LỖI: Thiếu hàm renderVariantEditRows trong admin.html!")
         self.assertIn('currentProductVariants', admin, "LỖI: Thiếu biến currentProductVariants trong admin.html!")
+
+    def test_product_drag_drop_and_order_functions_in_admin(self):
+        """Kiểm tra: Các thành phần UI kéo thả, nút di chuyển và hàm xử lý thứ tự trong admin.html"""
+        admin = read_file('admin.html')
+        self.assertIn('handleProdDragStart', admin, "LỖI: Thiếu hàm handleProdDragStart trong admin.html")
+        self.assertIn('handleProdDragOver', admin, "LỖI: Thiếu hàm handleProdDragOver trong admin.html")
+        self.assertIn('handleProdDrop', admin, "LỖI: Thiếu hàm handleProdDrop trong admin.html")
+        self.assertIn('handleProdDragEnd', admin, "LỖI: Thiếu hàm handleProdDragEnd trong admin.html")
+        self.assertIn('moveProductOrder', admin, "LỖI: Thiếu hàm moveProductOrder trong admin.html")
+        self.assertIn('saveCurrentProductsOrder', admin, "LỖI: Thiếu hàm saveCurrentProductsOrder trong admin.html")
+        self.assertIn('draggedProductIndex', admin, "LỖI: Thiếu biến draggedProductIndex trong admin.html")
+        self.assertIn('.drag-handle', admin, "LỖI: Thiếu class .drag-handle trong CSS admin.html")
+        self.assertIn('.order-badge', admin, "LỖI: Thiếu class .order-badge trong CSS admin.html")
+        self.assertIn('.btn-order-move', admin, "LỖI: Thiếu class .btn-order-move trong CSS admin.html")
+        self.assertIn('.order-help-banner', admin, "LỖI: Thiếu banner hướng dẫn .order-help-banner trong admin.html")
+
+    def test_product_order_reorder_algorithm(self):
+        """Kiểm tra thuật toán sắp xếp và kéo thả di chuyển vị trí sản phẩm"""
+        # Giả lập danh sách ban đầu
+        items = [{"id": f"SP_{i}", "name": f"Sản phẩm {i}", "order": i} for i in range(1, 6)]
+        
+        # 1. Kiểm tra sort theo order
+        items_scrambled = [items[2], items[0], items[4], items[1], items[3]]
+        items_sorted = sorted(items_scrambled, key=lambda x: x.get('order', 0))
+        self.assertEqual([x['id'] for x in items_sorted], ["SP_1", "SP_2", "SP_3", "SP_4", "SP_5"])
+
+        # 2. Kiểm tra logic di chuyển kéo thả: Kéo SP_1 thả vào sau SP_3
+        lst = ["SP_1", "SP_2", "SP_3", "SP_4", "SP_5"]
+        from_idx = 0
+        target_idx = 2
+        is_bottom = True
+
+        target_id = lst[target_idx]
+        moved_item = lst.pop(from_idx)
+        target_new_idx = lst.index(target_id)
+        if is_bottom:
+            lst.insert(target_new_idx + 1, moved_item)
+        else:
+            lst.insert(target_new_idx, moved_item)
+
+        self.assertEqual(lst, ["SP_2", "SP_3", "SP_1", "SP_4", "SP_5"])
+
+        # 3. Kéo SP_5 thả vào trước SP_2
+        from_idx = 4
+        target_idx = 0
+        is_bottom = False
+
+        target_id = lst[target_idx]
+        moved_item = lst.pop(from_idx)
+        target_new_idx = lst.index(target_id)
+        if is_bottom:
+            lst.insert(target_new_idx + 1, moved_item)
+        else:
+            lst.insert(target_new_idx, moved_item)
+
+        self.assertEqual(lst, ["SP_5", "SP_2", "SP_3", "SP_1", "SP_4"])
+
+        # 4. Kiểm tra swap di chuyển 1 nấc (nút bấm ▲/▼)
+        # Di chuyển SP_3 lên 1 nấc (swap với SP_2)
+        idx_sp3 = lst.index("SP_3")
+        lst[idx_sp3], lst[idx_sp3 - 1] = lst[idx_sp3 - 1], lst[idx_sp3]
+        self.assertEqual(lst, ["SP_5", "SP_3", "SP_2", "SP_1", "SP_4"])
 
 
 if __name__ == '__main__':

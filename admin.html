@@ -516,6 +516,123 @@
       border: 1px solid #bee3f8;
       margin-left: 4px;
     }
+
+    /* TÙY CHỈNH THỨ TỰ SẢN PHẨM & KÉO THẢ */
+    .order-help-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #ebf8ff;
+      border: 1px solid #bee3f8;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 15px;
+      font-size: 13.5px;
+      color: #2b6cb0;
+      line-height: 1.5;
+      flex-wrap: wrap;
+    }
+    .order-status-pill {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: none;
+      white-space: nowrap;
+    }
+    .order-status-pill.saving {
+      display: inline-block;
+      background: #feebc8;
+      color: #c05621;
+      border: 1px solid #fbd38d;
+    }
+    .order-status-pill.saved {
+      display: inline-block;
+      background: #c6f6d5;
+      color: #22543d;
+      border: 1px solid #9ae6b4;
+    }
+    .product-row {
+      transition: background-color 0.15s ease;
+    }
+    .product-row.dragging {
+      opacity: 0.45;
+      background-color: #edf2f7 !important;
+    }
+    .product-row.drag-over-top {
+      box-shadow: inset 0 3px 0 0 #3182ce !important;
+    }
+    .product-row.drag-over-bottom {
+      box-shadow: inset 0 -3px 0 0 #3182ce !important;
+    }
+    .order-cell-content {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .drag-handle {
+      cursor: grab;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #edf2f7;
+      color: #4a5568;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 16px;
+      user-select: none;
+      touch-action: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .drag-handle:hover {
+      background: #e2e8f0;
+      color: #2b6cb0;
+      border-color: #90cdf4;
+    }
+    .drag-handle:active {
+      cursor: grabbing;
+      background: #bee3f8;
+    }
+    .order-badge {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 12.5px;
+      color: #2b6cb0;
+      background: #ebf8ff;
+      border: 1px solid #bee3f8;
+      border-radius: 6px;
+      padding: 2px 7px;
+      min-width: 32px;
+      text-align: center;
+    }
+    .btn-order-move {
+      background: #edf2f7;
+      color: #4a5568;
+      border: 1px solid #cbd5e0;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s;
+    }
+    .btn-order-move:hover:not(:disabled) {
+      background: #e2e8f0;
+      color: #2b6cb0;
+      border-color: #90cdf4;
+    }
+    .btn-order-move:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
   </style>
 </head>
 <body>
@@ -589,8 +706,14 @@
         <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px; height: fit-content;" onclick="openEditModal()">+ TẠO SẢN PHẨM MỚI</button>
       </div>
 
-      <table>
-        <thead><tr><th>ID</th><th>Hình ảnh</th><th style="width: 30%;">Sản phẩm & Mô tả</th><th>Giá bán</th><th>Tồn kho</th><th style="width: 12%;">Thao tác</th></tr></thead>
+      <div class="order-help-banner">
+        <span style="font-size: 16px;">💡</span>
+        <div><b>Tùy chỉnh vị trí hiển thị:</b> Kéo biểu tượng <b>☰</b> để thả sản phẩm vào vị trí mong muốn, hoặc bấm <b>▲ / ▼</b> để di chuyển từng nấc. Thứ tự sắp xếp sẽ hiển thị chính xác trên trang chủ khách hàng và tự động lưu lại.</div>
+        <div id="order-save-status" class="order-status-pill"></div>
+      </div>
+
+      <table id="inventory-table">
+        <thead><tr><th style="width: 105px; text-align: center;">Vị trí</th><th>ID</th><th>Hình ảnh</th><th style="width: 30%;">Sản phẩm & Mô tả</th><th>Giá bán</th><th>Tồn kho</th><th style="width: 12%;">Thao tác</th></tr></thead>
         <tbody id="inventory-body"></tbody>
       </table>
     </div>
@@ -1018,9 +1141,16 @@
       });
     }
 
+    let draggedProductIndex = null;
+
     function renderInventory(products) {
-      const tbody = document.getElementById('inventory-body'); tbody.innerHTML = "";
-      products.forEach(p => {
+      const tbody = document.getElementById('inventory-body');
+      tbody.innerHTML = "";
+      if (!products || products.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:30px; color:#718096;'>Chưa có sản phẩm nào. Bạn hãy bấm '+ TẠO SẢN PHẨM MỚI' nhé!</td></tr>";
+        return;
+      }
+      products.forEach((p, index) => {
         let hasVars = p.variants && p.variants.length > 0;
         let variantBadge = hasVars ? `<span class="variant-badge">🏷️ ${p.variants.length} loại</span>` : '';
         let stockHtml = p.stock <= 2 ? `<span class="stock-warning">${p.stock} (Sắp hết)</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${p.stock}</span>`;
@@ -1045,7 +1175,29 @@
           priceHtml = formatMoney(p.price);
         }
 
-        tbody.innerHTML += `<tr>
+        let isFirst = index === 0;
+        let isLast = index === products.length - 1;
+        let upBtn = `<button type="button" class="btn-order-move" title="Di chuyển lên trên" ${isFirst ? 'disabled' : ''} onclick="moveProductOrder(${index}, -1)">▲</button>`;
+        let downBtn = `<button type="button" class="btn-order-move" title="Di chuyển xuống dưới" ${isLast ? 'disabled' : ''} onclick="moveProductOrder(${index}, 1)">▼</button>`;
+
+        tbody.innerHTML += `
+          <tr id="prod-row-${p.id}" class="product-row" draggable="true"
+              ondragstart="handleProdDragStart(event, ${index})"
+              ondragover="handleProdDragOver(event, ${index})"
+              ondragenter="handleProdDragEnter(event, ${index})"
+              ondragleave="handleProdDragLeave(event, ${index})"
+              ondrop="handleProdDrop(event, ${index})"
+              ondragend="handleProdDragEnd(event)">
+            <td data-label="Vị trí" style="text-align: center; white-space: nowrap;">
+              <div class="order-cell-content">
+                <span class="drag-handle" title="Kéo thả dòng này để thay đổi thứ tự">☰</span>
+                <span class="order-badge">#${index + 1}</span>
+                <div style="display: inline-flex; flex-direction: column; gap: 2px;">
+                  ${upBtn}
+                  ${downBtn}
+                </div>
+              </div>
+            </td>
             <td data-label="ID" style="color:#718096; font-size: 13px;">${escapeHtml(p.id)}</td>
             <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Sản phẩm">
@@ -1060,6 +1212,168 @@
             <td data-label="Thao tác"><button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button></td>
           </tr>`;
       });
+    }
+
+    function handleProdDragStart(e, index) {
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
+        e.preventDefault();
+        return;
+      }
+      draggedProductIndex = index;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(index));
+      setTimeout(() => {
+        if (draggedProductIndex !== null && globalProductsData && globalProductsData[draggedProductIndex]) {
+          const row = document.getElementById(`prod-row-${globalProductsData[draggedProductIndex].id}`);
+          if (row) row.classList.add('dragging');
+        }
+      }, 0);
+    }
+
+    function handleProdDragOver(e, index) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (draggedProductIndex === null || draggedProductIndex === index) return;
+      if (!globalProductsData || !globalProductsData[index]) return;
+      const row = document.getElementById(`prod-row-${globalProductsData[index].id}`);
+      if (!row) return;
+      const rect = row.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (e.clientY < mid) {
+        row.classList.add('drag-over-top');
+        row.classList.remove('drag-over-bottom');
+      } else {
+        row.classList.add('drag-over-bottom');
+        row.classList.remove('drag-over-top');
+      }
+    }
+
+    function handleProdDragEnter(e, index) {
+      e.preventDefault();
+    }
+
+    function handleProdDragLeave(e, index) {
+      if (globalProductsData && globalProductsData[index]) {
+        const row = document.getElementById(`prod-row-${globalProductsData[index].id}`);
+        if (row && !row.contains(e.relatedTarget)) {
+          row.classList.remove('drag-over-top', 'drag-over-bottom');
+        }
+      }
+    }
+
+    function handleProdDrop(e, targetIndex) {
+      e.preventDefault();
+      document.querySelectorAll('.product-row').forEach(row => {
+        row.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+      });
+
+      if (draggedProductIndex === null || draggedProductIndex === targetIndex) {
+        draggedProductIndex = null;
+        return;
+      }
+
+      if (!globalProductsData || !globalProductsData[targetIndex] || !globalProductsData[draggedProductIndex]) {
+        draggedProductIndex = null;
+        return;
+      }
+
+      const targetId = globalProductsData[targetIndex].id;
+      const targetRow = document.getElementById(`prod-row-${targetId}`);
+      let isBottom = false;
+      if (targetRow) {
+        const rect = targetRow.getBoundingClientRect();
+        isBottom = e.clientY >= (rect.top + rect.height / 2);
+      }
+
+      const fromIdx = draggedProductIndex;
+      draggedProductIndex = null;
+
+      const [movedItem] = globalProductsData.splice(fromIdx, 1);
+      const targetNewIdx = globalProductsData.findIndex(p => p.id === targetId);
+      if (targetNewIdx === -1) {
+        renderInventory(globalProductsData);
+        return;
+      }
+
+      if (isBottom) {
+        globalProductsData.splice(targetNewIdx + 1, 0, movedItem);
+      } else {
+        globalProductsData.splice(targetNewIdx, 0, movedItem);
+      }
+
+      renderInventory(globalProductsData);
+      saveCurrentProductsOrder();
+    }
+
+    function handleProdDragEnd(e) {
+      draggedProductIndex = null;
+      document.querySelectorAll('.product-row').forEach(row => {
+        row.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+      });
+    }
+
+    function moveProductOrder(index, delta) {
+      if (!globalProductsData) return;
+      const newIndex = index + delta;
+      if (newIndex < 0 || newIndex >= globalProductsData.length) return;
+      const temp = globalProductsData[index];
+      globalProductsData[index] = globalProductsData[newIndex];
+      globalProductsData[newIndex] = temp;
+      renderInventory(globalProductsData);
+      saveCurrentProductsOrder();
+    }
+
+    async function saveCurrentProductsOrder() {
+      const statusEl = document.getElementById('order-save-status');
+      if (statusEl) {
+        statusEl.className = 'order-status-pill saving';
+        statusEl.innerHTML = '🔄 Đang lưu thứ tự...';
+        statusEl.style.display = 'inline-block';
+      }
+
+      const orderList = globalProductsData.map(p => p.id);
+      const payload = {
+        action: "saveProductsOrder",
+        token: getAdminToken(),
+        orderList: orderList
+      };
+
+      try {
+        let res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        let data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") {
+            logout();
+          } else {
+            alert(data.msg || "Không thể lưu thứ tự!");
+            loadData();
+          }
+          if (statusEl) statusEl.style.display = 'none';
+          return;
+        }
+
+        globalProductsData.forEach((p, idx) => {
+          p.order = idx + 1;
+        });
+
+        if (statusEl) {
+          statusEl.className = 'order-status-pill saved';
+          statusEl.innerHTML = '✅ Đã lưu thứ tự!';
+          statusEl.style.display = 'inline-block';
+          clearTimeout(window._orderStatusTimer);
+          window._orderStatusTimer = setTimeout(() => {
+            if (statusEl) statusEl.style.display = 'none';
+          }, 3000);
+        }
+      } catch (err) {
+        console.error("Lỗi khi lưu thứ tự:", err);
+        if (statusEl) statusEl.style.display = 'none';
+        alert("Lỗi kết nối khi lưu thứ tự sản phẩm!");
+        loadData();
+      }
     }
 
     function renderCombos(combos) {

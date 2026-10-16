@@ -553,6 +553,8 @@
         
         if (resData.products) {
           productsData = resData.products;
+          // Sắp xếp sản phẩm theo thứ tự hiển thị tùy chỉnh (từ Google Sheets Column 10)
+          productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
           combosData = resData.combos || [];
           postsData = resData.posts || []; // Load thêm dữ liệu bài viết
           globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
@@ -590,6 +592,9 @@
 
         } else {
           productsData = resData; 
+          if (Array.isArray(productsData)) {
+            productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+          }
           applyTheme('shop-default');
         }
         renderData();
