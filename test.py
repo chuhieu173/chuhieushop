@@ -61,7 +61,7 @@ class TestDOMIntegrity(unittest.TestCase):
         used_ids = set(re.findall(r'document\.getElementById\([\'\"]([a-zA-Z0-9_\-]+)[\'\"]\)', js_content))
 
         # Loại trừ các ID động trong admin
-        dynamic_prefixes = ('status-',)
+        dynamic_prefixes = ('status-', 'combo-chk-', 'combo-qty-', 'combo-row-')
         static_used = {i for i in used_ids if not any(i.startswith(p) for p in dynamic_prefixes)}
 
         missing = static_used - collector.ids
@@ -360,6 +360,17 @@ class TestBusinessLogic(unittest.TestCase):
         ]
         max_combos = min(it["stock"] // it["qty"] for it in combo_items)
         self.assertEqual(max_combos, 5, "Tính toán kho tối đa của Combo không chính xác")
+
+    def test_combo_select_all_and_stepper_ui(self):
+        """Kiểm tra: Tính năng chọn tất cả và nút bấm +/- số lượng cho Combo trong admin.html"""
+        admin = read_file('admin.html')
+        # Kiểm tra sự tồn tại của checkbox chọn tất cả và danh sách chọn
+        self.assertIn('id="combo-select-all"', admin, "LỖI: Thiếu checkbox 'combo-select-all' trong admin.html!")
+        self.assertIn('id="combo-products-selector"', admin, "LỖI: Thiếu container 'combo-products-selector' trong admin.html!")
+        self.assertIn('toggleSelectAllComboProducts', admin, "LỖI: Thiếu hàm toggleSelectAllComboProducts trong admin.html!")
+        self.assertIn('stepComboQty', admin, "LỖI: Thiếu hàm stepComboQty (+/- số lượng) trong admin.html!")
+        self.assertIn('combo-qty-btn', admin, "LỖI: Thiếu class combo-qty-btn cho nút bấm +/- trong admin.html!")
+        self.assertIn('combo-select-all-label', admin, "LỖI: Thiếu class combo-select-all-label trong admin.html!")
 
 
 if __name__ == '__main__':
