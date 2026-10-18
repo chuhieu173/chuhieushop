@@ -1129,7 +1129,10 @@
             </td>
             <td data-label="Chi tiết Đơn hàng" style="line-height: 1.5;">${detailsHtml}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold; font-size:15px;">${escapeHtml(order.total)}</td>
-            <td data-label="Trạng thái"><span style="font-weight: bold; color: ${statusColor};">${escapeHtml(order.status)}</span></td>
+            <td data-label="Trạng thái">
+              <span style="font-weight: bold; color: ${statusColor};">${escapeHtml(order.status)}</span>
+              ${order.isDeducted ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:11px; color:#22543d; background:#c6f6d5; border:1px solid #9ae6b4; padding:2px 6px; border-radius:4px; font-weight:600;">📦 Đã trừ kho</span></div>' : ''}
+            </td>
             <td data-label="Thao tác">
               ${selectHtml}
               <div style="display:flex; gap:8px; margin-top:8px;">
@@ -1569,7 +1572,7 @@
 
     async function updateOrderStatus(rowIdx) {
       let newStatus = document.getElementById(`status-${rowIdx}`).value;
-      if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." sẽ tự động phân giải combo trừ kho SP)`)) return;
+      if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." hoặc "Hoàn thành" sẽ tự động trừ kho nếu chưa trừ)`)) return;
       showLoading(true);
       try {
         let payload = { action: "updateOrderStatus", token: getAdminToken(), row: rowIdx, newStatus: newStatus };

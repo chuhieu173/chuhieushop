@@ -549,6 +549,76 @@ class TestBusinessLogic(unittest.TestCase):
         lst[idx_sp3], lst[idx_sp3 - 1] = lst[idx_sp3 - 1], lst[idx_sp3]
         self.assertEqual(lst, ["SP_5", "SP_3", "SP_2", "SP_1", "SP_4"])
 
+    def test_order_status_stock_deduction_and_double_deduction_prevention(self):
+        """Kiểm tra: Trừ kho khi chuyển sang 'Hoàn thành' hoặc 'Đã giao...', và chống trừ trùng 2 lần"""
+        codegs = read_file('Code.gs')
+
+        # 1. Kiểm tra điều kiện trừ kho trong Code.gs bao gồm cả "Hoàn thành"
+        self.assertIn('payload.newStatus === "Đã giao cho đơn vị vận chuyển" || payload.newStatus === "Hoàn thành"', codegs,
+                      "LỖI: Code.gs chưa xử lý trừ kho cho trạng thái 'Hoàn thành'!")
+        self.assertIn('alreadyDeducted', codegs,
+                      "LỖI: Code.gs thiếu biến/kiểm tra cờ alreadyDeducted để chống trừ 2 lần!")
+        self.assertIn('orderSheet.getRange(row, 11).setValue(true)', codegs,
+                      "LỖI: Code.gs chưa đánh dấu cờ đã trừ kho vào cột 11!")
+
+        # 2. Giả lập logic kiểm tra trừ kho và chống trừ trùng lặp
+        def simulate_status_transition(current_status, new_status, is_deducted, stock, order_qty):
+            DEDUCT_STATUSES = ("Đã giao cho đơn vị vận chuyển", "Hoàn thành")
+            deductions_count = 0
+            if new_status in DEDUCT_STATUSES:
+                already_deducted = (is_deducted is True or str(is_deducted).upper() == "TRUE")
+                if not already_deducted:
+                    stock -= order_qty
+                    is_deducted = True
+                    deductions_count += 1
+            return new_status, is_deducted, stock, deductions_count
+
+        # Case 1: Chuyển trực tiếp từ "Khách đặt hàng" -> "Hoàn thành"
+        status, is_deducted, stock, deductions = simulate_status_transition(
+            "Khách đặt hàng", "Hoàn thành", False, 10, 2
+        )
+        self.assertEqual(stock, 8, "Tồn kho phải giảm từ 10 xuống 8 khi chuyển thẳng sang 'Hoàn thành'")
+        self.assertTrue(is_deducted, "Cờ is_deducted phải được bật True")
+        self.assertEqual(deductions, 1, "Chỉ được trừ kho đúng 1 lần")
+
+        # Sau đó bấm lưu lại "Hoàn thành" lần nữa: KHÔNG ĐƯỢC TRỪ TIẾP
+        status, is_deducted, stock, deductions = simulate_status_transition(
+            status, "Hoàn thành", is_deducted, stock, 2
+        )
+        self.assertEqual(stock, 8, "Tồn kho vẫn phải là 8, không bị trừ lần 2")
+        self.assertEqual(deductions, 0, "Không được trừ thêm lần nào nữa")
+
+        # Case 2: "Khách đặt hàng" -> "Đã giao cho đơn vị vận chuyển" -> "Hoàn thành"
+        # B1: Chuyển sang "Đã giao cho đơn vị vận chuyển"
+        status, is_deducted, stock, deductions = simulate_status_transition(
+            "Khách đặt hàng", "Đã giao cho đơn vị vận chuyển", False, 15, 3
+        )
+        self.assertEqual(stock, 12, "Tồn kho phải giảm từ 15 xuống 12 khi giao vận chuyển")
+        self.assertTrue(is_deducted)
+        self.assertEqual(deductions, 1)
+
+        # B2: Chuyển tiếp sang "Hoàn thành" -> KHÔNG BỊ TRỪ LẦN 2
+        status, is_deducted, stock, deductions = simulate_status_transition(
+            status, "Hoàn thành", is_deducted, stock, 3
+        )
+        self.assertEqual(stock, 12, "Tồn kho phải giữ nguyên 12, không được trừ lần 2 khi sang Hoàn thành!")
+        self.assertEqual(deductions, 0, "Không được trừ kho lần 2!")
+
+        # Case 3: "Khách đặt hàng" -> "Đang chuẩn bị hàng" -> "Hoàn thành"
+        status, is_deducted, stock, deductions = simulate_status_transition(
+            "Khách đặt hàng", "Đang chuẩn bị hàng", False, 20, 5
+        )
+        self.assertEqual(stock, 20, "Trạng thái Đang chuẩn bị hàng chưa được trừ kho")
+        self.assertFalse(is_deducted)
+        self.assertEqual(deductions, 0)
+
+        status, is_deducted, stock, deductions = simulate_status_transition(
+            status, "Hoàn thành", is_deducted, stock, 5
+        )
+        self.assertEqual(stock, 15, "Tồn kho phải giảm từ 20 xuống 15 khi hoàn thành")
+        self.assertTrue(is_deducted)
+        self.assertEqual(deductions, 1)
+
 
 if __name__ == '__main__':
     print("=" * 65)
