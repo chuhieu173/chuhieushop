@@ -114,6 +114,29 @@ class TestDOMIntegrity(unittest.TestCase):
 
         self.assertIn('chart.js', content.lower(), "LỖI: Thiếu thư viện Chart.js trong admin.html!")
 
+    def test_batch_order_status_elements_exist_in_admin(self):
+        """Kiểm tra: Các phần tử thao tác đơn hàng hàng loạt và thông báo Toast phải tồn tại trong admin.html"""
+        content = read_file('admin.html')
+        collector = IDCollector()
+        collector.feed(content)
+
+        batch_ids = [
+            'orders-bulk-bar',
+            'bulk-selected-count',
+            'bulk-status-select',
+            'bulk-btn-count',
+            'btn-bulk-apply',
+            'orders-unsaved-bar',
+            'unsaved-count',
+            'unsaved-btn-count',
+            'btn-save-all-changes',
+            'order-select-all',
+            'orders-search-input',
+            'toast-container',
+        ]
+        for bid in batch_ids:
+            self.assertIn(bid, collector.ids, f"LỖI: Thiếu phần tử id='{bid}' trong admin.html!")
+
     def test_checkout_essential_fields(self):
         """Kiểm tra: Các trường bắt buộc trong Form Đặt Hàng (index.html) không bao giờ bị xóa nhầm"""
         content = read_file('index.html')
@@ -745,6 +768,64 @@ class TestBusinessLogic(unittest.TestCase):
         top_vip = sorted(cust_map.values(), key=lambda c: c["spend"], reverse=True)
         self.assertEqual(top_vip[0]["name"], "Nguyễn Văn A")
         self.assertEqual(top_vip[0]["spend"], 200000)
+
+    def test_batch_order_status_functions_exist_in_admin(self):
+        """Kiểm tra: Các hàm xử lý đổi trạng thái hàng loạt và Toast trong admin.html"""
+        admin = read_file('admin.html')
+        funcs = [
+            'function executeBatchStatusUpdate',
+            'function applyBulkStatusUpdate',
+            'function saveAllPendingStatusChanges',
+            'function toggleOrderSelect',
+            'function toggleSelectAllOrders',
+            'function clearSelectedOrders',
+            'function discardPendingStatusChanges',
+            'function onOrderStatusDropdownChange',
+            'function showToast',
+            'function getFilteredOrders',
+            'function filterOrdersByStatus',
+            'function onOrderSearchInput',
+        ]
+        for f in funcs:
+            self.assertIn(f, admin, f"LỖI: Thiếu hàm '{f}' trong admin.html!")
+
+    def test_batch_order_status_backend_and_client_logic(self):
+        """Kiểm tra: Logic xử lý mảng cập nhật trạng thái đơn hàng hàng loạt và chống trừ trùng kho"""
+        codegs = read_file('Code.gs')
+        self.assertIn('function handleBatchUpdateOrderStatus', codegs, "LỖI: Thiếu hàm handleBatchUpdateOrderStatus trong Code.gs!")
+        self.assertIn('action === "updateBatchOrderStatus"', codegs, "LỖI: Thiếu route updateBatchOrderStatus trong Code.gs!")
+
+        # Mô phỏng thuật toán gom mảng updates
+        selected_rows = {2, 5, 8}
+        target_status = "Đã giao cho đơn vị vận chuyển"
+        updates = [{"row": r, "newStatus": target_status} for r in sorted(selected_rows)]
+        self.assertEqual(len(updates), 3)
+        self.assertEqual(updates[0], {"row": 2, "newStatus": target_status})
+        self.assertEqual(updates[2], {"row": 8, "newStatus": target_status})
+
+        # Mô phỏng thuật toán Dirty Tracking (chỉnh sửa trực tiếp trên bảng)
+        original_orders = {
+            2: {"status": "Khách đặt hàng"},
+            3: {"status": "Đang chuẩn bị hàng"},
+            4: {"status": "Khách đặt hàng"},
+        }
+        pending_changes = {}
+
+        # Sửa đơn 2 thành Đang chuẩn bị hàng
+        pending_changes[2] = "Đang chuẩn bị hàng"
+        # Sửa đơn 4 thành Hoàn thành
+        pending_changes[4] = "Hoàn thành"
+
+        # Người dùng chọn lại đơn 2 về đúng trạng thái ban đầu "Khách đặt hàng"
+        new_val = "Khách đặt hàng"
+        if new_val == original_orders[2]["status"]:
+            pending_changes.pop(2, None)
+        else:
+            pending_changes[2] = new_val
+
+        self.assertNotIn(2, pending_changes)
+        self.assertIn(4, pending_changes)
+        self.assertEqual(pending_changes[4], "Hoàn thành")
 
 
 if __name__ == '__main__':

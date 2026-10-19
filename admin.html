@@ -882,9 +882,212 @@
     .rank-2 { background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; }
     .rank-3 { background: #feebc8; color: #c05621; border: 1px solid #fbd38d; }
     .rank-other { background: #f7fafc; color: #718096; }
+
+    /* --- BẬT / TẮT THAO TÁC ĐƠN HÀNG HÀNG LOẠT & TOAST --- */
+    .orders-toolbar-container {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .orders-filter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: white;
+      padding: 14px 18px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .orders-search-input {
+      padding: 9px 14px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 14px;
+      min-width: 260px;
+      flex: 1;
+      max-width: 440px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .orders-search-input:focus {
+      border-color: #2b6cb0;
+      box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.15);
+    }
+    .orders-status-filter-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .order-pill {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      background: #f7fafc;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #4a5568;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .order-pill.active, .order-pill:hover {
+      background: #2b6cb0;
+      color: white;
+      border-color: #2b6cb0;
+    }
+    .bulk-toolbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 12px 18px;
+      border-radius: 8px;
+      animation: fadeInDown 0.25s ease-out;
+    }
+    .bulk-toolbar-batch {
+      background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+      border: 1.5px solid #63b3ed;
+      color: #2b6cb0;
+    }
+    .bulk-toolbar-unsaved {
+      background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+      border: 1.5px solid #fbd38d;
+      color: #c05621;
+    }
+    .bulk-toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-bulk-apply {
+      background: #2b6cb0;
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(43, 108, 176, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-bulk-apply:hover {
+      background: #2c5282;
+      transform: translateY(-1px);
+    }
+    .btn-save-all {
+      background: #38a169;
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(56, 161, 105, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-save-all:hover {
+      background: #2f855a;
+      transform: translateY(-1px);
+    }
+    .btn-bulk-clear {
+      background: white;
+      color: #4a5568;
+      border: 1px solid #cbd5e0;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-bulk-clear:hover {
+      background: #edf2f7;
+    }
+    .row-pending-change {
+      background-color: #fffaf0 !important;
+      outline: 2px solid #dd6b20 !important;
+    }
+    .select-unsaved {
+      border: 2px solid #dd6b20 !important;
+      background-color: #fffaf0 !important;
+      font-weight: bold !important;
+      color: #c05621 !important;
+    }
+    .badge-unsaved {
+      display: inline-block;
+      font-size: 11px;
+      color: #c05621;
+      background: #feebc8;
+      border: 1px solid #fbd38d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .order-item-cb, #order-select-all {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #2b6cb0;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10001;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast-item {
+      pointer-events: auto;
+      min-width: 280px;
+      max-width: 420px;
+      padding: 12px 18px;
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.15);
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #1a2935;
+      animation: slideInRight 0.3s ease-out;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .toast-success { border-left: 5px solid #38a169; }
+    .toast-error { border-left: 5px solid #e53e3e; }
+    .toast-info { border-left: 5px solid #2b6cb0; }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeInDown {
+      from { transform: translateY(-8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
+
+  <div id="toast-container" class="toast-container"></div>
 
   <div id="login-overlay">
     <div class="login-box">
@@ -922,8 +1125,70 @@
 
     <!-- TAB ĐƠN HÀNG -->
     <div id="orders" class="content active">
+      <div class="orders-toolbar-container">
+        <!-- Filter & Search Row -->
+        <div class="orders-filter-row">
+          <input type="text" id="orders-search-input" class="orders-search-input" placeholder="🔍 Tìm theo mã ĐH, tên khách, số điện thoại, địa chỉ..." oninput="onOrderSearchInput(this.value)">
+          <div class="orders-status-filter-pills">
+            <div class="order-pill active" onclick="filterOrdersByStatus('all', this)">Tất cả</div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Khách đặt hàng', this)">Khách đặt hàng</div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Đang chuẩn bị hàng', this)">Đang chuẩn bị</div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Đã giao cho đơn vị vận chuyển', this)">Đã giao ĐVVC</div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành</div>
+          </div>
+        </div>
+
+        <!-- Bulk Action Bar for Selected Checkboxes -->
+        <div id="orders-bulk-bar" class="bulk-toolbar bulk-toolbar-batch">
+          <div style="font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+            <span>📌</span>
+            <span>Đã chọn: <b id="bulk-selected-count" style="color: #2b6cb0; font-size: 16px;">0</b> đơn hàng</span>
+          </div>
+          <div class="bulk-toolbar-actions">
+            <span style="font-size: 13px; font-weight: 600; color: #4a5568;">Đổi thành:</span>
+            <select id="bulk-status-select" style="padding: 8px 12px; border-radius: 6px; border: 1.5px solid #63b3ed; font-weight: bold; color: #2b6cb0; font-size: 14px; background: white;">
+              <option value="Đang chuẩn bị hàng">Đang chuẩn bị hàng</option>
+              <option value="Đã giao cho đơn vị vận chuyển">Đã giao cho đơn vị vận chuyển</option>
+              <option value="Hoàn thành">Hoàn thành</option>
+              <option value="Khách đặt hàng">Khách đặt hàng</option>
+            </select>
+            <button id="btn-bulk-apply" class="btn-bulk-apply" onclick="applyBulkStatusUpdate()">
+              ⚡ Áp Dụng Cho <span id="bulk-btn-count">0</span> Đơn
+            </button>
+            <button class="btn-bulk-clear" onclick="clearSelectedOrders()">Bỏ chọn</button>
+          </div>
+        </div>
+
+        <!-- Unsaved Changes Bar for Direct Dropdown Edits -->
+        <div id="orders-unsaved-bar" class="bulk-toolbar bulk-toolbar-unsaved">
+          <div style="font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+            <span>⚠️</span>
+            <span>Có <b id="unsaved-count" style="color: #c05621; font-size: 16px;">0</b> đơn hàng đã đổi trạng thái chưa lưu!</span>
+          </div>
+          <div class="bulk-toolbar-actions">
+            <button id="btn-save-all-changes" class="btn-save-all" onclick="saveAllPendingStatusChanges()">
+              💾 Lưu Tất Cả (<span id="unsaved-btn-count">0</span> Đơn)
+            </button>
+            <button class="btn-bulk-clear" onclick="discardPendingStatusChanges()">Hủy thay đổi</button>
+          </div>
+        </div>
+      </div>
+
       <table>
-        <thead><tr><th>Mã ĐH</th><th>Thời gian</th><th style="width: 25%;">Khách hàng</th><th style="width: 25%;">Chi tiết Đơn hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th style="width: 12%;">Thao tác</th></tr></thead>
+        <thead>
+          <tr>
+            <th style="width: 44px; text-align: center;">
+              <input type="checkbox" id="order-select-all" onchange="toggleSelectAllOrders(this.checked)" title="Chọn tất cả">
+            </th>
+            <th>Mã ĐH</th>
+            <th>Thời gian</th>
+            <th style="width: 24%;">Khách hàng</th>
+            <th style="width: 24%;">Chi tiết Đơn hàng</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái</th>
+            <th style="width: 13%;">Thao tác</th>
+          </tr>
+        </thead>
         <tbody id="orders-body"></tbody>
       </table>
     </div>
@@ -1494,29 +1759,202 @@
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        selectedOrderRows.delete(rowIdx);
+        pendingOrderChanges.delete(rowIdx);
         alert("Đã xóa ẩn đơn hàng khỏi danh sách!"); loadData(); 
       } catch (e) { alert("Lỗi!"); showLoading(false); }
     }
 
+    let selectedOrderRows = new Set();
+    let pendingOrderChanges = new Map();
+    let currentOrderStatusFilter = 'all';
+    let currentOrderSearchQuery = '';
+
+    function showToast(message, type = 'success') {
+      let container = document.getElementById('toast-container');
+      if (!container) return;
+      let toast = document.createElement('div');
+      toast.className = `toast-item toast-${type}`;
+      let icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
+      toast.innerHTML = `<span style="font-size: 18px;">${icon}</span><span style="flex:1;">${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+      }, 2600);
+    }
+
+    function filterOrdersByStatus(status, pillEl) {
+      currentOrderStatusFilter = status;
+      document.querySelectorAll('.order-pill').forEach(p => p.classList.remove('active'));
+      if (pillEl) pillEl.classList.add('active');
+      renderOrders(globalOrdersData);
+    }
+
+    function onOrderSearchInput(val) {
+      currentOrderSearchQuery = (val || '').trim().toLowerCase();
+      renderOrders(globalOrdersData);
+    }
+
+    function getFilteredOrders() {
+      if (!globalOrdersData) return [];
+      return globalOrdersData.filter(order => {
+        if (currentOrderStatusFilter !== 'all' && order.status !== currentOrderStatusFilter) {
+          return false;
+        }
+        if (currentOrderSearchQuery) {
+          let q = currentOrderSearchQuery;
+          let matchId = (order.orderId || '').toLowerCase().includes(q);
+          let matchName = (order.name || '').toLowerCase().includes(q);
+          let matchPhone = (order.phone || '').toLowerCase().includes(q);
+          let matchAddress = (order.address || '').toLowerCase().includes(q);
+          let matchDetails = (order.details || '').toLowerCase().includes(q);
+          if (!matchId && !matchName && !matchPhone && !matchAddress && !matchDetails) return false;
+        }
+        return true;
+      });
+    }
+
+    function toggleOrderSelect(rowIdx, checked) {
+      if (checked) {
+        selectedOrderRows.add(rowIdx);
+      } else {
+        selectedOrderRows.delete(rowIdx);
+      }
+      updateOrderToolbars();
+    }
+
+    function toggleSelectAllOrders(checked) {
+      let visibleOrders = getFilteredOrders();
+      if (checked) {
+        visibleOrders.forEach(o => selectedOrderRows.add(o.row));
+      } else {
+        selectedOrderRows.clear();
+      }
+      renderOrders(globalOrdersData);
+    }
+
+    function clearSelectedOrders() {
+      selectedOrderRows.clear();
+      renderOrders(globalOrdersData);
+    }
+
+    function discardPendingStatusChanges() {
+      pendingOrderChanges.clear();
+      renderOrders(globalOrdersData);
+    }
+
+    function updateOrderToolbars() {
+      let bulkBar = document.getElementById('orders-bulk-bar');
+      let unsavedBar = document.getElementById('orders-unsaved-bar');
+      
+      if (bulkBar) {
+        if (selectedOrderRows.size > 0) {
+          bulkBar.style.display = 'flex';
+          let countEl = document.getElementById('bulk-selected-count');
+          let btnCountEl = document.getElementById('bulk-btn-count');
+          if (countEl) countEl.innerText = String(selectedOrderRows.size);
+          if (btnCountEl) btnCountEl.innerText = String(selectedOrderRows.size);
+        } else {
+          bulkBar.style.display = 'none';
+        }
+      }
+
+      if (unsavedBar) {
+        if (pendingOrderChanges.size > 0) {
+          unsavedBar.style.display = 'flex';
+          let unsavedCountEl = document.getElementById('unsaved-count');
+          let unsavedBtnCountEl = document.getElementById('unsaved-btn-count');
+          if (unsavedCountEl) unsavedCountEl.innerText = String(pendingOrderChanges.size);
+          if (unsavedBtnCountEl) unsavedBtnCountEl.innerText = String(pendingOrderChanges.size);
+        } else {
+          unsavedBar.style.display = 'none';
+        }
+      }
+
+      let sa = document.getElementById('order-select-all');
+      if (sa) {
+        let visibleOrders = getFilteredOrders();
+        if (visibleOrders.length > 0 && selectedOrderRows.size >= visibleOrders.length) {
+          sa.checked = true;
+          sa.indeterminate = false;
+        } else if (selectedOrderRows.size > 0) {
+          sa.checked = false;
+          sa.indeterminate = true;
+        } else {
+          sa.checked = false;
+          sa.indeterminate = false;
+        }
+      }
+    }
+
+    function onOrderStatusDropdownChange(rowIdx, selectEl) {
+      let order = (globalOrdersData || []).find(o => o.row === rowIdx);
+      if (!order) return;
+      let val = selectEl.value;
+      if (val !== order.status) {
+        pendingOrderChanges.set(rowIdx, val);
+      } else {
+        pendingOrderChanges.delete(rowIdx);
+      }
+      updateOrderToolbars();
+
+      let rowEl = selectEl.closest('tr');
+      if (rowEl) {
+        if (pendingOrderChanges.has(rowIdx)) {
+          rowEl.classList.add('row-pending-change');
+          selectEl.classList.add('select-unsaved');
+          let statusCell = rowEl.querySelector('td[data-label="Trạng thái"]');
+          if (statusCell && !statusCell.querySelector('.badge-unsaved')) {
+            let b = document.createElement('div');
+            b.className = 'badge-unsaved';
+            b.innerText = '⚠️ Chưa lưu';
+            statusCell.appendChild(b);
+          }
+        } else {
+          rowEl.classList.remove('row-pending-change');
+          selectEl.classList.remove('select-unsaved');
+          let b = rowEl.querySelector('.badge-unsaved');
+          if (b && b.parentNode) b.parentNode.removeChild(b);
+        }
+      }
+    }
+
     // --- CĂN LỀ PHẢI "SỐ LƯỢNG" VÀ BỐ CỤC ĐẸP MẮT ---
     function renderOrders(orders) {
-      const tbody = document.getElementById('orders-body'); tbody.innerHTML = "";
-      if(!orders || orders.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Chưa có đơn hàng nào.</td></tr>"; return; }
+      const tbody = document.getElementById('orders-body');
+      tbody.innerHTML = "";
+      let filtered = getFilteredOrders();
+
+      if (!filtered || filtered.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; padding:25px; color:#718096;'>Không tìm thấy đơn hàng nào.</td></tr>";
+        updateOrderToolbars();
+        return;
+      }
       
-      let sortedOrders = [...orders].sort((a, b) => {
+      let sortedOrders = [...filtered].sort((a, b) => {
         if (a.status === "Hoàn thành" && b.status !== "Hoàn thành") return 1;
         if (a.status !== "Hoàn thành" && b.status === "Hoàn thành") return -1;
         return 0;
       });
 
       sortedOrders.forEach(order => {
-        let selectHtml = `<select id="status-${order.row}" class="status-select">`;
-        STATUS_OPTIONS.forEach(opt => { selectHtml += `<option value="${opt}" ${order.status === opt ? "selected" : ""}>${opt}</option>`; }); selectHtml += `</select>`;
+        let hasPending = pendingOrderChanges.has(order.row);
+        let currentEffectiveStatus = hasPending ? pendingOrderChanges.get(order.row) : order.status;
+
+        let selectHtml = `<select id="status-${order.row}" class="status-select ${hasPending ? 'select-unsaved' : ''}" onchange="onOrderStatusDropdownChange(${order.row}, this)">`;
+        STATUS_OPTIONS.forEach(opt => {
+          selectHtml += `<option value="${opt}" ${currentEffectiveStatus === opt ? "selected" : ""}>${opt}</option>`;
+        });
+        selectHtml += `</select>`;
         
         let isCompleted = order.status === "Hoàn thành";
         let rowStyle = isCompleted ? "background-color: #f0fff4; opacity: 0.85;" : "";
         let statusColor = isCompleted ? "#38a169" : "#2b6cb0";
         let phoneClean = escapeHtml(order.phone).replace(/[^0-9]/g, '');
+        let isSelected = selectedOrderRows.has(order.row);
+        let rowClass = hasPending ? "row-pending-change" : "";
 
         // Bóc tách để hiển thị cột số lượng căn lề phải cực đẹp và không bị vỡ trên mobile
         let isSub = false;
@@ -1546,7 +1984,10 @@
           }
         }).join('');
 
-        tbody.innerHTML += `<tr style="${rowStyle}">
+        tbody.innerHTML += `<tr style="${rowStyle}" class="${rowClass}">
+            <td data-label="Chọn" style="text-align: center;">
+              <input type="checkbox" class="order-item-cb" value="${order.row}" onchange="toggleOrderSelect(${order.row}, this.checked)" ${isSelected ? 'checked' : ''}>
+            </td>
             <td data-label="Mã ĐH"><b style="font-family:'Montserrat',sans-serif; color:#1a2935;">${escapeHtml(order.orderId)}</b></td>
             <td data-label="Thời gian"><span style="color:#718096; font-size:13px;">${escapeHtml(formatOrderDate(order.date))}</span></td>
             <td data-label="Khách hàng">
@@ -1564,6 +2005,7 @@
             <td data-label="Trạng thái">
               <span style="font-weight: bold; color: ${statusColor};">${escapeHtml(order.status)}</span>
               ${order.isDeducted ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:11px; color:#22543d; background:#c6f6d5; border:1px solid #9ae6b4; padding:2px 6px; border-radius:4px; font-weight:600;">📦 Đã trừ kho</span></div>' : ''}
+              ${hasPending ? '<div class="badge-unsaved">⚠️ Chưa lưu</div>' : ''}
             </td>
             <td data-label="Thao tác">
               ${selectHtml}
@@ -1574,6 +2016,7 @@
             </td>
           </tr>`;
       });
+      updateOrderToolbars();
     }
 
     let draggedProductIndex = null;
@@ -2002,17 +2445,89 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
-    async function updateOrderStatus(rowIdx) {
-      let newStatus = document.getElementById(`status-${rowIdx}`).value;
-      if(!confirm(`Xác nhận đổi trạng thái thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." hoặc "Hoàn thành" sẽ tự động trừ kho nếu chưa trừ)`)) return;
+    async function executeBatchStatusUpdate(updates, successMsg) {
+      if (!updates || updates.length === 0) return;
       showLoading(true);
       try {
-        let payload = { action: "updateOrderStatus", token: getAdminToken(), row: rowIdx, newStatus: newStatus };
+        let payload = { action: "updateBatchOrderStatus", token: getAdminToken(), updates: updates };
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
-        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
-        alert("Đã cập nhật!"); loadData(); 
-      } catch (e) { alert("Lỗi!"); showLoading(false); }
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg);
+          showLoading(false);
+          return;
+        }
+
+        let hasStockDeduction = false;
+        updates.forEach(u => {
+          let ord = (globalOrdersData || []).find(o => o.row === u.row);
+          if (ord) {
+            ord.status = u.newStatus;
+            if (u.newStatus === "Đã giao cho đơn vị vận chuyển" || u.newStatus === "Hoàn thành") {
+              if (!ord.isDeducted) {
+                ord.isDeducted = true;
+                hasStockDeduction = true;
+              }
+            }
+          }
+          pendingOrderChanges.delete(u.row);
+          selectedOrderRows.delete(u.row);
+        });
+
+        renderOrders(globalOrdersData);
+        showLoading(false);
+        showToast(successMsg || `Đã cập nhật trạng thái ${updates.length} đơn hàng!`, 'success');
+
+        if (hasStockDeduction) {
+          fetch(API_URL + "?action=getProducts").then(r => r.json()).then(pData => {
+            if (pData && pData.products) {
+              globalProductsData = pData.products;
+              renderInventory(globalProductsData);
+            }
+          }).catch(() => {});
+        }
+
+        if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
+          renderAnalytics();
+        }
+      } catch (err) {
+        showLoading(false);
+        alert("Lỗi kết nối máy chủ khi cập nhật đơn hàng!");
+      }
+    }
+
+    async function applyBulkStatusUpdate() {
+      if (selectedOrderRows.size === 0) return;
+      let newStatus = document.getElementById('bulk-status-select').value;
+      if (!confirm(`Xác nhận đổi trạng thái của ${selectedOrderRows.size} đơn hàng đã chọn thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." hoặc "Hoàn thành" sẽ tự động trừ kho nếu chưa trừ)`)) return;
+
+      let updates = Array.from(selectedOrderRows).map(r => ({ row: r, newStatus: newStatus }));
+      await executeBatchStatusUpdate(updates, `✅ Đã chuyển ${updates.length} đơn sang "${newStatus}"!`);
+    }
+
+    async function saveAllPendingStatusChanges() {
+      if (pendingOrderChanges.size === 0) return;
+      if (!confirm(`Xác nhận lưu thay đổi trạng thái cho ${pendingOrderChanges.size} đơn hàng?\n\n(Chuyển sang "Đã giao..." hoặc "Hoàn thành" sẽ tự động trừ kho nếu chưa trừ)`)) return;
+
+      let updates = [];
+      pendingOrderChanges.forEach((newStatus, row) => {
+        updates.push({ row: row, newStatus: newStatus });
+      });
+      await executeBatchStatusUpdate(updates, `✅ Đã lưu thay đổi cho ${updates.length} đơn hàng!`);
+    }
+
+    async function updateOrderStatus(rowIdx) {
+      let selectEl = document.getElementById(`status-${rowIdx}`);
+      if (!selectEl) return;
+      let newStatus = selectEl.value;
+      let order = (globalOrdersData || []).find(o => o.row === rowIdx);
+      if (order && order.status === newStatus && !pendingOrderChanges.has(rowIdx)) {
+        showToast("Trạng thái đơn hàng không có thay đổi", "info");
+        return;
+      }
+      let ordName = order ? `đơn ${order.orderId}` : `dòng ${rowIdx}`;
+      await executeBatchStatusUpdate([{ row: rowIdx, newStatus: newStatus }], `✅ Đã cập nhật ${ordName} thành "${newStatus}"!`);
     }
 
     async function updateShippingFee() {
