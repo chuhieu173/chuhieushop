@@ -78,6 +78,42 @@ class TestDOMIntegrity(unittest.TestCase):
         self.assertIn('id="variants-list-container"', admin, "LỖI: Thiếu danh sách 'variants-list-container' trong admin.html!")
         self.assertIn('id="variant-file-input"', admin, "LỖI: Thiếu input tải ảnh 'variant-file-input' trong admin.html!")
 
+    def test_analytics_elements_exist_in_admin(self):
+        """Kiểm tra: Các phần tử Dashboard và Thống kê phải tồn tại đầy đủ trong admin.html"""
+        content = read_file('admin.html')
+        collector = IDCollector()
+        collector.feed(content)
+
+        essential_ids = [
+            'analytics',
+            'analytics-custom-date-box',
+            'analytics-date-from',
+            'analytics-date-to',
+            'analytics-status-filter',
+            'analytics-stock-alerts',
+            'kpi-revenue',
+            'kpi-revenue-sub',
+            'kpi-orders',
+            'kpi-orders-sub',
+            'kpi-items',
+            'kpi-aov',
+            'kpi-completion-rate',
+            'chart-revenue-orders',
+            'chart-product-share',
+            'analytics-prod-count',
+            'analytics-prod-search',
+            'btn-sort-qty',
+            'btn-sort-rev',
+            'btn-sort-stock',
+            'analytics-products-body',
+            'analytics-customers-body'
+        ]
+
+        for eid in essential_ids:
+            self.assertIn(eid, collector.ids, f"LỖI: Thiếu phần tử id='{eid}' trong admin.html!")
+
+        self.assertIn('chart.js', content.lower(), "LỖI: Thiếu thư viện Chart.js trong admin.html!")
+
     def test_checkout_essential_fields(self):
         """Kiểm tra: Các trường bắt buộc trong Form Đặt Hàng (index.html) không bao giờ bị xóa nhầm"""
         content = read_file('index.html')
@@ -618,6 +654,97 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertEqual(stock, 15, "Tồn kho phải giảm từ 20 xuống 15 khi hoàn thành")
         self.assertTrue(is_deducted)
         self.assertEqual(deductions, 1)
+
+    def test_analytics_functions_exist_in_admin(self):
+        """Kiểm tra: Các hàm xử lý Dashboard Thống kê và vẽ biểu đồ trong admin.html"""
+        admin = read_file('admin.html')
+        self.assertIn('function renderAnalytics', admin, "LỖI: Thiếu hàm renderAnalytics trong admin.html!")
+        self.assertIn('function setAnalyticsRange', admin, "LỖI: Thiếu hàm setAnalyticsRange trong admin.html!")
+        self.assertIn('function applyCustomDateRange', admin, "LỖI: Thiếu hàm applyCustomDateRange trong admin.html!")
+        self.assertIn('function getAnalyticsDateBounds', admin, "LỖI: Thiếu hàm getAnalyticsDateBounds trong admin.html!")
+        self.assertIn('function parseOrderDate', admin, "LỖI: Thiếu hàm parseOrderDate trong admin.html!")
+        self.assertIn('function renderAnalyticsCharts', admin, "LỖI: Thiếu hàm renderAnalyticsCharts trong admin.html!")
+        self.assertIn('function sortAnalyticsProducts', admin, "LỖI: Thiếu hàm sortAnalyticsProducts trong admin.html!")
+        self.assertIn('function renderStockAlerts', admin, "LỖI: Thiếu hàm renderStockAlerts trong admin.html!")
+        self.assertIn('function renderTopCustomers', admin, "LỖI: Thiếu hàm renderTopCustomers trong admin.html!")
+        self.assertIn('function exportAnalyticsCSV', admin, "LỖI: Thiếu hàm exportAnalyticsCSV trong admin.html!")
+
+    def test_analytics_calculation_algorithm(self):
+        """Kiểm tra: Thuật toán lọc doanh thu, tính AOV, tổng sản phẩm và phân loại Best-seller"""
+        orders = [
+            {
+                "orderId": "DH01",
+                "status": "Hoàn thành",
+                "rawTotal": 200000,
+                "cart": [
+                    {"id": "SP1", "name": "Màn hình OLED", "price": 50000, "qty": 2},
+                    {"id": "SP2", "name": "Arduino Uno", "price": 100000, "qty": 1}
+                ],
+                "phone": "0912345678",
+                "name": "Nguyễn Văn A"
+            },
+            {
+                "orderId": "DH02",
+                "status": "Đã giao cho đơn vị vận chuyển",
+                "rawTotal": 150000,
+                "cart": [
+                    {"id": "SP1", "name": "Màn hình OLED", "price": 50000, "qty": 3}
+                ],
+                "phone": "0987654321",
+                "name": "Trần Thị B"
+            },
+            {
+                "orderId": "DH03",
+                "status": "Khách đặt hàng",
+                "rawTotal": 300000,
+                "cart": [
+                    {"id": "SP2", "name": "Arduino Uno", "price": 100000, "qty": 3}
+                ],
+                "phone": "0912345678",
+                "name": "Nguyễn Văn A"
+            }
+        ]
+
+        # 1. Tính toán cho đơn thành công (Hoàn thành hoặc Đã giao)
+        valid_orders = [o for o in orders if o["status"] in ("Hoàn thành", "Đã giao cho đơn vị vận chuyển")]
+        actual_rev = sum(o["rawTotal"] for o in valid_orders)
+        self.assertEqual(actual_rev, 350000, "Doanh thu thực tế phải là 200k + 150k = 350k")
+
+        # 2. Giá trị trung bình đơn (AOV)
+        aov = round(actual_rev / len(valid_orders)) if valid_orders else 0
+        self.assertEqual(aov, 175000, "AOV = 350k / 2 = 175k")
+
+        # 3. Tổng hợp sản phẩm bán ra
+        prod_map = {}
+        total_items = 0
+        for o in valid_orders:
+            for item in o.get("cart", []):
+                pid = item["id"]
+                qty = item["qty"]
+                price = item["price"]
+                total_items += qty
+                if pid not in prod_map:
+                    prod_map[pid] = {"name": item["name"], "qty": 0, "rev": 0}
+                prod_map[pid]["qty"] += qty
+                prod_map[pid]["rev"] += price * qty
+
+        self.assertEqual(total_items, 6, "Tổng sản phẩm bán ra = (2+1) + 3 = 6")
+        self.assertEqual(prod_map["SP1"]["qty"], 5, "Màn hình OLED bán được 2 + 3 = 5")
+        self.assertEqual(prod_map["SP1"]["rev"], 250000, "Doanh thu OLED = 5 * 50k = 250k")
+        self.assertEqual(prod_map["SP2"]["qty"], 1, "Arduino Uno bán được 1 cái trong đơn thành công")
+
+        # 4. Kiểm tra xếp hạng Top khách hàng (VIP)
+        cust_map = {}
+        for o in valid_orders:
+            phone = o["phone"]
+            if phone not in cust_map:
+                cust_map[phone] = {"name": o["name"], "spend": 0, "count": 0}
+            cust_map[phone]["spend"] += o["rawTotal"]
+            cust_map[phone]["count"] += 1
+
+        top_vip = sorted(cust_map.values(), key=lambda c: c["spend"], reverse=True)
+        self.assertEqual(top_vip[0]["name"], "Nguyễn Văn A")
+        self.assertEqual(top_vip[0]["spend"], 200000)
 
 
 if __name__ == '__main__':
