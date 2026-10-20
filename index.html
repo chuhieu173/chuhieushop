@@ -414,9 +414,18 @@
       <h3>Thông tin nhận hàng</h3>
       <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" required></div>
       <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" required></div>
-      <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value)" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
-      <div class="form-group"><select id="phuong" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
-      <div class="form-group"><input type="text" id="customer-address-detail" placeholder="Địa chỉ chi tiết (Số nhà, đường, ngõ...) *" required></div>
+      <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value); updateAddressPreview();" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
+      <div class="form-group"><select id="phuong" onchange="updateAddressPreview()" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
+      <div class="form-group">
+        <input type="text" id="customer-address-detail" placeholder="Số nhà, tên đường, thôn/xóm (Không cần gõ Phường, Tỉnh/TP) *" oninput="updateAddressPreview()" required>
+        <div style="font-size: 12px; color: #718096; margin-top: 4px; padding-left: 2px;">
+          💡 Chỉ cần nhập số nhà, tên đường (hệ thống sẽ tự động ghép với Phường & Tỉnh/TP đã chọn ở trên).
+        </div>
+      </div>
+      <div id="address-preview-box" style="display: none; margin-bottom: 15px; padding: 12px 14px; background: #f0fff4; border: 1.5px solid #9ae6b4; border-radius: 8px; font-size: 13.5px; color: #22543d; line-height: 1.5;">
+        <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #276749; margin-bottom: 3px;">📍 Địa chỉ giao hàng đầy đủ:</div>
+        <div id="address-preview-text" style="font-weight: bold; color: #1a202c; word-break: break-word;"></div>
+      </div>
       <!-- Tạm thời ẩn phần ghi chú đặt hàng -->
       <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
       
@@ -614,14 +623,165 @@
 
     async function fetchPhuong(idTinh) {
       let phuongSelect = document.getElementById('phuong'); phuongSelect.innerHTML = '<option value="">Chọn Phường / Xã *</option>';
-      if(!idTinh) { phuongSelect.disabled = true; return; }
+      if(!idTinh) { phuongSelect.disabled = true; updateAddressPreview(); return; }
       phuongSelect.disabled = false;
       try {
         let res = await fetch(`https://provinces.open-api.vn/api/v2/p/${idTinh}?depth=2`); let data = await res.json();
         let html = '<option value="">Chọn Phường / Xã *</option>';
         if (data.wards) data.wards.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
         phuongSelect.innerHTML = html;
-      } catch (error) {}
+        updateAddressPreview();
+      } catch (error) { updateAddressPreview(); }
+    }
+
+    function removeDiacritics(str) {
+      return (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+    }
+
+    function cleanDetailAddress(detail, phuongName, tinhName) {
+      if (!detail) return "";
+      let originalDetail = detail.trim();
+      let s = originalDetail;
+
+      let provinceTokens = [];
+      if (tinhName) {
+        let cleanP = tinhName.replace(/^(thành phố|tỉnh|tp\.?|t\.?)\s+/i, "").trim();
+        if (cleanP) provinceTokens.push(cleanP);
+        let pNorm = removeDiacritics(cleanP).toLowerCase();
+
+        if (pNorm.includes("ho chi minh")) {
+          provinceTokens.push("thành phố hồ chí minh", "tp hồ chí minh", "tp. hồ chí minh", "tp.hcm", "tp hcm", "tphcm", "hcm", "sài gòn", "saigon", "sg");
+        } else if (pNorm.includes("ha noi")) {
+          provinceTokens.push("thành phố hà nội", "tp hà nội", "tp. hà nội", "tp.hn", "tp hn", "hà nội", "ha noi", "hn");
+        } else if (pNorm.includes("da nang")) {
+          provinceTokens.push("thành phố đà nẵng", "tp đà nẵng", "đà nẵng", "da nang", "đn", "dn");
+        } else if (pNorm.includes("hai phong")) {
+          provinceTokens.push("thành phố hải phòng", "hải phòng", "hai phong", "hp");
+        } else if (pNorm.includes("can tho")) {
+          provinceTokens.push("thành phố cần thơ", "cần thơ", "can tho", "ct");
+        } else if (pNorm.includes("ba ria") || pNorm.includes("vung tau")) {
+          provinceTokens.push("bà rịa vũng tàu", "vũng tàu", "brvt");
+        } else if (pNorm.includes("binh duong")) {
+          provinceTokens.push("bình dương", "binh duong", "bd");
+        } else if (pNorm.includes("dong nai")) {
+          provinceTokens.push("đồng nai", "dong nai");
+        }
+      }
+
+      let wardTokens = [];
+      if (phuongName) {
+        let rawW = phuongName.trim();
+        wardTokens.push(rawW);
+        let cleanW = rawW.replace(/^(phường|xã|thị trấn|p\.?|x\.?|tt\.?)\s+/i, "").trim();
+        if (cleanW) {
+          wardTokens.push(cleanW);
+          wardTokens.push("phường " + cleanW, "p. " + cleanW, "p." + cleanW, "p " + cleanW, "xã " + cleanW, "x. " + cleanW, "thị trấn " + cleanW, "tt. " + cleanW);
+        }
+      }
+
+      function isPureProvinceSegment(seg) {
+        let segNorm = removeDiacritics(seg).toLowerCase().trim();
+        if (/^(đường|phố|ngõ|ngách|hẻm|kiệt|chung cư|tòa|toà|toà nhà|tòa nhà|building|kdt|khu đô thị|residence|tower|plaza|khách sạn|hotel|chợ)\s/i.test(segNorm)) return false;
+        return provinceTokens.some(pt => {
+          let ptNorm = removeDiacritics(pt).toLowerCase().trim();
+          return segNorm === ptNorm || segNorm === ("tp " + ptNorm) || segNorm === ("tp. " + ptNorm) || segNorm === ("tinh " + ptNorm);
+        });
+      }
+
+      function isPureWardSegment(seg) {
+        let segNorm = removeDiacritics(seg).toLowerCase().trim();
+        if (/^(p\.?\s*\d+|phòng\s*\d+|căn\s*\d+)/i.test(segNorm)) return false;
+        if (/^(đường|phố|ngõ|ngách|hẻm|kiệt|chung cư|tòa|toà|toà nhà|tòa nhà|building|thôn|ấp|bản|khu phố|kp|tổ|đội|xóm)\s/i.test(segNorm)) return false;
+        return wardTokens.some(wt => {
+          let wtNorm = removeDiacritics(wt).toLowerCase().trim();
+          return segNorm === wtNorm;
+        });
+      }
+
+      if (s.includes(",") || s.includes(";")) {
+        let delimiter = s.includes(",") ? "," : ";";
+        let parts = s.split(delimiter).map(p => p.trim()).filter(Boolean);
+        while (parts.length > 1) {
+          let lastPart = parts[parts.length - 1];
+          if (isPureProvinceSegment(lastPart) || isPureWardSegment(lastPart)) {
+            parts.pop();
+          } else {
+            break;
+          }
+        }
+        s = parts.join(", ");
+      } else {
+        let changed = true;
+        while (changed) {
+          changed = false;
+          s = s.replace(/[\s,;.-]+$/, "").trim();
+          if (!s) break;
+
+          for (let pt of provinceTokens) {
+            let escaped = pt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            let regex = new RegExp("(?<!(?:đường|phố|ngõ|ngách|hẻm|chung cư|tòa|toà)\\s+)(?:[,;\\s]+)(?:thành phố|tỉnh|tp\\.?|t\\.?)?\\s*" + escaped + "\\s*$", "i");
+            if (regex.test(s)) {
+              let testS = s.replace(regex, "").trim();
+              if (testS.length >= 3) { s = testS; changed = true; break; }
+            }
+          }
+          if (changed) continue;
+
+          for (let wt of wardTokens) {
+            let escaped = wt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            let regex = new RegExp("(?<!(?:đường|phố|ngõ|ngách|hẻm|chung cư|tòa|toà|phòng|p\\.?)\\s+)(?:[,;\\s]+)" + escaped + "\\s*$", "i");
+            if (regex.test(s)) {
+              let testS = s.replace(regex, "").trim();
+              if (testS.length >= 3) { s = testS; changed = true; break; }
+            }
+          }
+        }
+      }
+
+      let finalClean = s.replace(/[\s,;.-]+$/, "").trim();
+      if (!finalClean || finalClean.length < 3) return originalDetail;
+      return finalClean;
+    }
+
+    function cleanFullAddress(fullAddr) {
+      if (!fullAddr) return "";
+      let parts = fullAddr.split(",").map(p => p.trim()).filter(Boolean);
+      if (parts.length <= 2) return fullAddr.trim();
+
+      let provincePart = parts[parts.length - 1];
+      let wardPart = parts[parts.length - 2];
+      let detailParts = parts.slice(0, parts.length - 2);
+      let rawDetail = detailParts.join(", ");
+
+      let cleanedDetail = cleanDetailAddress(rawDetail, wardPart, provincePart);
+      return `${cleanedDetail}, ${wardPart}, ${provincePart}`;
+    }
+
+    function updateAddressPreview() {
+      const detailEl = document.getElementById('customer-address-detail');
+      const tinhSelect = document.getElementById('tinh');
+      const phuongSelect = document.getElementById('phuong');
+      const previewBox = document.getElementById('address-preview-box');
+      const previewText = document.getElementById('address-preview-text');
+      if (!previewBox || !previewText) return;
+
+      const rawDetail = (detailEl?.value || '').trim();
+      const tinhName = (tinhSelect && tinhSelect.selectedIndex >= 0) ? (tinhSelect.options[tinhSelect.selectedIndex]?.text || '') : '';
+      const phuongName = (phuongSelect && phuongSelect.selectedIndex >= 0) ? (phuongSelect.options[phuongSelect.selectedIndex]?.text || '') : '';
+      const tinhVal = tinhSelect?.value || '';
+      const phuongVal = phuongSelect?.value || '';
+
+      if (tinhVal && phuongVal && rawDetail) {
+        let cleanDetail = cleanDetailAddress(rawDetail, phuongName, tinhName);
+        let preview = cleanDetail ? `${cleanDetail}, ${phuongName}, ${tinhName}` : `${phuongName}, ${tinhName}`;
+        previewText.innerText = preview;
+        previewBox.style.display = 'block';
+      } else if (tinhVal && phuongVal) {
+        previewText.innerText = `[Số nhà, tên đường], ${phuongName}, ${tinhName}`;
+        previewBox.style.display = 'block';
+      } else {
+        previewBox.style.display = 'none';
+      }
     }
 
     function formatMoney(amount) { return Number(amount).toLocaleString('vi-VN') + "đ"; }
@@ -1238,7 +1398,8 @@
 
       if (!name || !phone || !detailAddress || !tinhValue || !phuongValue) { alert("Vui lòng điền đủ Thông tin cá nhân và Địa chỉ!"); return; }
 
-      let fullAddress = `${detailAddress}, ${phuongName}, ${tinhName}`;
+      let cleanDetail = cleanDetailAddress(detailAddress, phuongName, tinhName);
+      let fullAddress = cleanDetail ? `${cleanDetail}, ${phuongName}, ${tinhName}` : `${detailAddress}, ${phuongName}, ${tinhName}`;
       let orderText = "ĐƠN ĐẶT HÀNG MỚI\nNgười nhận: " + name + "\nSđt: " + phone + "\nĐịa chỉ: " + fullAddress + "\n";
       if(note) orderText += "Ghi chú: " + note + "\n";
       orderText += "------------------------\n\n"; 

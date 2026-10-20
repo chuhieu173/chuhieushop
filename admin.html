@@ -1727,15 +1727,141 @@
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
+    function removeDiacritics(str) {
+      return (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+    }
+
+    function cleanDetailAddress(detail, phuongName, tinhName) {
+      if (!detail) return "";
+      let originalDetail = detail.trim();
+      let s = originalDetail;
+
+      let provinceTokens = [];
+      if (tinhName) {
+        let cleanP = tinhName.replace(/^(thành phố|tỉnh|tp\.?|t\.?)\s+/i, "").trim();
+        if (cleanP) provinceTokens.push(cleanP);
+        let pNorm = removeDiacritics(cleanP).toLowerCase();
+
+        if (pNorm.includes("ho chi minh")) {
+          provinceTokens.push("thành phố hồ chí minh", "tp hồ chí minh", "tp. hồ chí minh", "tp.hcm", "tp hcm", "tphcm", "hcm", "sài gòn", "saigon", "sg");
+        } else if (pNorm.includes("ha noi")) {
+          provinceTokens.push("thành phố hà nội", "tp hà nội", "tp. hà nội", "tp.hn", "tp hn", "hà nội", "ha noi", "hn");
+        } else if (pNorm.includes("da nang")) {
+          provinceTokens.push("thành phố đà nẵng", "tp đà nẵng", "đà nẵng", "da nang", "đn", "dn");
+        } else if (pLowerIncludes(pNorm, "hai phong")) {
+          provinceTokens.push("thành phố hải phòng", "hải phòng", "hai phong", "hp");
+        } else if (pLowerIncludes(pNorm, "can tho")) {
+          provinceTokens.push("thành phố cần thơ", "cần thơ", "can tho", "ct");
+        } else if (pLowerIncludes(pNorm, "ba ria") || pLowerIncludes(pNorm, "vung tau")) {
+          provinceTokens.push("bà rịa vũng tàu", "vũng tàu", "brvt");
+        } else if (pLowerIncludes(pNorm, "binh duong")) {
+          provinceTokens.push("bình dương", "binh duong", "bd");
+        } else if (pLowerIncludes(pNorm, "dong nai")) {
+          provinceTokens.push("đồng nai", "dong nai");
+        }
+      }
+
+      function pLowerIncludes(str, sub) { return str.indexOf(sub) !== -1; }
+
+      let wardTokens = [];
+      if (phuongName) {
+        let rawW = phuongName.trim();
+        wardTokens.push(rawW);
+        let cleanW = rawW.replace(/^(phường|xã|thị trấn|p\.?|x\.?|tt\.?)\s+/i, "").trim();
+        if (cleanW) {
+          wardTokens.push(cleanW);
+          wardTokens.push("phường " + cleanW, "p. " + cleanW, "p." + cleanW, "p " + cleanW, "xã " + cleanW, "x. " + cleanW, "thị trấn " + cleanW, "tt. " + cleanW);
+        }
+      }
+
+      function isPureProvinceSegment(seg) {
+        let segNorm = removeDiacritics(seg).toLowerCase().trim();
+        if (/^(đường|phố|ngõ|ngách|hẻm|kiệt|chung cư|tòa|toà|toà nhà|tòa nhà|building|kdt|khu đô thị|residence|tower|plaza|khách sạn|hotel|chợ)\s/i.test(segNorm)) return false;
+        return provinceTokens.some(pt => {
+          let ptNorm = removeDiacritics(pt).toLowerCase().trim();
+          return segNorm === ptNorm || segNorm === ("tp " + ptNorm) || segNorm === ("tp. " + ptNorm) || segNorm === ("tinh " + ptNorm);
+        });
+      }
+
+      function isPureWardSegment(seg) {
+        let segNorm = removeDiacritics(seg).toLowerCase().trim();
+        if (/^(p\.?\s*\d+|phòng\s*\d+|căn\s*\d+)/i.test(segNorm)) return false;
+        if (/^(đường|phố|ngõ|ngách|hẻm|kiệt|chung cư|tòa|toà|toà nhà|tòa nhà|building|thôn|ấp|bản|khu phố|kp|tổ|đội|xóm)\s/i.test(segNorm)) return false;
+        return wardTokens.some(wt => {
+          let wtNorm = removeDiacritics(wt).toLowerCase().trim();
+          return segNorm === wtNorm;
+        });
+      }
+
+      if (s.includes(",") || s.includes(";")) {
+        let delimiter = s.includes(",") ? "," : ";";
+        let parts = s.split(delimiter).map(p => p.trim()).filter(Boolean);
+        while (parts.length > 1) {
+          let lastPart = parts[parts.length - 1];
+          if (isPureProvinceSegment(lastPart) || isPureWardSegment(lastPart)) {
+            parts.pop();
+          } else {
+            break;
+          }
+        }
+        s = parts.join(", ");
+      } else {
+        let changed = true;
+        while (changed) {
+          changed = false;
+          s = s.replace(/[\s,;.-]+$/, "").trim();
+          if (!s) break;
+
+          for (let pt of provinceTokens) {
+            let escaped = pt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            let regex = new RegExp("(?<!(?:đường|phố|ngõ|ngách|hẻm|chung cư|tòa|toà)\\s+)(?:[,;\\s]+)(?:thành phố|tỉnh|tp\\.?|t\\.?)?\\s*" + escaped + "\\s*$", "i");
+            if (regex.test(s)) {
+              let testS = s.replace(regex, "").trim();
+              if (testS.length >= 3) { s = testS; changed = true; break; }
+            }
+          }
+          if (changed) continue;
+
+          for (let wt of wardTokens) {
+            let escaped = wt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            let regex = new RegExp("(?<!(?:đường|phố|ngõ|ngách|hẻm|chung cư|tòa|toà|phòng|p\\.?)\\s+)(?:[,;\\s]+)" + escaped + "\\s*$", "i");
+            if (regex.test(s)) {
+              let testS = s.replace(regex, "").trim();
+              if (testS.length >= 3) { s = testS; changed = true; break; }
+            }
+          }
+        }
+      }
+
+      let finalClean = s.replace(/[\s,;.-]+$/, "").trim();
+      if (!finalClean || finalClean.length < 3) return originalDetail;
+      return finalClean;
+    }
+
+    function cleanFullAddress(fullAddr) {
+      if (!fullAddr) return "";
+      let parts = fullAddr.split(",").map(p => p.trim()).filter(Boolean);
+      if (parts.length <= 2) return fullAddr.trim();
+
+      let provincePart = parts[parts.length - 1];
+      let wardPart = parts[parts.length - 2];
+      let detailParts = parts.slice(0, parts.length - 2);
+      let rawDetail = detailParts.join(", ");
+
+      let cleanedDetail = cleanDetailAddress(rawDetail, wardPart, provincePart);
+      return `${cleanedDetail}, ${wardPart}, ${provincePart}`;
+    }
+
     async function copyCustomerInfo(row) {
         let order = globalOrdersData.find(o => o.row === row);
         if (!order) return;
-        let copyText = `Người nhận: ${order.name}\nSđt: ${order.phone}\nĐịa chỉ: ${order.address}`;
+        let cleanAddr = cleanFullAddress(order.address);
+        let copyText = `Người nhận: ${order.name}\nSđt: ${order.phone}\nĐịa chỉ: ${cleanAddr}`;
         if (order.note) copyText += `\nGhi chú: ${order.note}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           try {
             await navigator.clipboard.writeText(copyText);
-            alert("📋 Đã copy thông tin giao hàng thành công!");
+            showToast("📋 Đã copy thông tin giao hàng! (Địa chỉ đã được chuẩn hóa tự động)", "success");
             return;
           } catch (e) {}
         }
@@ -1746,7 +1872,10 @@
         temp.style.left = "-9999px";
         document.body.appendChild(temp);
         temp.select();
-        try { document.execCommand("copy"); alert("📋 Đã copy thông tin giao hàng thành công!"); } 
+        try { 
+          document.execCommand("copy"); 
+          showToast("📋 Đã copy thông tin giao hàng! (Địa chỉ đã được chuẩn hóa tự động)", "success"); 
+        } 
         catch (err) { alert("Lỗi! Trình duyệt của bạn không hỗ trợ chức năng copy tự động."); }
         document.body.removeChild(temp);
     }
@@ -1993,7 +2122,7 @@
             <td data-label="Khách hàng">
               <b style="font-size:15px; color:#1a2935;">${escapeHtml(order.name)}</b><br>
               <span style="color:#0068ff; margin-top:4px; display:inline-block; font-weight:600;"><a href="tel:${phoneClean}" style="color:#0068ff; text-decoration:none;">📞 ${escapeHtml(order.phone)}</a></span><br>
-              <div style="color:#4a5568; margin-top:4px; font-size:12.5px; line-height:1.4;">📍 ${escapeHtml(order.address)}</div>
+              <div style="color:#4a5568; margin-top:4px; font-size:12.5px; line-height:1.4;">📍 ${escapeHtml(cleanFullAddress(order.address))}</div>
               ${order.note ? `<div style="color:#d69e2e; margin-top:4px; font-size:12px; font-style:italic;">📝 Ghi chú: ${escapeHtml(order.note)}</div>` : ''}
               <div class="customer-action-row">
                 <button type="button" class="btn-cust-action btn-cust-copy" onclick="copyCustomerInfo(${order.row})">📋 Copy Thông tin</button>

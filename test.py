@@ -137,6 +137,14 @@ class TestDOMIntegrity(unittest.TestCase):
         for bid in batch_ids:
             self.assertIn(bid, collector.ids, f"LỖI: Thiếu phần tử id='{bid}' trong admin.html!")
 
+    def test_address_preview_elements_exist_in_index(self):
+        """Kiểm tra: Các phần tử xem trước địa chỉ giao hàng chuẩn hóa phải tồn tại trong index.html"""
+        content = read_file('index.html')
+        collector = IDCollector()
+        collector.feed(content)
+        self.assertIn('address-preview-box', collector.ids, "LỖI: Thiếu id='address-preview-box' trong index.html!")
+        self.assertIn('address-preview-text', collector.ids, "LỖI: Thiếu id='address-preview-text' trong index.html!")
+
     def test_checkout_essential_fields(self):
         """Kiểm tra: Các trường bắt buộc trong Form Đặt Hàng (index.html) không bao giờ bị xóa nhầm"""
         content = read_file('index.html')
@@ -826,6 +834,40 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertNotIn(2, pending_changes)
         self.assertIn(4, pending_changes)
         self.assertEqual(pending_changes[4], "Hoàn thành")
+
+    def test_address_functions_exist_in_files(self):
+        """Kiểm tra: Các hàm làm sạch và chống trùng lặp địa chỉ phải tồn tại trong cả index.html và admin.html"""
+        index_html = read_file('index.html')
+        admin_html = read_file('admin.html')
+        self.assertIn('function cleanDetailAddress', index_html, "Thiếu cleanDetailAddress trong index.html")
+        self.assertIn('function cleanFullAddress', index_html, "Thiếu cleanFullAddress trong index.html")
+        self.assertIn('function updateAddressPreview', index_html, "Thiếu updateAddressPreview trong index.html")
+        self.assertIn('function cleanFullAddress', admin_html, "Thiếu cleanFullAddress trong admin.html")
+
+    def test_address_deduplication_algorithm_exact_cases(self):
+        """Kiểm tra: Thuật toán loại bỏ trùng lặp địa chỉ (khách gõ lại phường, tphcm) hoạt động chính xác bằng Node.js"""
+        index_content = read_file('index.html')
+        match = re.search(r"(function removeDiacritics[\s\S]*?)function updateAddressPreview", index_content)
+        self.assertIsNotNone(match, "Không tìm thấy định nghĩa hàm xử lý địa chỉ trong index.html")
+        funcs_code = match.group(1)
+
+        test_js = funcs_code + """
+        console.assert(cleanDetailAddress("187/8 đường số 6 , phường hạnh thông , tphcm", "Phường Hạnh Thông", "Thành phố Hồ Chí Minh") === "187/8 đường số 6", "Lỗi test 1");
+        console.assert(cleanDetailAddress("187/8 đường số 6, p. hạnh thông, tp.hcm", "Phường Hạnh Thông", "Thành phố Hồ Chí Minh") === "187/8 đường số 6", "Lỗi test 2");
+        console.assert(cleanDetailAddress("187/8 đường số 6, hạnh thông, Sài Gòn", "Phường Hạnh Thông", "Thành phố Hồ Chí Minh") === "187/8 đường số 6", "Lỗi test 3");
+        console.assert(cleanDetailAddress("187/8 đường số 6 phường hạnh thông tphcm", "Phường Hạnh Thông", "Thành phố Hồ Chí Minh") === "187/8 đường số 6", "Lỗi test 4");
+        console.assert(cleanDetailAddress("Số 15 ngõ 42 Trương Định, Tương Mai, Hoàng Mai, HN", "Phường Tương Mai", "Thành phố Hà Nội") === "Số 15 ngõ 42 Trương Định, Hoàng Mai", "Lỗi test 5");
+        console.assert(cleanFullAddress("187/8 đường số 6 , phường hạnh thông , tphcm, Phường Hạnh Thông, Thành phố Hồ Chí Minh") === "187/8 đường số 6, Phường Hạnh Thông, Thành phố Hồ Chí Minh", "Lỗi test 6");
+        // Kiểm tra an toàn: Không làm mất tên đường, tòa nhà, số phòng, quận huyện
+        console.assert(cleanDetailAddress("Chung cư Saigon Mia, đường số 9A, Phường Bình Hưng, TP.HCM", "Phường Bình Hưng", "Thành phố Hồ Chí Minh") === "Chung cư Saigon Mia, đường số 9A", "Lỗi giữ tên Chung cư");
+        console.assert(cleanDetailAddress("Số 15 đường Hồ Chí Minh, Phường 1, TP Kon Tum", "Phường 1", "Tỉnh Kon Tum") === "Số 15 đường Hồ Chí Minh", "Lỗi giữ tên Đường");
+        console.assert(cleanDetailAddress("P.402, Nhà A3, ngõ 120 Hoàng Quốc Việt, Phường Cổ Nhuế 1, Hà Nội", "Phường Cổ Nhuế 1", "Thành phố Hà Nội") === "P.402, Nhà A3, ngõ 120 Hoàng Quốc Việt", "Lỗi giữ số phòng P.402");
+        console.assert(cleanDetailAddress("187/8 đường số 6, Gò Vấp, Phường Hạnh Thông, TPHCM", "Phường Hạnh Thông", "Thành phố Hồ Chí Minh") === "187/8 đường số 6, Gò Vấp", "Lỗi giữ quận huyện Gò Vấp");
+        console.assert(cleanDetailAddress("TPHCM", "Phường 1", "Thành phố Hồ Chí Minh") === "TPHCM", "Lỗi fallback khi chuỗi quá ngắn");
+        """
+
+        p = subprocess.run(["node", "-e", test_js], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, f"LỖI TEST ĐỊA CHỈ TRÙNG LẶP:\n{p.stderr}")
 
 
 if __name__ == '__main__':
