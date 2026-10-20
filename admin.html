@@ -983,6 +983,25 @@
       background: #2c5282;
       transform: translateY(-1px);
     }
+    .btn-bulk-delete {
+      background: #e53e3e;
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(229, 62, 62, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-bulk-delete:hover {
+      background: #c53030;
+      transform: translateY(-1px);
+    }
     .btn-save-all {
       background: #38a169;
       color: white;
@@ -1154,6 +1173,9 @@
             </select>
             <button id="btn-bulk-apply" class="btn-bulk-apply" onclick="applyBulkStatusUpdate()">
               ⚡ Áp Dụng Cho <span id="bulk-btn-count">0</span> Đơn
+            </button>
+            <button id="btn-bulk-delete" class="btn-bulk-delete" onclick="deleteSelectedOrders()">
+              🗑️ Xóa <span id="bulk-delete-btn-count">0</span> Đơn
             </button>
             <button class="btn-bulk-clear" onclick="clearSelectedOrders()">Bỏ chọn</button>
           </div>
@@ -1890,7 +1912,13 @@
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
         selectedOrderRows.delete(rowIdx);
         pendingOrderChanges.delete(rowIdx);
-        alert("Đã xóa ẩn đơn hàng khỏi danh sách!"); loadData(); 
+        globalOrdersData = (globalOrdersData || []).filter(o => o.row !== rowIdx);
+        renderOrders(globalOrdersData);
+        if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
+          renderAnalytics();
+        }
+        showLoading(false);
+        showToast("🗑️ Đã xóa ẩn đơn hàng khỏi danh sách!", "success");
       } catch (e) { alert("Lỗi!"); showLoading(false); }
     }
 
@@ -1983,8 +2011,10 @@
           bulkBar.style.display = 'flex';
           let countEl = document.getElementById('bulk-selected-count');
           let btnCountEl = document.getElementById('bulk-btn-count');
+          let delBtnCountEl = document.getElementById('bulk-delete-btn-count');
           if (countEl) countEl.innerText = String(selectedOrderRows.size);
           if (btnCountEl) btnCountEl.innerText = String(selectedOrderRows.size);
+          if (delBtnCountEl) delBtnCountEl.innerText = String(selectedOrderRows.size);
         } else {
           bulkBar.style.display = 'none';
         }
@@ -2633,6 +2663,47 @@
 
       let updates = Array.from(selectedOrderRows).map(r => ({ row: r, newStatus: newStatus }));
       await executeBatchStatusUpdate(updates, `✅ Đã chuyển ${updates.length} đơn sang "${newStatus}"!`);
+    }
+
+    async function deleteSelectedOrders() {
+      if (!selectedOrderRows || selectedOrderRows.size === 0) {
+        showToast("Chưa chọn đơn hàng nào để xóa", "info");
+        return;
+      }
+      let count = selectedOrderRows.size;
+      if (!confirm(`Bạn có chắc chắn muốn XÓA ẨN ${count} đơn hàng đã chọn khỏi danh sách không?\n\n(Dữ liệu các đơn này vẫn được lưu trữ an toàn ở Cột L trên Google Sheets)`)) {
+        return;
+      }
+      showLoading(true);
+      try {
+        let rowsToDelete = Array.from(selectedOrderRows);
+        let payload = { action: "deleteBatchOrders", token: getAdminToken(), rows: rowsToDelete };
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        let data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg);
+          showLoading(false);
+          return;
+        }
+
+        let deletedSet = new Set(rowsToDelete);
+        globalOrdersData = (globalOrdersData || []).filter(o => !deletedSet.has(o.row));
+        rowsToDelete.forEach(r => {
+          selectedOrderRows.delete(r);
+          pendingOrderChanges.delete(r);
+        });
+
+        renderOrders(globalOrdersData);
+        if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
+          renderAnalytics();
+        }
+        showLoading(false);
+        showToast(`🗑️ Đã xóa ẩn thành công ${count} đơn hàng!`, "success");
+      } catch (e) {
+        showLoading(false);
+        alert("Lỗi kết nối máy chủ khi xóa đơn hàng!");
+      }
     }
 
     async function saveAllPendingStatusChanges() {

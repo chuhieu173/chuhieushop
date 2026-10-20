@@ -126,6 +126,8 @@ class TestDOMIntegrity(unittest.TestCase):
             'bulk-status-select',
             'bulk-btn-count',
             'btn-bulk-apply',
+            'btn-bulk-delete',
+            'bulk-delete-btn-count',
             'orders-unsaved-bar',
             'unsaved-count',
             'unsaved-btn-count',
@@ -783,6 +785,7 @@ class TestBusinessLogic(unittest.TestCase):
         funcs = [
             'function executeBatchStatusUpdate',
             'function applyBulkStatusUpdate',
+            'function deleteSelectedOrders',
             'function saveAllPendingStatusChanges',
             'function toggleOrderSelect',
             'function toggleSelectAllOrders',
@@ -801,7 +804,9 @@ class TestBusinessLogic(unittest.TestCase):
         """Kiểm tra: Logic xử lý mảng cập nhật trạng thái đơn hàng hàng loạt và chống trừ trùng kho"""
         codegs = read_file('Code.gs')
         self.assertIn('function handleBatchUpdateOrderStatus', codegs, "LỖI: Thiếu hàm handleBatchUpdateOrderStatus trong Code.gs!")
+        self.assertIn('function handleDeleteBatchOrders', codegs, "LỖI: Thiếu hàm handleDeleteBatchOrders trong Code.gs!")
         self.assertIn('action === "updateBatchOrderStatus"', codegs, "LỖI: Thiếu route updateBatchOrderStatus trong Code.gs!")
+        self.assertIn('action === "deleteBatchOrders"', codegs, "LỖI: Thiếu route deleteBatchOrders trong Code.gs!")
 
         # Mô phỏng thuật toán gom mảng updates
         selected_rows = {2, 5, 8}
