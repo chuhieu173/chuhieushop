@@ -905,6 +905,37 @@
     .rank-2 { background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; }
     .rank-3 { background: #feebc8; color: #c05621; border: 1px solid #fbd38d; }
     .rank-other { background: #f7fafc; color: #718096; }
+    .badge-cost-missing {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #c53030;
+      background: #fed7d7;
+      border: 1px solid #feb2b2;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .badge-cost-missing:hover {
+      background: #feb2b2;
+    }
+    .quick-cost-input {
+      padding: 6px 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 13.5px;
+      width: 140px;
+      box-sizing: border-box;
+      outline: none;
+      font-weight: 600;
+      color: #2b6cb0;
+      transition: all 0.15s;
+    }
+    .quick-cost-input:focus {
+      border-color: #0068ff;
+      background: #ebf8ff;
+    }
 
     /* --- BẬT / TẮT THAO TÁC ĐƠN HÀNG HÀNG LOẠT & TOAST --- */
     .orders-toolbar-container {
@@ -1158,6 +1189,7 @@
       <div class="tab" onclick="switchTab('combos', this)">🎁 COMBO</div>
       <div class="tab" onclick="switchTab('posts', this)">📐 BÀI VIẾT / SƠ ĐỒ</div>
       <div class="tab" onclick="switchTab('analytics', this)">📊 THỐNG KÊ & BÁO CÁO</div>
+      <div class="tab" onclick="switchTab('profit', this)">💰 LỢI NHUẬN</div>
     </div>
 
     <div id="loading-overlay">
@@ -1482,6 +1514,184 @@
         </div>
       </div>
     </div>
+
+    <!-- TAB BÁO CÁO LỢI NHUẬN & GIÁ VỐN -->
+    <div id="profit" class="content">
+      <!-- HEADER TOOLBAR: BỘ LỌC THỜI GIAN & TRẠNG THÁI -->
+      <div class="analytics-toolbar">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 18px; font-weight: 700; color: #1a2935; display: flex; align-items: center; gap: 8px;">
+            <span>💰 Báo Cáo Lợi Nhuận & Phân Tích Giá Vốn</span>
+            <span style="font-size: 11px; background: #e6fffa; color: #234e52; border: 1px solid #b2f5ea; padding: 2px 8px; border-radius: 12px; font-weight: 700;">🔒 BẢO MẬT ADMIN</span>
+          </div>
+          <div style="font-size: 13px; color: #718096;">Nắm chính xác chi phí vốn, doanh thu và tiền lãi thực tế theo từng tháng, tuần hoặc ngày.</div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <select id="profit-status-filter" class="status-select" style="width: auto; margin-bottom: 0;" onchange="renderProfitAnalytics()">
+            <option value="valid" selected>✅ Đơn thành công (Hoàn thành + Đang giao)</option>
+            <option value="completed">🏆 Chỉ đơn Hoàn thành</option>
+            <option value="all">📦 Tất cả đơn (gồm cả Khách đặt hàng)</option>
+          </select>
+          <button type="button" class="btn-update" style="background:#2b6cb0; padding:8px 14px;" onclick="exportProfitCSV()">📥 Xuất Báo Cáo (CSV)</button>
+        </div>
+      </div>
+
+      <!-- THANH NÚT CHỌN NHANH KHOẢNG THỜI GIAN -->
+      <div class="date-preset-bar">
+        <button type="button" class="btn-date-preset" onclick="setProfitRange('today', this)">Hôm nay</button>
+        <button type="button" class="btn-date-preset" onclick="setProfitRange('yesterday', this)">Hôm qua</button>
+        <button type="button" class="btn-date-preset" onclick="setProfitRange('last7', this)">7 ngày qua</button>
+        <button type="button" class="btn-date-preset" onclick="setProfitRange('thisWeek', this)">Tuần này</button>
+        <button type="button" class="btn-date-preset active" onclick="setProfitRange('thisMonth', this)">Tháng này</button>
+        <button type="button" class="btn-date-preset" onclick="setProfitRange('lastMonth', this)">Tháng trước</button>
+        <button type="button" class="btn-date-preset" onclick="setProfitRange('thisYear', this)">Năm nay</button>
+        <button type="button" class="btn-date-preset" onclick="setProfitRange('all', this)">Tất cả</button>
+        <button type="button" class="btn-date-preset" onclick="setProfitRange('custom', this)">📅 Tùy chọn ngày...</button>
+      </div>
+
+      <!-- CHỌN KHOẢNG NGÀY TÙY BIẾN -->
+      <div id="profit-custom-date-box" style="display: none; background: white; border: 1px solid #cbd5e0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <span style="font-size: 13.5px; font-weight: 600; color: #4a5568;">Từ ngày:</span>
+        <input type="date" id="profit-date-from" style="padding: 6px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13.5px;">
+        <span style="font-size: 13.5px; font-weight: 600; color: #4a5568;">Đến ngày:</span>
+        <input type="date" id="profit-date-to" style="padding: 6px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13.5px;">
+        <button type="button" class="btn-date-preset active" onclick="applyProfitCustomDateRange()" style="padding: 7px 16px;">Áp dụng</button>
+      </div>
+
+      <!-- 4 THẺ KPI TÀI CHÍNH LỢI NHUẬN -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-title">Tổng Doanh Thu</span>
+            <div class="kpi-card-icon" style="background: #ebf8ff; color: #0068ff;">💵</div>
+          </div>
+          <div id="profit-kpi-revenue" class="kpi-card-value">0đ</div>
+          <div class="kpi-card-sub">Tổng tiền bán hàng thu về</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-title">Tổng Giá Vốn (COGS)</span>
+            <div class="kpi-card-icon" style="background: #fffaf0; color: #dd6b20;">📉</div>
+          </div>
+          <div id="profit-kpi-cost" class="kpi-card-value">0đ</div>
+          <div class="kpi-card-sub">Tổng tiền vốn nhập số hàng đã bán</div>
+        </div>
+
+        <div class="kpi-card" style="border: 2px solid #38a169; background: #f0fff4;">
+          <div class="kpi-card-header">
+            <span class="kpi-card-title" style="color: #22543d; font-weight: 800;">LỢI NHUẬN THỰC TẾ (LÃI)</span>
+            <div class="kpi-card-icon" style="background: #c6f6d5; color: #22543d;">🏆</div>
+          </div>
+          <div id="profit-kpi-profit" class="kpi-card-value" style="color: #22543d; font-size: 26px;">0đ</div>
+          <div class="kpi-card-sub" style="color: #276749; font-weight: 600;">Tiền lãi thực = Doanh thu - Giá vốn</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-title">Tỷ Suất Lợi Nhuận</span>
+            <div class="kpi-card-icon" style="background: #faf5ff; color: #805ad5;">📈</div>
+          </div>
+          <div id="profit-kpi-margin" class="kpi-card-value">0%</div>
+          <div id="profit-kpi-items" class="kpi-card-sub">Đã xuất bán 0 linh kiện</div>
+        </div>
+      </div>
+
+      <!-- BIỂU ĐỒ LỢI NHUẬN TRỰC QUAN -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-card-title">
+            <span>📈 Diễn Biến Doanh Thu - Giá Vốn - Tiền Lời</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-profit-trends"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title">
+            <span>🥧 Tỷ Trọng Lợi Nhuận Top Mặt Hàng</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-profit-share"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- BẢNG PHÂN TÍCH LỢI NHUẬN CHI TIẾT TỪNG MẶT HÀNG -->
+      <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 25px;">
+        <div class="analytics-section-title">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>📊 Bảng Phân Tích Lợi Nhuận Chi Tiết Từng Mặt Hàng</span>
+            <span id="profit-prod-count" style="font-size: 12px; background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; padding: 2px 8px; border-radius: 12px; font-weight: 600;">0 mặt hàng</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="profit-prod-search" class="table-search-input" placeholder="🔍 Tìm tên sản phẩm..." oninput="onProfitProductSearch()">
+            <div style="display: inline-flex; gap: 4px; flex-wrap: wrap;">
+              <button type="button" id="btn-profit-sort-profit" class="btn-sort active" onclick="sortProfitProducts('profit')">Lãi nhiều nhất ▼</button>
+              <button type="button" id="btn-profit-sort-margin" class="btn-sort" onclick="sortProfitProducts('margin')">Tỷ suất lãi cao ▼</button>
+              <button type="button" id="btn-profit-sort-rev" class="btn-sort" onclick="sortProfitProducts('revenue')">Doanh thu cao ▼</button>
+              <button type="button" id="btn-profit-sort-qty" class="btn-sort" onclick="sortProfitProducts('qty')">Bán chạy nhất ▼</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 45px; text-align: center;">#</th>
+                <th style="width: 65px;">Hình ảnh</th>
+                <th style="width: 28%;">Tên linh kiện & Phân loại</th>
+                <th>Giá vốn (nhập)</th>
+                <th>Giá bán TB</th>
+                <th style="text-align: center;">Đã bán</th>
+                <th>Tổng doanh thu</th>
+                <th>Tổng tiền vốn</th>
+                <th style="color: #22543d;">TIỀN LÃI THỰC</th>
+                <th style="text-align: center;">Tỷ suất (%)</th>
+              </tr>
+            </thead>
+            <tbody id="profit-products-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BẢNG NHẬP NHANH GIÁ VỐN HÀNG LOẠT (QUICK COST EDITOR) -->
+      <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+        <div class="analytics-section-title">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>📋 Bảng Nhập Nhanh Giá Vốn Linh Kiện (Quick Cost Editor)</span>
+              <span style="font-size: 11px; background: #feebc8; color: #c05621; border: 1px solid #fbd38d; padding: 2px 8px; border-radius: 12px; font-weight: 700;">TIỆN ÍCH ADMIN</span>
+            </div>
+            <div style="font-size: 12.5px; color: #718096; font-weight: normal; margin-top: 4px;">Điền nhanh giá vốn thực tế mua từ xưởng cho từng linh kiện/phân loại rồi bấm Lưu để cập nhật toàn bộ.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="text" id="quick-cost-search" class="table-search-input" placeholder="🔍 Tìm linh kiện cần nhập vốn..." oninput="onQuickCostSearch()">
+            <button type="button" id="btn-save-quick-cost" class="btn-update" style="background: #38a169; padding: 8px 16px; font-weight: 700;" onclick="saveQuickCostPrices()">💾 Lưu Bảng Giá Vốn</button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto; max-height: 450px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 50px; text-align: center;">#</th>
+                <th style="width: 65px;">Hình ảnh</th>
+                <th>Tên sản phẩm</th>
+                <th>Phân loại hàng</th>
+                <th>Giá bán hiện tại</th>
+                <th style="width: 180px;">🔒 Giá vốn nhập kho (VNĐ)</th>
+                <th>Trạng thái vốn</th>
+              </tr>
+            </thead>
+            <tbody id="quick-cost-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
     
   </div>
 
@@ -1501,9 +1711,19 @@
         </select>
       </div>
 
-      <div style="display:flex; gap:15px;">
-        <div class="form-group" style="flex:1;"><label>Giá Gốc (VNĐ):</label><input type="number" id="edit-orig-price"></div>
-        <div class="form-group" style="flex:1;"><label>Giá Bán (VNĐ):</label><input type="number" id="edit-sell-price"></div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; min-width:140px;">
+          <label title="Giá niêm yết cũ để tạo khuyến mãi trên web cho khách">🏷️ Giá Gốc (Gạch ngang):</label>
+          <input type="number" id="edit-orig-price" placeholder="VD: 150000">
+        </div>
+        <div class="form-group" style="flex:1; min-width:140px;">
+          <label>💵 Giá Bán (VNĐ):</label>
+          <input type="number" id="edit-sell-price" placeholder="VD: 120000">
+        </div>
+        <div class="form-group" style="flex:1; min-width:140px;">
+          <label style="color:#2b6cb0;" title="Giá bạn thực tế mua nhập từ xưởng/nhà phân phối. Khách hàng không thể thấy.">🔒 Giá Vốn Nhập Kho:</label>
+          <input type="number" id="edit-cost-price" placeholder="VD: 70000" style="border-color:#bee3f8; background:#f7fafc;">
+        </div>
       </div>
       
       <!-- CẤU HÌNH PHÂN LOẠI SẢN PHẨM -->
@@ -1731,6 +1951,8 @@
       document.getElementById(tabId).classList.add('active');
       if (tabId === 'analytics') {
         renderAnalytics();
+      } else if (tabId === 'profit') {
+        renderProfitAnalytics();
       }
     }
 
@@ -1746,8 +1968,16 @@
         globalOrdersData = orders;
         renderOrders(globalOrdersData);
         
-        let resProducts = await fetch(API_URL + "?action=getProducts");
-        let resData = await resProducts.json();
+        let resData = null;
+        try {
+          let resProducts = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getProductsAdmin", token: token }) });
+          resData = await resProducts.json();
+        } catch(err) {}
+
+        if (!resData || resData.status === "error" || !resData.products) {
+          let resProductsFallback = await fetch(API_URL + "?action=getProducts");
+          resData = await resProductsFallback.json();
+        }
         
         if (resData.products) {
           globalProductsData = resData.products;
@@ -1763,6 +1993,9 @@
         updateComboSelectOptions();
         if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
           renderAnalytics();
+        }
+        if (document.getElementById('profit') && document.getElementById('profit').classList.contains('active')) {
+          renderProfitAnalytics();
         }
       } catch (e) { alert("Lỗi kết nối máy chủ Google!"); }
       showLoading(false);
@@ -3139,11 +3372,13 @@
     function addNewVariantRow(initialData = null) {
       let defaultPrice = document.getElementById('edit-sell-price').value || '';
       let defaultOrig = document.getElementById('edit-orig-price').value || '';
+      let defaultCost = document.getElementById('edit-cost-price') ? document.getElementById('edit-cost-price').value : '';
       let newVar = initialData || {
         id: 'var_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
         name: '',
         price: defaultPrice,
         originalPrice: defaultOrig,
+        costPrice: defaultCost,
         stock: 10,
         image: ''
       };
@@ -3224,6 +3459,10 @@
             <div class="variant-field-item">
               <label>Giá gốc (VNĐ):</label>
               <input type="number" value="${v.originalPrice || ''}" placeholder="60000" oninput="updateVariantField(${idx}, 'originalPrice', this.value)">
+            </div>
+            <div class="variant-field-item">
+              <label style="color:#2b6cb0;" title="Giá bạn thực tế mua nhập từ xưởng/nhà phân phối">🔒 Giá vốn (nhập):</label>
+              <input type="number" value="${v.costPrice !== undefined ? v.costPrice : ''}" placeholder="30000" oninput="updateVariantField(${idx}, 'costPrice', this.value)" style="border-color:#bee3f8; background:#f7fafc;">
             </div>
             <div class="variant-field-item">
               <label>Tồn kho riêng (*):</label>
@@ -3309,6 +3548,7 @@
         document.getElementById("edit-name").value = p.name;
         document.getElementById("edit-orig-price").value = p.originalPrice; 
         document.getElementById("edit-sell-price").value = p.price;
+        document.getElementById("edit-cost-price").value = p.costPrice !== undefined ? p.costPrice : "";
         document.getElementById("edit-desc").value = p.desc; 
         document.getElementById("edit-stock").value = p.stock;
         
@@ -3333,6 +3573,7 @@
         document.getElementById("edit-name").value = "";
         document.getElementById("edit-orig-price").value = ""; 
         document.getElementById("edit-sell-price").value = "";
+        document.getElementById("edit-cost-price").value = "";
         document.getElementById("edit-desc").value = ""; 
         document.getElementById("edit-stock").value = "0";
         document.getElementById("edit-status").value = "còn hàng";
@@ -3371,6 +3612,7 @@
         recalculateVariantTotals();
       }
 
+      let costPriceVal = document.getElementById("edit-cost-price") ? document.getElementById("edit-cost-price").value : "";
       let payload = {
         action: pId ? "updateProduct" : "createProduct",
         token: getAdminToken(),
@@ -3378,6 +3620,7 @@
         name: document.getElementById("edit-name").value,
         originalPrice: document.getElementById("edit-orig-price").value,
         price: document.getElementById("edit-sell-price").value,
+        costPrice: costPriceVal !== "" ? Number(costPriceVal) : 0,
         images: currentEditImages.join('\n'),
         desc: document.getElementById("edit-desc").value,
         status: document.getElementById("edit-status").value,
@@ -4309,6 +4552,909 @@
       const a = document.createElement('a');
       a.href = url;
       a.download = `Bao_Cao_Ban_Hang_${currentAnalyticsRange}_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    /* =========================================================================
+       PHÂN HỆ BÁO CÁO LỢI NHUẬN & PHÂN TÍCH GIÁ VỐN (PROFIT & COGS)
+       ========================================================================= */
+    let currentProfitRange = 'thisMonth';
+    let currentProfitSort = 'profit';
+    let currentProfitSearch = '';
+    let currentProfitProducts = [];
+    let chartProfitTrendsInstance = null;
+    let chartProfitShareInstance = null;
+    let quickCostSearchQuery = '';
+    let pendingQuickCostMap = new Map();
+
+    function setProfitRange(rangeKey, btnElement) {
+      currentProfitRange = rangeKey;
+      document.querySelectorAll('#profit .date-preset-bar .btn-date-preset').forEach(b => b.classList.remove('active'));
+      if (btnElement) btnElement.classList.add('active');
+
+      const customBox = document.getElementById('profit-custom-date-box');
+      if (rangeKey === 'custom') {
+        if (customBox) customBox.style.display = 'flex';
+        return;
+      } else {
+        if (customBox) customBox.style.display = 'none';
+      }
+      renderProfitAnalytics();
+    }
+
+    function applyProfitCustomDateRange() {
+      const fromVal = document.getElementById('profit-date-from').value;
+      const toVal = document.getElementById('profit-date-to').value;
+      if (!fromVal || !toVal) {
+        alert("Vui lòng chọn cả ngày bắt đầu và ngày kết thúc!");
+        return;
+      }
+      if (fromVal > toVal) {
+        alert("Ngày bắt đầu không được lớn hơn ngày kết thúc!");
+        return;
+      }
+      renderProfitAnalytics();
+    }
+
+    function getProfitDateBounds(rangeKey) {
+      const now = new Date();
+      let start = null;
+      let end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      if (rangeKey === 'today') {
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      } else if (rangeKey === 'yesterday') {
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+      } else if (rangeKey === 'last7') {
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
+      } else if (rangeKey === 'thisWeek') {
+        let dayOfWeek = now.getDay();
+        let diff = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff, 0, 0, 0, 0);
+      } else if (rangeKey === 'thisMonth') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      } else if (rangeKey === 'lastMonth') {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      } else if (rangeKey === 'thisYear') {
+        start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      } else if (rangeKey === 'custom') {
+        const fromStr = document.getElementById('profit-date-from').value;
+        const toStr = document.getElementById('profit-date-to').value;
+        if (fromStr && toStr) {
+          const pFrom = fromStr.split('-');
+          const pTo = toStr.split('-');
+          start = new Date(parseInt(pFrom[0], 10), parseInt(pFrom[1], 10) - 1, parseInt(pFrom[2], 10), 0, 0, 0, 0);
+          end = new Date(parseInt(pTo[0], 10), parseInt(pTo[1], 10) - 1, parseInt(pTo[2], 10), 23, 59, 59, 999);
+        }
+      }
+      return { start, end };
+    }
+
+    function renderProfitAnalytics() {
+      if (!globalOrdersData) return;
+      const bounds = getProfitDateBounds(currentProfitRange);
+      const statusFilterEl = document.getElementById('profit-status-filter');
+      const statusFilter = statusFilterEl ? statusFilterEl.value : 'valid';
+
+      let inRangeOrders = globalOrdersData.filter(o => {
+        let d = parseOrderDate(o.date);
+        if (!d) return true;
+        if (bounds.start && d < bounds.start) return false;
+        if (bounds.end && d > bounds.end) return false;
+        return true;
+      });
+
+      let validOrders = [];
+      inRangeOrders.forEach(o => {
+        let st = (o.status || '').toLowerCase();
+        let isSuccess = st === 'hoàn thành' || st === 'đã giao cho đơn vị vận chuyển';
+        if (statusFilter === 'all') {
+          validOrders.push(o);
+        } else if (statusFilter === 'completed') {
+          if (st === 'hoàn thành') validOrders.push(o);
+        } else {
+          if (isSuccess) validOrders.push(o);
+        }
+      });
+
+      let profitSalesMap = {};
+      let totalItemsSold = 0;
+      let missingCostCount = 0;
+
+      validOrders.forEach(o => {
+        let items = [];
+        if (Array.isArray(o.cart) && o.cart.length > 0) {
+          items = o.cart;
+        } else if (o.details) {
+          items = parseOrderDetailsFallback(o.details);
+        }
+
+        items.forEach(it => {
+          let qty = parseInt(it.qty, 10) || 1;
+          let price = Number(it.price) || 0;
+
+          let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
+          let comboDef = null;
+          if (globalCombosData && globalCombosData.length > 0) {
+            comboDef = globalCombosData.find(c => 
+              (it.id && String(c.id) === String(it.id)) || 
+              (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase())
+            );
+            if (comboDef) isCombo = true;
+          }
+
+          let comboComponents = [];
+          if (isCombo && comboDef) {
+            if (Array.isArray(comboDef.rawItems) && comboDef.rawItems.length > 0) {
+              comboComponents = comboDef.rawItems;
+            } else if (comboDef.rawJson) {
+              try {
+                let parsed = JSON.parse(comboDef.rawJson);
+                if (Array.isArray(parsed)) comboComponents = parsed;
+              } catch(e) {}
+            }
+          }
+
+          if (isCombo && comboComponents.length > 0) {
+            let comboTotalPrice = price * qty;
+            let totalCompStandard = comboComponents.reduce((acc, ci) => {
+              let ciProd = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+              let ciPrice = Number(ci.price);
+              if (isNaN(ciPrice) || ciPrice <= 0) {
+                if (ciProd) {
+                  if (ci.variantId && ciProd.variants) {
+                    let v = ciProd.variants.find(va => String(va.id) === String(ci.variantId));
+                    ciPrice = v ? Number(v.price) : Number(ciProd.price);
+                  } else {
+                    ciPrice = Number(ciProd.price);
+                  }
+                }
+              }
+              return acc + ((ciPrice || 0) * (Number(ci.qty) || 1));
+            }, 0);
+
+            comboComponents.forEach(ci => {
+              let pId = String(ci.id || ci.name);
+              let varId = ci.variantId ? String(ci.variantId) : '';
+              let key = pId + (varId ? '__' + varId : '');
+              let compQty = (Number(ci.qty) || 1) * qty;
+              totalItemsSold += compQty;
+
+              let origProd = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+              let prodName = ci.name || (origProd ? origProd.name : 'Linh kiện');
+              let varName = ci.variantName || '';
+              let realPrice = Number(ci.price) || 0;
+              let costUnit = 0;
+
+              if (origProd) {
+                if (!prodName || prodName === 'Linh kiện') prodName = origProd.name;
+                if (varId && origProd.variants) {
+                  let v = origProd.variants.find(va => String(va.id) === String(varId));
+                  if (v) {
+                    if (!varName) varName = v.name;
+                    if (!realPrice) realPrice = Number(v.price) || 0;
+                    costUnit = Number(v.costPrice) || 0;
+                  }
+                }
+                if (!realPrice) realPrice = Number(origProd.price) || 0;
+                if (!costUnit) costUnit = Number(origProd.costPrice) || 0;
+              }
+              if (!costUnit && ci.costPrice) costUnit = Number(ci.costPrice) || 0;
+
+              let compRevenue = 0;
+              if (totalCompStandard > 0) {
+                let ciStandardVal = (realPrice || Number(ci.price) || 0) * (Number(ci.qty) || 1);
+                compRevenue = Math.round((ciStandardVal / totalCompStandard) * comboTotalPrice);
+              } else {
+                compRevenue = Math.round(comboTotalPrice / comboComponents.length);
+              }
+
+              let compCost = costUnit * compQty;
+
+              if (!profitSalesMap[key]) {
+                profitSalesMap[key] = {
+                  key: key,
+                  id: ci.id || '',
+                  name: prodName,
+                  variantId: varId,
+                  variantName: varName,
+                  sellPrice: realPrice,
+                  costPrice: costUnit,
+                  qty: 0,
+                  revenue: 0,
+                  cost: 0,
+                  profit: 0
+                };
+              }
+              profitSalesMap[key].qty += compQty;
+              profitSalesMap[key].revenue += compRevenue;
+              profitSalesMap[key].cost += compCost;
+              profitSalesMap[key].profit += (compRevenue - compCost);
+            });
+          } else {
+            let pId = String(it.id || it.name);
+            let varId = it.variantId ? String(it.variantId) : '';
+            let key = pId + (varId ? '__' + varId : '');
+            totalItemsSold += qty;
+
+            let origProd = (globalProductsData || []).find(p => String(p.id) === String(pId));
+            let prodName = it.name || (origProd ? origProd.name : 'Sản phẩm');
+            let varName = it.variantName || '';
+            let realPrice = price;
+            let costUnit = 0;
+
+            if (origProd) {
+              if (varId && origProd.variants) {
+                let v = origProd.variants.find(va => String(va.id) === String(varId));
+                if (v) {
+                  if (!varName) varName = v.name;
+                  costUnit = Number(v.costPrice) || 0;
+                }
+              }
+              if (!costUnit) costUnit = Number(origProd.costPrice) || 0;
+            }
+
+            let itemRevenue = price * qty;
+            let itemCost = costUnit * qty;
+
+            if (!profitSalesMap[key]) {
+              profitSalesMap[key] = {
+                key: key,
+                id: it.id || '',
+                name: prodName,
+                variantId: varId,
+                variantName: varName,
+                sellPrice: realPrice,
+                costPrice: costUnit,
+                qty: 0,
+                revenue: 0,
+                cost: 0,
+                profit: 0
+              };
+            }
+            profitSalesMap[key].qty += qty;
+            profitSalesMap[key].revenue += itemRevenue;
+            profitSalesMap[key].cost += itemCost;
+            profitSalesMap[key].profit += (itemRevenue - itemCost);
+          }
+        });
+      });
+
+      let totalRevenue = 0;
+      let totalCost = 0;
+      let totalProfit = 0;
+
+      currentProfitProducts = Object.values(profitSalesMap).map(p => {
+        let origProd = (globalProductsData || []).find(x => String(x.id) === String(p.id));
+        let img = "";
+        if (origProd) {
+          img = (origProd.images && origProd.images.length > 0) ? origProd.images[0] : "";
+          if (p.variantId && origProd.variants) {
+            let v = origProd.variants.find(va => String(va.id) === String(p.variantId));
+            if (v && v.image) img = v.image;
+          }
+        }
+
+        totalRevenue += p.revenue;
+        totalCost += p.cost;
+        totalProfit += p.profit;
+
+        let margin = p.revenue > 0 ? Math.round((p.profit / p.revenue) * 100) : 0;
+        let isMissingCost = (p.costPrice === 0 || p.costPrice === null || isNaN(p.costPrice));
+        if (isMissingCost) missingCostCount++;
+
+        return {
+          ...p,
+          image: img,
+          margin: margin,
+          isMissingCost: isMissingCost
+        };
+      });
+
+      let overallMargin = totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0;
+
+      document.getElementById('profit-kpi-revenue').innerText = formatMoney(totalRevenue);
+      document.getElementById('profit-kpi-cost').innerText = formatMoney(totalCost);
+      document.getElementById('profit-kpi-profit').innerText = formatMoney(totalProfit);
+      document.getElementById('profit-kpi-margin').innerText = `${overallMargin}%`;
+      document.getElementById('profit-kpi-items').innerText = `Đã xuất bán ${totalItemsSold} linh kiện${missingCostCount > 0 ? ' (' + missingCostCount + ' món chưa nhập vốn)' : ''}`;
+
+      renderProfitProductsTable();
+      renderProfitCharts(validOrders, bounds);
+      renderQuickCostTable();
+    }
+
+    function renderProfitCharts(orders, bounds) {
+      if (typeof Chart === 'undefined') return;
+
+      let labels = [];
+      let revData = [];
+      let costData = [];
+      let profitData = [];
+
+      let range = currentProfitRange;
+      if (range === 'today' || range === 'yesterday') {
+        for (let h = 0; h < 24; h += 2) {
+          labels.push(`${h}h-${h + 2}h`);
+          revData.push(0);
+          costData.push(0);
+          profitData.push(0);
+        }
+        orders.forEach(o => {
+          let d = parseOrderDate(o.date);
+          if (d) {
+            let slot = Math.floor(d.getHours() / 2);
+            if (slot >= 0 && slot < 12) {
+              let oRev = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
+              let oCost = 0;
+              let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
+              items.forEach(it => {
+                let q = parseInt(it.qty, 10) || 1;
+                let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
+                let cDef = (globalCombosData || []).find(c => String(c.id) === String(it.id) || (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
+                if (isCombo && cDef) {
+                  let cItems = cDef.rawItems || [];
+                  if (cItems.length === 0 && cDef.rawJson) {
+                    try { cItems = JSON.parse(cDef.rawJson); } catch(e){}
+                  }
+                  cItems.forEach(ci => {
+                    let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+                    let cp = pOrig ? (Number(pOrig.costPrice) || 0) : (Number(ci.costPrice) || 0);
+                    oCost += cp * (Number(ci.qty) || 1) * q;
+                  });
+                } else {
+                  let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
+                  let cp = 0;
+                  if (pOrig) {
+                    if (it.variantId && pOrig.variants) {
+                      let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
+                      if (v && v.costPrice) cp = Number(v.costPrice) || 0;
+                    }
+                    if (!cp) cp = Number(pOrig.costPrice) || 0;
+                  }
+                  oCost += cp * q;
+                }
+              });
+              revData[slot] += oRev;
+              costData[slot] += oCost;
+              profitData[slot] += (oRev - oCost);
+            }
+          }
+        });
+      } else if (range === 'last7' || range === 'thisWeek') {
+        let dayMap = {};
+        for (let i = 6; i >= 0; i--) {
+          let d = new Date();
+          d.setDate(d.getDate() - i);
+          let key = `${d.getDate()}/${d.getMonth() + 1}`;
+          dayMap[key] = { label: key, rev: 0, cost: 0, profit: 0 };
+          labels.push(key);
+        }
+        orders.forEach(o => {
+          let d = parseOrderDate(o.date);
+          if (d) {
+            let key = `${d.getDate()}/${d.getMonth() + 1}`;
+            if (dayMap[key]) {
+              let oRev = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
+              let oCost = 0;
+              let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
+              items.forEach(it => {
+                let q = parseInt(it.qty, 10) || 1;
+                let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
+                let cDef = (globalCombosData || []).find(c => String(c.id) === String(it.id) || (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
+                if (isCombo && cDef) {
+                  let cItems = cDef.rawItems || [];
+                  if (cItems.length === 0 && cDef.rawJson) {
+                    try { cItems = JSON.parse(cDef.rawJson); } catch(e){}
+                  }
+                  cItems.forEach(ci => {
+                    let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+                    let cp = pOrig ? (Number(pOrig.costPrice) || 0) : (Number(ci.costPrice) || 0);
+                    oCost += cp * (Number(ci.qty) || 1) * q;
+                  });
+                } else {
+                  let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
+                  let cp = 0;
+                  if (pOrig) {
+                    if (it.variantId && pOrig.variants) {
+                      let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
+                      if (v && v.costPrice) cp = Number(v.costPrice) || 0;
+                    }
+                    if (!cp) cp = Number(pOrig.costPrice) || 0;
+                  }
+                  oCost += cp * q;
+                }
+              });
+              dayMap[key].rev += oRev;
+              dayMap[key].cost += oCost;
+              dayMap[key].profit += (oRev - oCost);
+            }
+          }
+        });
+        labels.forEach((lbl, idx) => {
+          revData[idx] = dayMap[lbl] ? dayMap[lbl].rev : 0;
+          costData[idx] = dayMap[lbl] ? dayMap[lbl].cost : 0;
+          profitData[idx] = dayMap[lbl] ? dayMap[lbl].profit : 0;
+        });
+      } else if (range === 'thisYear') {
+        for (let m = 1; m <= 12; m++) {
+          labels.push(`T${m}`);
+          revData.push(0);
+          costData.push(0);
+          profitData.push(0);
+        }
+        orders.forEach(o => {
+          let d = parseOrderDate(o.date);
+          if (d) {
+            let mIdx = d.getMonth();
+            let oRev = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
+            let oCost = 0;
+            let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
+            items.forEach(it => {
+              let q = parseInt(it.qty, 10) || 1;
+              let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
+              let cDef = (globalCombosData || []).find(c => String(c.id) === String(it.id) || (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
+              if (isCombo && cDef) {
+                let cItems = cDef.rawItems || [];
+                if (cItems.length === 0 && cDef.rawJson) {
+                  try { cItems = JSON.parse(cDef.rawJson); } catch(e){}
+                }
+                cItems.forEach(ci => {
+                  let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+                  let cp = pOrig ? (Number(pOrig.costPrice) || 0) : (Number(ci.costPrice) || 0);
+                  oCost += cp * (Number(ci.qty) || 1) * q;
+                });
+              } else {
+                let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
+                let cp = 0;
+                if (pOrig) {
+                  if (it.variantId && pOrig.variants) {
+                    let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
+                    if (v && v.costPrice) cp = Number(v.costPrice) || 0;
+                  }
+                  if (!cp) cp = Number(pOrig.costPrice) || 0;
+                }
+                oCost += cp * q;
+              }
+            });
+            revData[mIdx] += oRev;
+            costData[mIdx] += oCost;
+            profitData[mIdx] += (oRev - oCost);
+          }
+        });
+      } else {
+        let map = {};
+        orders.forEach(o => {
+          let d = parseOrderDate(o.date);
+          if (d) {
+            let key = `${d.getDate() < 10 ? '0' : ''}${d.getDate()}/${(d.getMonth() + 1) < 10 ? '0' : ''}${d.getMonth() + 1}`;
+            if (!map[key]) map[key] = { rev: 0, cost: 0, profit: 0, date: d };
+            let oRev = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
+            let oCost = 0;
+            let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
+            items.forEach(it => {
+              let q = parseInt(it.qty, 10) || 1;
+              let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
+              let cDef = (globalCombosData || []).find(c => String(c.id) === String(it.id) || (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
+              if (isCombo && cDef) {
+                let cItems = cDef.rawItems || [];
+                if (cItems.length === 0 && cDef.rawJson) {
+                  try { cItems = JSON.parse(cDef.rawJson); } catch(e){}
+                }
+                cItems.forEach(ci => {
+                  let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+                  let cp = pOrig ? (Number(pOrig.costPrice) || 0) : (Number(ci.costPrice) || 0);
+                  oCost += cp * (Number(ci.qty) || 1) * q;
+                });
+              } else {
+                let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
+                let cp = 0;
+                if (pOrig) {
+                  if (it.variantId && pOrig.variants) {
+                    let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
+                    if (v && v.costPrice) cp = Number(v.costPrice) || 0;
+                  }
+                  if (!cp) cp = Number(pOrig.costPrice) || 0;
+                }
+                oCost += cp * q;
+              }
+            });
+            map[key].rev += oRev;
+            map[key].cost += oCost;
+            map[key].profit += (oRev - oCost);
+          }
+        });
+        let sortedKeys = Object.keys(map).sort((a, b) => map[a].date - map[b].date);
+        if (sortedKeys.length === 0) {
+          labels = ["Chưa có dữ liệu"];
+          revData = [0];
+          costData = [0];
+          profitData = [0];
+        } else {
+          labels = sortedKeys;
+          revData = sortedKeys.map(k => map[k].rev);
+          costData = sortedKeys.map(k => map[k].cost);
+          profitData = sortedKeys.map(k => map[k].profit);
+        }
+      }
+
+      const ctx1 = document.getElementById('chart-profit-trends');
+      if (ctx1) {
+        if (chartProfitTrendsInstance) chartProfitTrendsInstance.destroy();
+        chartProfitTrendsInstance = new Chart(ctx1, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Lợi nhuận (Lãi)',
+                data: profitData,
+                backgroundColor: 'rgba(56, 161, 105, 0.75)',
+                borderColor: '#2f855a',
+                borderWidth: 1,
+                borderRadius: 4
+              },
+              {
+                type: 'line',
+                label: 'Doanh thu',
+                data: revData,
+                borderColor: '#0068ff',
+                backgroundColor: 'rgba(0, 104, 255, 0.05)',
+                borderWidth: 2,
+                tension: 0.2
+              },
+              {
+                type: 'line',
+                label: 'Giá vốn',
+                data: costData,
+                borderColor: '#dd6b20',
+                backgroundColor: 'transparent',
+                borderWidth: 1.8,
+                borderDash: [4, 4],
+                tension: 0.2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+              y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                ticks: {
+                  callback: val => val >= 1e6 ? (val / 1e6).toFixed(1) + 'Tr' : (val >= 1e3 ? (val / 1e3).toFixed(0) + 'k' : val)
+                },
+                grid: { color: '#edf2f7' }
+              },
+              x: { grid: { display: false } }
+            },
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    return ` ${ctx.dataset.label}: ${formatMoney(ctx.raw)}`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      const ctx2 = document.getElementById('chart-profit-share');
+      if (ctx2) {
+        if (chartProfitShareInstance) chartProfitShareInstance.destroy();
+
+        let sorted = [...(currentProfitProducts || [])].filter(p => p.profit > 0).sort((a, b) => b.profit - a.profit);
+        let top5 = sorted.slice(0, 5);
+        let others = sorted.slice(5);
+        let otherProfit = others.reduce((acc, p) => acc + p.profit, 0);
+
+        let pLabels = [];
+        let pData = [];
+        let pMeta = [];
+
+        top5.forEach(p => {
+          let lbl = p.name.length > 18 ? p.name.slice(0, 16) + '...' : p.name;
+          let leg = `${lbl} (+${p.profit >= 1e6 ? (p.profit / 1e6).toFixed(1) + 'Tr' : (p.profit >= 1e3 ? Math.round(p.profit / 1e3) + 'k' : p.profit)})`;
+          pLabels.push(leg);
+          pData.push(p.profit);
+          pMeta.push(p);
+        });
+
+        if (otherProfit > 0) {
+          pLabels.push(`Mặt hàng khác (+${otherProfit >= 1e6 ? (otherProfit / 1e6).toFixed(1) + 'Tr' : (otherProfit >= 1e3 ? Math.round(otherProfit / 1e3) + 'k' : otherProfit)})`);
+          pData.push(otherProfit);
+          pMeta.push({ name: 'Các mặt hàng khác', profit: otherProfit, revenue: others.reduce((a, b) => a + b.revenue, 0), cost: others.reduce((a, b) => a + b.cost, 0), isOther: true });
+        }
+
+        if (pData.length === 0 || pData.every(v => v === 0)) {
+          pLabels = ['Chưa có dữ liệu'];
+          pData = [1];
+          pMeta = [{ name: 'Chưa có dữ liệu', profit: 0, revenue: 0, cost: 0 }];
+        }
+
+        let totalP = pData.reduce((acc, v) => acc + v, 0);
+
+        chartProfitShareInstance = new Chart(ctx2, {
+          type: 'doughnut',
+          data: {
+            labels: pLabels,
+            datasets: [{
+              data: pData,
+              backgroundColor: ['#38a169', '#3182ce', '#805ad5', '#d69e2e', '#e53e3e', '#a0aec0'],
+              borderWidth: 2,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11.5, weight: '500' } } },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    let m = pMeta[ctx.dataIndex];
+                    if (!m || m.name === 'Chưa có dữ liệu') return ' Chưa có dữ liệu';
+                    let pct = totalP > 0 ? ((m.profit / totalP) * 100).toFixed(1) + '%' : '0%';
+                    return [
+                      ` ${m.name} (${pct})`,
+                      ` • LÃI THỰC: ${formatMoney(m.profit)}`,
+                      ` • Doanh thu: ${formatMoney(m.revenue)}`,
+                      ` • Giá vốn: ${formatMoney(m.cost)}`
+                    ];
+                  }
+                }
+              }
+            },
+            cutout: '62%'
+          }
+        });
+      }
+    }
+
+    function sortProfitProducts(sortKey) {
+      currentProfitSort = sortKey;
+      ['profit', 'margin', 'revenue', 'qty'].forEach(k => {
+        let btn = document.getElementById('btn-profit-sort-' + k);
+        if (btn) btn.classList.toggle('active', k === sortKey);
+      });
+      renderProfitProductsTable();
+    }
+
+    function onProfitProductSearch() {
+      currentProfitSearch = (document.getElementById('profit-prod-search').value || '').trim().toLowerCase();
+      renderProfitProductsTable();
+    }
+
+    function renderProfitProductsTable() {
+      const tbody = document.getElementById('profit-products-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let list = [...(currentProfitProducts || [])];
+      if (currentProfitSearch) {
+        list = list.filter(p => p.name.toLowerCase().includes(currentProfitSearch) || (p.variantName && p.variantName.toLowerCase().includes(currentProfitSearch)));
+      }
+
+      if (currentProfitSort === 'profit') {
+        list.sort((a, b) => (b.profit - a.profit) || (b.margin - a.margin));
+      } else if (currentProfitSort === 'margin') {
+        list.sort((a, b) => (b.margin - a.margin) || (b.profit - a.profit));
+      } else if (currentProfitSort === 'revenue') {
+        list.sort((a, b) => (b.revenue - a.revenue) || (b.profit - a.profit));
+      } else if (currentProfitSort === 'qty') {
+        list.sort((a, b) => (b.qty - a.qty) || (b.profit - a.profit));
+      }
+
+      document.getElementById('profit-prod-count').innerText = `${list.length} mặt hàng`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#718096;">Không có dữ liệu mặt hàng trong khoảng thời gian đã chọn.</td></tr>`;
+        return;
+      }
+
+      list.forEach((p, idx) => {
+        let rankCls = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : 'rank-other'));
+        let rankIcon = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : idx + 1));
+        let varTag = p.variantName ? `<span class="variant-badge">🏷️ ${escapeHtml(p.variantName)}</span>` : '';
+        
+        let costDisplay = p.isMissingCost
+          ? `<span class="badge-cost-missing" onclick="openEditModal('${p.id}')">⚠️ Chưa nhập vốn</span>`
+          : `<span style="font-weight:600; color:#4a5568;">${formatMoney(p.costPrice)}</span>`;
+
+        let marginBadge = p.margin >= 40 
+          ? `<span style="background:#f0fff4; color:#22543d; font-weight:700; padding:3px 8px; border-radius:12px; font-size:12px; border:1px solid #9ae6b4;">+${p.margin}%</span>`
+          : (p.margin > 0 
+            ? `<span style="background:#ebf8ff; color:#2b6cb0; font-weight:700; padding:3px 8px; border-radius:12px; font-size:12px; border:1px solid #bee3f8;">+${p.margin}%</span>`
+            : `<span style="background:#fff5f5; color:#c53030; font-weight:700; padding:3px 8px; border-radius:12px; font-size:12px; border:1px solid #feb2b2;">${p.margin}%</span>`);
+
+        tbody.innerHTML += `
+          <tr>
+            <td data-label="#" style="text-align:center;"><span class="rank-badge ${rankCls}">${rankIcon}</span></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Tên mặt hàng">
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <b style="font-size:14px; color:#1a202c;">${escapeHtml(p.name)}</b>
+                ${varTag}
+              </div>
+            </td>
+            <td data-label="Giá vốn">${costDisplay}</td>
+            <td data-label="Giá bán" style="font-weight:600; color:#4a5568;">${formatMoney(p.sellPrice)}</td>
+            <td data-label="Đã bán" style="text-align:center;"><b style="font-size:15px; color:#2b6cb0;">${p.qty}</b></td>
+            <td data-label="Doanh thu" style="font-weight:600; color:#4a5568;">${formatMoney(p.revenue)}</td>
+            <td data-label="Tiền vốn" style="font-weight:600; color:#dd6b20;">${formatMoney(p.cost)}</td>
+            <td data-label="Lãi thực" style="font-weight:bold; color:#22543d; font-size:15px;">+${formatMoney(p.profit)}</td>
+            <td data-label="Tỷ suất lãi" style="text-align:center;">${marginBadge}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function onQuickCostSearch() {
+      quickCostSearchQuery = (document.getElementById('quick-cost-search').value || '').trim().toLowerCase();
+      renderQuickCostTable();
+    }
+
+    function renderQuickCostTable() {
+      const tbody = document.getElementById('quick-cost-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let rows = [];
+      (globalProductsData || []).forEach(p => {
+        if (p.variants && p.variants.length > 0) {
+          p.variants.forEach(v => {
+            rows.push({
+              pId: p.id,
+              vId: v.id || v.name,
+              name: p.name,
+              varName: v.name,
+              image: v.image || (p.images && p.images[0]) || '',
+              price: v.price || p.price,
+              costPrice: v.costPrice !== undefined ? v.costPrice : (p.costPrice || 0)
+            });
+          });
+        } else {
+          rows.push({
+            pId: p.id,
+            vId: '',
+            name: p.name,
+            varName: '',
+            image: (p.images && p.images[0]) || '',
+            price: p.price,
+            costPrice: p.costPrice || 0
+          });
+        }
+      });
+
+      if (quickCostSearchQuery) {
+        rows = rows.filter(r => r.name.toLowerCase().includes(quickCostSearchQuery) || (r.varName && r.varName.toLowerCase().includes(quickCostSearchQuery)));
+      }
+
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#718096;">Không tìm thấy linh kiện nào.</td></tr>`;
+        return;
+      }
+
+      rows.forEach((r, idx) => {
+        let key = r.pId + (r.vId ? '__' + r.vId : '');
+        let currentCostVal = pendingQuickCostMap.has(key) ? pendingQuickCostMap.get(key) : r.costPrice;
+        let isSet = Number(currentCostVal) > 0;
+        let statusTag = isSet 
+          ? `<span style="color:#2f855a; font-weight:600; font-size:12px;">✅ Đã có giá vốn</span>`
+          : `<span style="color:#c53030; font-weight:600; font-size:12px;">⚠️ Chưa có vốn</span>`;
+
+        tbody.innerHTML += `
+          <tr>
+            <td data-label="#" style="text-align:center; color:#718096;">${idx + 1}</td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(r.image || 'https://via.placeholder.com/60?text=No+Img')}" style="width:45px; height:45px; object-fit:cover; border-radius:4px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Tên sản phẩm"><b style="color:#1a202c;">${escapeHtml(r.name)}</b></td>
+            <td data-label="Phân loại">${r.varName ? `<span class="variant-badge">🏷️ ${escapeHtml(r.varName)}</span>` : '<span style="color:#a0aec0; font-size:12px;">Tiêu chuẩn</span>'}</td>
+            <td data-label="Giá bán" style="font-weight:600; color:#4a5568;">${formatMoney(r.price)}</td>
+            <td data-label="Giá vốn">
+              <input type="number" class="quick-cost-input" value="${currentCostVal || ''}" placeholder="Nhập giá vốn..." onchange="onQuickCostInputChange('${r.pId}', '${r.vId}', this.value)">
+            </td>
+            <td data-label="Trạng thái">${statusTag}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function onQuickCostInputChange(pId, vId, val) {
+      let key = pId + (vId ? '__' + vId : '');
+      let num = val !== '' ? Number(val) : 0;
+      pendingQuickCostMap.set(key, num);
+
+      let origP = (globalProductsData || []).find(x => String(x.id) === String(pId));
+      if (origP) {
+        if (vId && origP.variants) {
+          let vObj = origP.variants.find(va => String(va.id) === String(vId) || String(va.name) === String(vId));
+          if (vObj) vObj.costPrice = num;
+        } else {
+          origP.costPrice = num;
+        }
+      }
+    }
+
+    async function saveQuickCostPrices() {
+      if (pendingQuickCostMap.size === 0) {
+        alert("Bạn chưa thay đổi giá vốn của sản phẩm nào!");
+        return;
+      }
+
+      let updates = [];
+      pendingQuickCostMap.forEach((costPrice, key) => {
+        let parts = key.split('__');
+        updates.push({
+          id: parts[0],
+          variantId: parts[1] || '',
+          costPrice: Number(costPrice) || 0
+        });
+      });
+
+      const btn = document.getElementById('btn-save-quick-cost');
+      let oldText = btn.innerText;
+      btn.innerText = "Đang lưu...";
+      btn.disabled = true;
+
+      try {
+        let res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "updateBatchCostPrices",
+            token: getAdminToken(),
+            updates: updates
+          })
+        });
+        let data = await res.json();
+        if (data.status === "success") {
+          pendingQuickCostMap.clear();
+          showToast(`Đã lưu giá vốn cho ${updates.length} sản phẩm/phân loại thành công!`, 'success');
+          renderProfitAnalytics();
+        } else if (data.code === "AUTH") {
+          logout();
+          return;
+        } else {
+          alert(data.msg || "Lỗi cập nhật giá vốn!");
+        }
+      } catch (err) {
+        alert("Lỗi kết nối khi lưu bảng giá vốn!");
+      } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+      }
+    }
+
+    function exportProfitCSV() {
+      if (!currentProfitProducts || currentProfitProducts.length === 0) {
+        alert("Không có dữ liệu mặt hàng để xuất báo cáo lợi nhuận!");
+        return;
+      }
+      let csvContent = '\uFEFF';
+      csvContent += "Hang,Ma_SP,Ten_Linh_Kien,Phan_Loai,Gia_Von_Nhap,Gia_Ban_TB,So_Luong_Ban,Tong_Doanh_Thu,Tong_Tien_Von,Loi_Nhuan_Thuc,Ty_Suat_Lai_Pct\n";
+      currentProfitProducts.forEach((p, idx) => {
+        let name = (p.name || '').replace(/"/g, '""');
+        let varName = (p.variantName || '').replace(/"/g, '""');
+        csvContent += `"${idx + 1}","${p.id}","${name}","${varName}","${p.costPrice}","${p.sellPrice}","${p.qty}","${p.revenue}","${p.cost}","${p.profit}","${p.margin}%"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Bao_Cao_Loi_Nhuan_${currentProfitRange}_${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

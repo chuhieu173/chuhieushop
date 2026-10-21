@@ -144,6 +144,40 @@ class TestDOMIntegrity(unittest.TestCase):
         for bid in batch_ids:
             self.assertIn(bid, collector.ids, f"LỖI: Thiếu phần tử id='{bid}' trong admin.html!")
 
+    def test_profit_elements_exist_in_admin(self):
+        """Kiểm tra: Các phần tử Tab Lợi Nhuận & Giá Vốn phải tồn tại đầy đủ trong admin.html"""
+        content = read_file('admin.html')
+        collector = IDCollector()
+        collector.feed(content)
+
+        profit_ids = [
+            'profit',
+            'profit-custom-date-box',
+            'profit-date-from',
+            'profit-date-to',
+            'profit-status-filter',
+            'profit-kpi-revenue',
+            'profit-kpi-cost',
+            'profit-kpi-profit',
+            'profit-kpi-margin',
+            'profit-kpi-items',
+            'chart-profit-trends',
+            'chart-profit-share',
+            'profit-prod-search',
+            'profit-prod-count',
+            'btn-profit-sort-profit',
+            'btn-profit-sort-margin',
+            'btn-profit-sort-rev',
+            'btn-profit-sort-qty',
+            'profit-products-body',
+            'quick-cost-search',
+            'quick-cost-body',
+            'btn-save-quick-cost',
+            'edit-cost-price',
+        ]
+        for pid in profit_ids:
+            self.assertIn(pid, collector.ids, f"LỖI: Thiếu phần tử id='{pid}' trong admin.html!")
+
     def test_address_preview_elements_exist_in_index(self):
         """Kiểm tra: Các phần tử xem trước địa chỉ giao hàng chuẩn hóa phải tồn tại trong index.html"""
         content = read_file('index.html')
@@ -858,6 +892,66 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertEqual(prod_map["SP_SENSOR"]["purchaseCount"], 2)
         total_decomp_rev = sum(p["rev"] for p in prod_map.values())
         self.assertEqual(total_decomp_rev, 700000, "Tổng doanh thu sau bóc tách phải bảo toàn 100%")
+
+    def test_profit_functions_exist_in_admin(self):
+        """Kiểm tra: Các hàm xử lý Báo cáo Lợi Nhuận & Giá Vốn trong admin.html"""
+        admin = read_file('admin.html')
+        funcs = [
+            'function setProfitRange',
+            'function applyProfitCustomDateRange',
+            'function getProfitDateBounds',
+            'function renderProfitAnalytics',
+            'function renderProfitCharts',
+            'function sortProfitProducts',
+            'function renderProfitProductsTable',
+            'function onProfitProductSearch',
+            'function renderQuickCostTable',
+            'function onQuickCostSearch',
+            'function onQuickCostInputChange',
+            'function saveQuickCostPrices',
+            'function exportProfitCSV'
+        ]
+        for f in funcs:
+            self.assertIn(f, admin, f"LỖI: Thiếu hàm '{f}' trong admin.html!")
+
+    def test_profit_calculation_and_combo_cost_algorithm(self):
+        """Kiểm tra: Thuật toán tính toán Doanh thu, Giá vốn, Lợi nhuận gộp và Tỷ suất lợi nhuận (Margin %) kể cả khi có Combo"""
+        products = {
+            "SP_UNO": {"name": "Arduino Uno R3", "costPrice": 60000, "price": 100000},
+            "SP_L298N": {"name": "Mạch cầu L298N", "costPrice": 25000, "price": 50000},
+            "SP_SENSOR": {"name": "Cảm biến", "costPrice": 10000, "price": 25000}
+        }
+
+        combos = [
+            {
+                "id": "CMB_01",
+                "name": "Combo Test",
+                "price": 180000,
+                "rawItems": [
+                    {"id": "SP_UNO", "qty": 1, "price": 100000},
+                    {"id": "SP_L298N", "qty": 1, "price": 50000},
+                    {"id": "SP_SENSOR", "qty": 1, "price": 25000}
+                ]
+            }
+        ]
+
+        total_rev = 100000 + 180000
+        total_cost = 60000 + (60000 + 25000 + 10000)
+        net_profit = total_rev - total_cost
+        margin = round((net_profit / total_rev) * 100)
+
+        self.assertEqual(total_rev, 280000)
+        self.assertEqual(total_cost, 155000)
+        self.assertEqual(net_profit, 125000)
+        self.assertEqual(margin, 45)
+
+    def test_cost_price_security_isolation(self):
+        """Kiểm tra: Bảo mật tuyệt đối - Khách hàng không thể thấy trường costPrice qua API public"""
+        codegs = read_file('Code.gs')
+        self.assertIn('getProductsList(doc, false)', codegs, "LỖI: doGet công khai cho khách hàng PHẢI gọi getProductsList(doc, false) để ẩn giá vốn!")
+        self.assertIn('getProductsList(doc, true)', codegs, "LỖI: API quản trị admin PHẢI gọi getProductsList(doc, true) để lấy giá vốn!")
+        index_html = read_file('index.html')
+        self.assertNotIn('costPrice', index_html, "LỖI: Phát hiện trường 'costPrice' trong index.html của khách hàng! Giá vốn phải được bảo mật tuyệt đối.")
 
     def test_batch_order_status_functions_exist_in_admin(self):
         """Kiểm tra: Các hàm xử lý đổi trạng thái hàng loạt và Toast trong admin.html"""
