@@ -100,9 +100,14 @@ class TestDOMIntegrity(unittest.TestCase):
             'kpi-completion-rate',
             'chart-revenue-orders',
             'chart-product-share',
+            'chart-product-share-title',
+            'btn-chart-mode-rev',
+            'btn-chart-mode-orders',
+            'btn-chart-mode-qty',
             'analytics-prod-count',
             'analytics-prod-search',
             'btn-sort-qty',
+            'btn-sort-orders',
             'btn-sort-rev',
             'btn-sort-stock',
             'analytics-products-body',
@@ -697,6 +702,8 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('function getAnalyticsDateBounds', admin, "LỖI: Thiếu hàm getAnalyticsDateBounds trong admin.html!")
         self.assertIn('function parseOrderDate', admin, "LỖI: Thiếu hàm parseOrderDate trong admin.html!")
         self.assertIn('function renderAnalyticsCharts', admin, "LỖI: Thiếu hàm renderAnalyticsCharts trong admin.html!")
+        self.assertIn('function switchProductChartMode', admin, "LỖI: Thiếu hàm switchProductChartMode trong admin.html!")
+        self.assertIn('function renderProductShareChart', admin, "LỖI: Thiếu hàm renderProductShareChart trong admin.html!")
         self.assertIn('function sortAnalyticsProducts', admin, "LỖI: Thiếu hàm sortAnalyticsProducts trong admin.html!")
         self.assertIn('function renderStockAlerts', admin, "LỖI: Thiếu hàm renderStockAlerts trong admin.html!")
         self.assertIn('function renderTopCustomers', admin, "LỖI: Thiếu hàm renderTopCustomers trong admin.html!")
@@ -778,6 +785,79 @@ class TestBusinessLogic(unittest.TestCase):
         top_vip = sorted(cust_map.values(), key=lambda c: c["spend"], reverse=True)
         self.assertEqual(top_vip[0]["name"], "Nguyễn Văn A")
         self.assertEqual(top_vip[0]["spend"], 200000)
+
+    def test_analytics_combo_decomposition_and_purchase_counts(self):
+        """Kiểm tra: Bóc tách Combo thành từng linh kiện riêng biệt và đếm chính xác số lần mua (lượt mua)"""
+        combos = [
+            {
+                "id": "CMB_ROBOT",
+                "name": "Combo Robot Dò Line",
+                "price": 200000,
+                "rawItems": [
+                    {"id": "SP_UNO", "name": "Arduino Uno R3", "qty": 1, "price": 100000},
+                    {"id": "SP_L298N", "name": "Mạch cầu L298N", "qty": 1, "price": 50000},
+                    {"id": "SP_SENSOR", "name": "Cảm biến dò line", "qty": 2, "price": 25000}
+                ]
+            }
+        ]
+
+        orders = [
+            {
+                "orderId": "DH_01",
+                "status": "Hoàn thành",
+                "cart": [
+                    {"id": "CMB_ROBOT", "name": "Combo Robot Dò Line", "price": 200000, "qty": 2, "isCombo": True}
+                ]
+            },
+            {
+                "orderId": "DH_02",
+                "status": "Đã giao cho đơn vị vận chuyển",
+                "cart": [
+                    {"id": "SP_UNO", "name": "Arduino Uno R3", "price": 100000, "qty": 1},
+                    {"id": "CMB_ROBOT", "name": "Combo Robot Dò Line", "price": 200000, "qty": 1, "isCombo": True}
+                ]
+            }
+        ]
+
+        prod_map = {}
+        for o in orders:
+            order_keys = set()
+            for it in o["cart"]:
+                qty = it.get("qty", 1)
+                is_combo = it.get("isCombo") or it["id"].startswith("CMB_")
+                combo_def = next((c for c in combos if c["id"] == it["id"]), None) if is_combo else None
+
+                if is_combo and combo_def:
+                    combo_total = it["price"] * qty
+                    raw_items = combo_def.get("rawItems", [])
+                    std_total = sum(ci["price"] * ci["qty"] for ci in raw_items)
+                    for ci in raw_items:
+                        c_qty = ci["qty"] * qty
+                        c_rev = round(((ci["price"] * ci["qty"]) / std_total) * combo_total) if std_total > 0 else 0
+                        pid = ci["id"]
+                        if pid not in prod_map:
+                            prod_map[pid] = {"name": ci["name"], "qty": 0, "rev": 0, "purchaseCount": 0}
+                        prod_map[pid]["qty"] += c_qty
+                        prod_map[pid]["rev"] += c_rev
+                        order_keys.add(pid)
+                else:
+                    pid = it["id"]
+                    if pid not in prod_map:
+                        prod_map[pid] = {"name": it["name"], "qty": 0, "rev": 0, "purchaseCount": 0}
+                    prod_map[pid]["qty"] += qty
+                    prod_map[pid]["rev"] += it["price"] * qty
+                    order_keys.add(pid)
+
+            for k in order_keys:
+                prod_map[k]["purchaseCount"] += 1
+
+        self.assertNotIn("CMB_ROBOT", prod_map, "Combo phải được bóc tách và không xuất hiện trong thống kê sản phẩm!")
+        self.assertEqual(prod_map["SP_UNO"]["qty"], 4)
+        self.assertEqual(prod_map["SP_UNO"]["purchaseCount"], 2)
+        self.assertEqual(prod_map["SP_SENSOR"]["qty"], 6)
+        self.assertEqual(prod_map["SP_SENSOR"]["purchaseCount"], 2)
+        total_decomp_rev = sum(p["rev"] for p in prod_map.values())
+        self.assertEqual(total_decomp_rev, 700000, "Tổng doanh thu sau bóc tách phải bảo toàn 100%")
 
     def test_batch_order_status_functions_exist_in_admin(self):
         """Kiểm tra: Các hàm xử lý đổi trạng thái hàng loạt và Toast trong admin.html"""

@@ -819,6 +819,29 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn-chart-toggle {
+      background: transparent;
+      border: none;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #718096;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .btn-chart-toggle:hover {
+      color: #2b6cb0;
+      background: rgba(0, 104, 255, 0.05);
+    }
+    .btn-chart-toggle.active {
+      background: white;
+      color: #0068ff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
     .chart-wrapper {
       position: relative;
@@ -1386,7 +1409,12 @@
 
         <div class="chart-card">
           <div class="chart-card-title">
-            <span>🥧 Tỷ Trọng Doanh Thu Top Mặt Hàng</span>
+            <span id="chart-product-share-title">🥧 Tỷ Trọng Doanh Thu Top Mặt Hàng</span>
+            <div class="chart-tab-group" style="display:inline-flex; gap:4px; background:#f7fafc; padding:3px; border-radius:6px; border:1px solid #e2e8f0;">
+              <button type="button" id="btn-chart-mode-rev" class="btn-chart-toggle active" onclick="switchProductChartMode('revenue')" title="Biểu đồ theo Doanh thu">💰 Doanh thu</button>
+              <button type="button" id="btn-chart-mode-orders" class="btn-chart-toggle" onclick="switchProductChartMode('orders')" title="Biểu đồ theo Số lần mua (Đơn)">🛒 Lượt mua</button>
+              <button type="button" id="btn-chart-mode-qty" class="btn-chart-toggle" onclick="switchProductChartMode('qty')" title="Biểu đồ theo Số lượng bán">📦 Số lượng</button>
+            </div>
           </div>
           <div class="chart-wrapper">
             <canvas id="chart-product-share"></canvas>
@@ -1405,6 +1433,7 @@
             <input type="text" id="analytics-prod-search" class="table-search-input" placeholder="🔍 Tìm tên sản phẩm..." oninput="onAnalyticsProductSearch()">
             <div style="display: inline-flex; gap: 4px; flex-wrap: wrap;">
               <button type="button" id="btn-sort-qty" class="btn-sort active" onclick="sortAnalyticsProducts('qty')">Bán chạy nhất ▼</button>
+              <button type="button" id="btn-sort-orders" class="btn-sort" onclick="sortAnalyticsProducts('orders')">Nhiều lượt mua ▼</button>
               <button type="button" id="btn-sort-rev" class="btn-sort" onclick="sortAnalyticsProducts('revenue')">Doanh thu cao ▼</button>
               <button type="button" id="btn-sort-stock" class="btn-sort" onclick="sortAnalyticsProducts('stock')">Tồn kho ít ▲</button>
             </div>
@@ -1415,11 +1444,12 @@
           <table>
             <thead>
               <tr>
-                <th style="width: 50px; text-align: center;">#</th>
-                <th style="width: 70px;">Hình ảnh</th>
-                <th style="width: 35%;">Tên mặt hàng & Phân loại</th>
+                <th style="width: 45px; text-align: center;">#</th>
+                <th style="width: 65px;">Hình ảnh</th>
+                <th style="width: 32%;">Tên mặt hàng & Phân loại</th>
                 <th>Đơn giá</th>
-                <th style="text-align: center;">Số lượng bán</th>
+                <th style="text-align: center;">Đã bán</th>
+                <th style="text-align: center;">Lượt mua</th>
                 <th>Doanh thu</th>
                 <th style="text-align: center;">Tồn kho</th>
                 <th>Trạng thái kho</th>
@@ -3371,6 +3401,7 @@
     let currentAnalyticsSort = 'qty';
     let currentAnalyticsSearch = '';
     let currentAnalyticsProducts = [];
+    let currentProductChartMode = 'revenue'; // 'revenue' | 'orders' | 'qty'
     let chartRevOrdersInstance = null;
     let chartProdShareInstance = null;
 
@@ -3552,7 +3583,7 @@
       document.getElementById('kpi-aov').innerText = formatMoney(aov);
       document.getElementById('kpi-completion-rate').innerText = `${completionRate}%`;
 
-      // 3. Product Sales Aggregation
+      // 3. Product Sales Aggregation (Bóc tách Combo thành từng linh kiện/sản phẩm đơn lẻ)
       let prodSalesMap = {};
       let totalItemsSold = 0;
 
@@ -3564,29 +3595,143 @@
           items = parseOrderDetailsFallback(o.details);
         }
 
+        let orderProductsSet = new Set();
+
         items.forEach(it => {
-          let pId = String(it.id || it.name);
-          let varId = it.variantId ? String(it.variantId) : '';
-          let key = pId + (varId ? '__' + varId : '');
           let qty = parseInt(it.qty, 10) || 1;
           let price = Number(it.price) || 0;
-          totalItemsSold += qty;
 
-          if (!prodSalesMap[key]) {
-            prodSalesMap[key] = {
-              key: key,
-              id: it.id || '',
-              name: it.name || 'Sản phẩm',
-              variantId: varId,
-              variantName: it.variantName || '',
-              price: price,
-              qty: 0,
-              revenue: 0,
-              isCombo: !!it.isCombo
-            };
+          // Kiểm tra xem item có phải là Combo hay không
+          let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
+          let comboDef = null;
+
+          if (globalCombosData && globalCombosData.length > 0) {
+            comboDef = globalCombosData.find(c => 
+              (it.id && String(c.id) === String(it.id)) || 
+              (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase())
+            );
+            if (comboDef) isCombo = true;
           }
-          prodSalesMap[key].qty += qty;
-          prodSalesMap[key].revenue += price * qty;
+
+          let comboComponents = [];
+          if (isCombo && comboDef) {
+            if (Array.isArray(comboDef.rawItems) && comboDef.rawItems.length > 0) {
+              comboComponents = comboDef.rawItems;
+            } else if (comboDef.rawJson) {
+              try {
+                let parsed = JSON.parse(comboDef.rawJson);
+                if (Array.isArray(parsed)) comboComponents = parsed;
+              } catch(e) {}
+            }
+          }
+
+          if (isCombo && comboComponents.length > 0) {
+            // Bóc tách combo thành các sản phẩm thành phần
+            let comboTotalPrice = price * qty;
+            
+            // Tính tổng giá trị niêm yết của các thành phần để chia tỷ lệ doanh thu chính xác
+            let totalCompStandard = comboComponents.reduce((acc, ci) => {
+              let ciProd = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+              let ciPrice = Number(ci.price);
+              if (isNaN(ciPrice) || ciPrice <= 0) {
+                if (ciProd) {
+                  if (ci.variantId && ciProd.variants) {
+                    let v = ciProd.variants.find(va => String(va.id) === String(ci.variantId));
+                    ciPrice = v ? Number(v.price) : Number(ciProd.price);
+                  } else {
+                    ciPrice = Number(ciProd.price);
+                  }
+                }
+              }
+              return acc + ((ciPrice || 0) * (Number(ci.qty) || 1));
+            }, 0);
+
+            comboComponents.forEach(ci => {
+              let pId = String(ci.id || ci.name);
+              let varId = ci.variantId ? String(ci.variantId) : '';
+              let key = pId + (varId ? '__' + varId : '');
+              let compQty = (Number(ci.qty) || 1) * qty;
+              totalItemsSold += compQty;
+
+              // Tìm thông tin sản phẩm và phân loại gốc
+              let origProd = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+              let prodName = ci.name || (origProd ? origProd.name : 'Linh kiện');
+              let varName = ci.variantName || '';
+              let realPrice = Number(ci.price) || 0;
+
+              if (origProd) {
+                if (!prodName || prodName === 'Linh kiện') prodName = origProd.name;
+                if (varId && origProd.variants) {
+                  let v = origProd.variants.find(va => String(va.id) === String(varId));
+                  if (v) {
+                    if (!varName) varName = v.name;
+                    if (!realPrice) realPrice = Number(v.price) || 0;
+                  }
+                }
+                if (!realPrice) realPrice = Number(origProd.price) || 0;
+              }
+
+              // Doanh thu tương ứng phân bổ cho linh kiện này
+              let compRevenue = 0;
+              if (totalCompStandard > 0) {
+                let ciStandardVal = (realPrice || Number(ci.price) || 0) * (Number(ci.qty) || 1);
+                compRevenue = Math.round((ciStandardVal / totalCompStandard) * comboTotalPrice);
+              } else {
+                compRevenue = Math.round(comboTotalPrice / comboComponents.length);
+              }
+
+              if (!prodSalesMap[key]) {
+                prodSalesMap[key] = {
+                  key: key,
+                  id: ci.id || '',
+                  name: prodName,
+                  variantId: varId,
+                  variantName: varName,
+                  price: realPrice,
+                  qty: 0,
+                  revenue: 0,
+                  purchaseCount: 0,
+                  isCombo: false
+                };
+              }
+
+              prodSalesMap[key].qty += compQty;
+              prodSalesMap[key].revenue += compRevenue;
+              orderProductsSet.add(key);
+            });
+
+          } else {
+            // Sản phẩm đơn lẻ thông thường (hoặc combo cũ không có cấu hình thành phần để làm dự phòng an toàn)
+            let pId = String(it.id || it.name);
+            let varId = it.variantId ? String(it.variantId) : '';
+            let key = pId + (varId ? '__' + varId : '');
+            totalItemsSold += qty;
+
+            if (!prodSalesMap[key]) {
+              prodSalesMap[key] = {
+                key: key,
+                id: it.id || '',
+                name: it.name || 'Sản phẩm',
+                variantId: varId,
+                variantName: it.variantName || '',
+                price: price,
+                qty: 0,
+                revenue: 0,
+                purchaseCount: 0,
+                isCombo: isCombo
+              };
+            }
+            prodSalesMap[key].qty += qty;
+            prodSalesMap[key].revenue += price * qty;
+            orderProductsSet.add(key);
+          }
+        });
+
+        // Ghi nhận số lượt mua (số đơn hàng mua sản phẩm này)
+        orderProductsSet.forEach(k => {
+          if (prodSalesMap[k]) {
+            prodSalesMap[k].purchaseCount = (prodSalesMap[k].purchaseCount || 0) + 1;
+          }
         });
       });
 
@@ -3600,11 +3745,14 @@
 
         if (origProd) {
           img = (origProd.images && origProd.images.length > 0) ? origProd.images[0] : "";
+          if (!p.name) p.name = origProd.name;
           if (p.variantId && origProd.variants && origProd.variants.length > 0) {
             let v = origProd.variants.find(va => String(va.id) === String(p.variantId) || String(va.name) === String(p.variantName));
             if (v) {
               stock = Number(v.stock) || 0;
               if (v.image) img = v.image;
+              if (v.name && !p.variantName) p.variantName = v.name;
+              if (v.price && !p.price) p.price = Number(v.price);
             } else {
               stock = Number(origProd.stock) || 0;
             }
@@ -3785,65 +3933,178 @@
         });
       }
 
-      // Chart 2: Product Share
+      // Chart 2: Product Share (Được quản lý qua renderProductShareChart)
+      renderProductShareChart();
+    }
+
+    function switchProductChartMode(mode) {
+      currentProductChartMode = mode;
+      const btnRev = document.getElementById('btn-chart-mode-rev');
+      const btnOrders = document.getElementById('btn-chart-mode-orders');
+      const btnQty = document.getElementById('btn-chart-mode-qty');
+      if (btnRev) btnRev.classList.toggle('active', mode === 'revenue');
+      if (btnOrders) btnOrders.classList.toggle('active', mode === 'orders');
+      if (btnQty) btnQty.classList.toggle('active', mode === 'qty');
+
+      const titleEl = document.getElementById('chart-product-share-title');
+      if (titleEl) {
+        if (mode === 'orders') titleEl.innerText = '🛒 Top Sản Phẩm Theo Lượt Mua';
+        else if (mode === 'qty') titleEl.innerText = '📦 Top Sản Phẩm Theo Số Lượng Bán';
+        else titleEl.innerText = '💰 Tỷ Trọng Doanh Thu Top Mặt Hàng';
+      }
+
+      renderProductShareChart();
+    }
+
+    function renderProductShareChart() {
       const ctx2 = document.getElementById('chart-product-share');
-      if (ctx2) {
-        if (chartProdShareInstance) chartProdShareInstance.destroy();
+      if (!ctx2 || typeof Chart === 'undefined') return;
+      if (chartProdShareInstance) chartProdShareInstance.destroy();
 
-        let sorted = [...currentAnalyticsProducts].sort((a, b) => b.revenue - a.revenue);
-        let top5 = sorted.slice(0, 5);
-        let otherRev = sorted.slice(5).reduce((acc, p) => acc + p.revenue, 0);
+      let sorted = [...(currentAnalyticsProducts || [])];
+      if (currentProductChartMode === 'orders') {
+        sorted.sort((a, b) => (b.purchaseCount - a.purchaseCount) || (b.qty - a.qty) || (b.revenue - a.revenue));
+      } else if (currentProductChartMode === 'qty') {
+        sorted.sort((a, b) => (b.qty - a.qty) || (b.revenue - a.revenue));
+      } else {
+        sorted.sort((a, b) => (b.revenue - a.revenue) || (b.qty - a.qty));
+      }
 
-        let pLabels = top5.map(p => p.name.length > 18 ? p.name.slice(0, 16) + '...' : p.name);
-        let pData = top5.map(p => p.revenue);
-        if (otherRev > 0) {
-          pLabels.push('Mặt hàng khác');
-          pData.push(otherRev);
+      let activeProducts = sorted.filter(p => (p.qty > 0 || p.revenue > 0 || (p.purchaseCount || 0) > 0));
+      let top5 = activeProducts.slice(0, 5);
+      let others = activeProducts.slice(5);
+
+      let chartMeta = [];
+      let pLabels = [];
+      let pData = [];
+
+      top5.forEach(p => {
+        let labelName = p.name;
+        if (labelName.length > 18) labelName = labelName.slice(0, 16) + '...';
+
+        let legendExtra = '';
+        if (currentProductChartMode === 'orders') {
+          legendExtra = ` (${p.purchaseCount || 0} lượt)`;
+        } else if (currentProductChartMode === 'qty') {
+          legendExtra = ` (${p.qty} cái)`;
+        } else {
+          legendExtra = ` (${p.revenue >= 1e6 ? (p.revenue / 1e6).toFixed(1) + 'Tr' : (p.revenue >= 1e3 ? Math.round(p.revenue / 1e3) + 'k' : p.revenue)})`;
         }
 
-        if (pData.length === 0 || pData.every(v => v === 0)) {
-          pLabels = ['Chưa có dữ liệu'];
-          pData = [1];
-        }
+        pLabels.push(labelName + legendExtra);
+        let val = currentProductChartMode === 'orders' ? (p.purchaseCount || 0) : (currentProductChartMode === 'qty' ? p.qty : p.revenue);
+        pData.push(val);
+        chartMeta.push({
+          isOther: false,
+          name: p.name,
+          variantName: p.variantName,
+          qty: p.qty,
+          purchaseCount: p.purchaseCount || 0,
+          revenue: p.revenue,
+          val: val
+        });
+      });
 
-        chartProdShareInstance = new Chart(ctx2, {
-          type: 'doughnut',
-          data: {
-            labels: pLabels,
-            datasets: [{
-              data: pData,
-              backgroundColor: ['#3182ce', '#38a169', '#d69e2e', '#e53e3e', '#805ad5', '#a0aec0'],
-              borderWidth: 2,
-              borderColor: '#ffffff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11.5 } } },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    let val = ctx.raw;
-                    return ` ${ctx.label}: ${formatMoney(val)}`;
+      if (others.length > 0) {
+        let otherVal = others.reduce((acc, p) => {
+          let v = currentProductChartMode === 'orders' ? (p.purchaseCount || 0) : (currentProductChartMode === 'qty' ? p.qty : p.revenue);
+          return acc + v;
+        }, 0);
+        let otherQty = others.reduce((acc, p) => acc + p.qty, 0);
+        let otherOrders = others.reduce((acc, p) => acc + (p.purchaseCount || 0), 0);
+        let otherRev = others.reduce((acc, p) => acc + p.revenue, 0);
+
+        if (otherVal > 0) {
+          let legendExtra = '';
+          if (currentProductChartMode === 'orders') legendExtra = ` (${otherOrders} lượt)`;
+          else if (currentProductChartMode === 'qty') legendExtra = ` (${otherQty} cái)`;
+          else legendExtra = ` (${otherRev >= 1e6 ? (otherRev / 1e6).toFixed(1) + 'Tr' : (otherRev >= 1e3 ? Math.round(otherRev / 1e3) + 'k' : otherRev)})`;
+
+          pLabels.push('Mặt hàng khác' + legendExtra);
+          pData.push(otherVal);
+          chartMeta.push({
+            isOther: true,
+            name: 'Mặt hàng khác',
+            variantName: '',
+            qty: otherQty,
+            purchaseCount: otherOrders,
+            revenue: otherRev,
+            val: otherVal
+          });
+        }
+      }
+
+      if (pData.length === 0 || pData.every(v => v === 0)) {
+        pLabels = ['Chưa có dữ liệu'];
+        pData = [1];
+        chartMeta = [{ isOther: true, name: 'Chưa có dữ liệu', val: 0, qty: 0, purchaseCount: 0, revenue: 0 }];
+      }
+
+      let totalVal = pData.reduce((acc, v) => acc + v, 0);
+
+      chartProdShareInstance = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: pLabels,
+          datasets: [{
+            data: pData,
+            backgroundColor: ['#3182ce', '#38a169', '#d69e2e', '#e53e3e', '#805ad5', '#a0aec0'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { 
+              position: 'bottom', 
+              labels: { 
+                boxWidth: 10, 
+                font: { size: 11.5, weight: '500' },
+                padding: 10
+              } 
+            },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  let idx = ctx.dataIndex;
+                  let m = chartMeta[idx];
+                  if (!m || m.name === 'Chưa có dữ liệu') return ' Chưa có dữ liệu';
+                  
+                  let pct = totalVal > 0 ? ((m.val / totalVal) * 100).toFixed(1) + '%' : '0%';
+                  let lines = [];
+                  if (m.isOther) {
+                    lines.push(` Mặt hàng khác (${pct})`);
+                    lines.push(` • Số lần mua: ${m.purchaseCount} đơn hàng`);
+                    lines.push(` • Tổng số lượng: ${m.qty} cái`);
+                    lines.push(` • Tổng doanh thu: ${formatMoney(m.revenue)}`);
+                  } else {
+                    let fullName = m.name + (m.variantName ? ' [' + m.variantName + ']' : '');
+                    lines.push(` ${fullName} (${pct})`);
+                    lines.push(` • Số lần mua: ${m.purchaseCount} đơn hàng`);
+                    lines.push(` • Số lượng bán: ${m.qty} cái`);
+                    lines.push(` • Doanh thu: ${formatMoney(m.revenue)}`);
                   }
+                  return lines;
                 }
               }
-            },
-            cutout: '62%'
-          }
-        });
-      }
+            }
+          },
+          cutout: '62%'
+        }
+      });
     }
 
     function sortAnalyticsProducts(sortKey) {
       currentAnalyticsSort = sortKey;
       document.getElementById('btn-sort-qty').classList.remove('active');
+      document.getElementById('btn-sort-orders').classList.remove('active');
       document.getElementById('btn-sort-rev').classList.remove('active');
       document.getElementById('btn-sort-stock').classList.remove('active');
 
       if (sortKey === 'qty') document.getElementById('btn-sort-qty').classList.add('active');
+      if (sortKey === 'orders') document.getElementById('btn-sort-orders').classList.add('active');
       if (sortKey === 'revenue') document.getElementById('btn-sort-rev').classList.add('active');
       if (sortKey === 'stock') document.getElementById('btn-sort-stock').classList.add('active');
 
@@ -3867,6 +4128,8 @@
 
       if (currentAnalyticsSort === 'qty') {
         list.sort((a, b) => b.qty - a.qty);
+      } else if (currentAnalyticsSort === 'orders') {
+        list.sort((a, b) => (b.purchaseCount - a.purchaseCount) || (b.qty - a.qty));
       } else if (currentAnalyticsSort === 'revenue') {
         list.sort((a, b) => b.revenue - a.revenue);
       } else if (currentAnalyticsSort === 'stock') {
@@ -3876,7 +4139,7 @@
       document.getElementById('analytics-prod-count').innerText = `${list.length} mặt hàng`;
 
       if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#718096;">Không tìm thấy sản phẩm nào trong khoảng thời gian đã chọn.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#718096;">Không tìm thấy sản phẩm nào trong khoảng thời gian đã chọn.</td></tr>`;
         return;
       }
 
@@ -3895,7 +4158,7 @@
         tbody.innerHTML += `
           <tr>
             <td data-label="#" style="text-align:center;"><span class="rank-badge ${rankCls}">${rankIcon}</span></td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên mặt hàng">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 ${comboTag}<b style="font-size:14px; color:#1a202c;">${escapeHtml(p.name)}</b>
@@ -3904,6 +4167,7 @@
             </td>
             <td data-label="Đơn giá" style="font-weight:600; color:#4a5568;">${formatMoney(p.price)}</td>
             <td data-label="Đã bán" style="text-align:center;"><b style="font-size:15px; color:#2b6cb0;">${p.qty}</b></td>
+            <td data-label="Lượt mua" style="text-align:center;"><span style="background:#e6fffa; color:#234e52; font-weight:700; padding:3px 9px; border-radius:12px; font-size:12.5px; border:1px solid #b2f5ea;">${p.purchaseCount || 0} đơn</span></td>
             <td data-label="Doanh thu" style="font-weight:bold; color:#e53e3e; font-size:14.5px;">${formatMoney(p.revenue)}</td>
             <td data-label="Tồn kho" style="text-align:center;">${p.stock}</td>
             <td data-label="Trạng thái kho">${stockBadge}</td>
@@ -3930,8 +4194,28 @@
       last7Orders.forEach(o => {
         let items = (Array.isArray(o.cart) && o.cart.length > 0) ? o.cart : parseOrderDetailsFallback(o.details);
         items.forEach(it => {
+          let qty = parseInt(it.qty, 10) || 1;
+          let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
+          let comboDef = (globalCombosData || []).find(c => 
+            (it.id && String(c.id) === String(it.id)) || 
+            (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase())
+          );
+          if (comboDef) {
+            let compItems = comboDef.rawItems || [];
+            if (compItems.length === 0 && comboDef.rawJson) {
+              try { compItems = JSON.parse(comboDef.rawJson); } catch(e){}
+            }
+            if (compItems.length > 0) {
+              compItems.forEach(ci => {
+                let id = ci.id || ci.name;
+                let cQty = (Number(ci.qty) || 1) * qty;
+                productRate7d[id] = (productRate7d[id] || 0) + cQty;
+              });
+              return;
+            }
+          }
           let id = it.id || it.name;
-          productRate7d[id] = (productRate7d[id] || 0) + (parseInt(it.qty, 10) || 1);
+          productRate7d[id] = (productRate7d[id] || 0) + qty;
         });
       });
 
@@ -4013,11 +4297,11 @@
         return;
       }
       let csvContent = '\uFEFF';
-      csvContent += "Hang,Ma_SP,Ten_Mat_Hang,Phan_Loai,Don_Gia,So_Luong_Ban,Doanh_Thu,Ton_Kho\n";
+      csvContent += "Hang,Ma_SP,Ten_Mat_Hang,Phan_Loai,Don_Gia,So_Luong_Ban,So_Lan_Mua,Doanh_Thu,Ton_Kho\n";
       currentAnalyticsProducts.forEach((p, idx) => {
         let name = (p.name || '').replace(/"/g, '""');
         let varName = (p.variantName || '').replace(/"/g, '""');
-        csvContent += `"${idx + 1}","${p.id}","${name}","${varName}","${p.price}","${p.qty}","${p.revenue}","${p.stock}"\n`;
+        csvContent += `"${idx + 1}","${p.id}","${name}","${varName}","${p.price}","${p.qty}","${p.purchaseCount || 0}","${p.revenue}","${p.stock}"\n`;
       });
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
