@@ -1320,7 +1320,7 @@
           <div class="orders-status-filter-pills">
             <div class="order-pill active" onclick="filterOrdersByStatus('all', this)">Tất cả</div>
             <div class="order-pill" onclick="filterOrdersByStatus('Khách đặt hàng', this)">Khách đặt hàng</div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Đang chuẩn bị hàng', this)">Đang chuẩn bị</div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Chưa đặt cọc', this)">Chưa đặt cọc</div>
             <div class="order-pill" onclick="filterOrdersByStatus('Đã giao cho đơn vị vận chuyển', this)">Đã giao ĐVVC</div>
             <div class="order-pill" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành</div>
           </div>
@@ -1355,7 +1355,7 @@
           <div class="bulk-toolbar-actions">
             <span style="font-size: 13px; font-weight: 600; color: #4a5568;">Đổi thành:</span>
             <select id="bulk-status-select" style="padding: 8px 12px; border-radius: 6px; border: 1.5px solid #63b3ed; font-weight: bold; color: #2b6cb0; font-size: 14px; background: white;">
-              <option value="Đang chuẩn bị hàng">Đang chuẩn bị hàng</option>
+              <option value="Chưa đặt cọc">Chưa đặt cọc</option>
               <option value="Đã giao cho đơn vị vận chuyển">Đã giao cho đơn vị vận chuyển</option>
               <option value="Hoàn thành">Hoàn thành</option>
               <option value="Khách đặt hàng">Khách đặt hàng</option>
@@ -2092,7 +2092,7 @@
       location.reload();
     }
 
-    const STATUS_OPTIONS = ["Khách đặt hàng", "Đang chuẩn bị hàng", "Đã giao cho đơn vị vận chuyển", "Hoàn thành"];
+    const STATUS_OPTIONS = ["Khách đặt hàng", "Chưa đặt cọc", "Đã giao cho đơn vị vận chuyển", "Hoàn thành"];
 
     function switchTab(tabId, element) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -2377,7 +2377,7 @@
       let st = (status || '').toLowerCase();
       if (st === 'hoàn thành') return 4;
       if (st === 'đã giao cho đơn vị vận chuyển') return 3;
-      if (st === 'đang chuẩn bị hàng') return 2;
+      if (st === 'chưa đặt cọc' || st === 'đang chuẩn bị hàng') return 2;
       return 1;
     }
 
@@ -2605,14 +2605,17 @@
 
     async function deleteCurrentDuplicateOrders() {
       if (!currentModalDuplicateRows || currentModalDuplicateRows.length === 0) return;
-      let count = currentModalDuplicateRows.length;
+      let rowsToDelete = currentModalDuplicateRows.map(r => parseInt(r, 10)).filter(r => r >= 2);
+      let count = rowsToDelete.length;
+      if (count === 0) return;
+
       if (!confirm(`Bạn có chắc chắn muốn XÓA ${count} đơn hàng trùng lặp này khỏi hệ thống không?\n(Dữ liệu sẽ được đánh dấu Đã Xóa trên Google Sheets, đơn chính vẫn được giữ nguyên)`)) {
         return;
       }
       closeDuplicateModal();
       showLoading(true);
       try {
-        let payload = { action: "deleteBatchOrders", token: getAdminToken(), rows: currentModalDuplicateRows };
+        let payload = { action: "deleteBatchOrders", token: getAdminToken(), rows: rowsToDelete };
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
         if (data.status === "error") {
@@ -2622,9 +2625,9 @@
           return;
         }
 
-        let deletedSet = new Set(currentModalDuplicateRows);
+        let deletedSet = new Set(rowsToDelete);
         globalOrdersData = (globalOrdersData || []).filter(o => !deletedSet.has(o.row));
-        currentModalDuplicateRows.forEach(r => {
+        rowsToDelete.forEach(r => {
           selectedOrderRows.delete(r);
           pendingOrderChanges.delete(r);
         });
@@ -2656,7 +2659,8 @@
           return false;
         }
 
-        if (currentOrderStatusFilter !== 'all' && order.status !== currentOrderStatusFilter) {
+        let effectiveStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
+        if (currentOrderStatusFilter !== 'all' && effectiveStatus !== currentOrderStatusFilter) {
           return false;
         }
         if (currentOrderSearchQuery) {
@@ -2751,7 +2755,8 @@
       let order = (globalOrdersData || []).find(o => o.row === rowIdx);
       if (!order) return;
       let val = selectEl.value;
-      if (val !== order.status) {
+      let originalStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
+      if (val !== originalStatus) {
         pendingOrderChanges.set(rowIdx, val);
       } else {
         pendingOrderChanges.delete(rowIdx);
@@ -2799,7 +2804,8 @@
 
       sortedOrders.forEach(order => {
         let hasPending = pendingOrderChanges.has(order.row);
-        let currentEffectiveStatus = hasPending ? pendingOrderChanges.get(order.row) : order.status;
+        let normalizedStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
+        let currentEffectiveStatus = hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus;
 
         let selectHtml = `<select id="status-${order.row}" class="status-select ${hasPending ? 'select-unsaved' : ''}" onchange="onOrderStatusDropdownChange(${order.row}, this)">`;
         STATUS_OPTIONS.forEach(opt => {
@@ -2874,7 +2880,7 @@
             <td data-label="Chi tiết Đơn hàng" style="line-height: 1.5;">${detailsHtml}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold; font-size:15px;">${escapeHtml(order.total)}</td>
             <td data-label="Trạng thái">
-              <span style="font-weight: bold; color: ${statusColor};">${escapeHtml(order.status)}</span>
+              <span style="font-weight: bold; color: ${statusColor};">${escapeHtml(currentEffectiveStatus)}</span>
               ${order.isDeducted ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:11px; color:#22543d; background:#c6f6d5; border:1px solid #9ae6b4; padding:2px 6px; border-radius:4px; font-weight:600;">📦 Đã trừ kho</span></div>' : ''}
               ${hasPending ? '<div class="badge-unsaved">⚠️ Chưa lưu</div>' : ''}
             </td>

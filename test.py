@@ -733,11 +733,11 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertEqual(stock, 12, "Tồn kho phải giữ nguyên 12, không được trừ lần 2 khi sang Hoàn thành!")
         self.assertEqual(deductions, 0, "Không được trừ kho lần 2!")
 
-        # Case 3: "Khách đặt hàng" -> "Đang chuẩn bị hàng" -> "Hoàn thành"
+        # Case 3: "Khách đặt hàng" -> "Chưa đặt cọc" -> "Hoàn thành"
         status, is_deducted, stock, deductions = simulate_status_transition(
-            "Khách đặt hàng", "Đang chuẩn bị hàng", False, 20, 5
+            "Khách đặt hàng", "Chưa đặt cọc", False, 20, 5
         )
-        self.assertEqual(stock, 20, "Trạng thái Đang chuẩn bị hàng chưa được trừ kho")
+        self.assertEqual(stock, 20, "Trạng thái Chưa đặt cọc chưa được trừ kho")
         self.assertFalse(is_deducted)
         self.assertEqual(deductions, 0)
 
@@ -1014,13 +1014,13 @@ class TestBusinessLogic(unittest.TestCase):
         # Mô phỏng thuật toán Dirty Tracking (chỉnh sửa trực tiếp trên bảng)
         original_orders = {
             2: {"status": "Khách đặt hàng"},
-            3: {"status": "Đang chuẩn bị hàng"},
+            3: {"status": "Chưa đặt cọc"},
             4: {"status": "Khách đặt hàng"},
         }
         pending_changes = {}
 
-        # Sửa đơn 2 thành Đang chuẩn bị hàng
-        pending_changes[2] = "Đang chuẩn bị hàng"
+        # Sửa đơn 2 thành Chưa đặt cọc
+        pending_changes[2] = "Chưa đặt cọc"
         # Sửa đơn 4 thành Hoàn thành
         pending_changes[4] = "Hoàn thành"
 
@@ -1123,7 +1123,7 @@ class TestBusinessLogic(unittest.TestCase):
           {
             row: 4, orderId: "DH03", date: "24/10/2026 08:01", name: "Hoàng Ngọc Tân", phone: "0982925329",
             address: "187/8 đường số 6, Phường Hạnh Thông, Thành phố Hồ Chí Minh",
-            details: "- Arduino Uno R3 | Số lượng: x1", rawTotal: 150000, note: "Giao giờ hành chính", status: "Đang chuẩn bị hàng",
+            details: "- Arduino Uno R3 | Số lượng: x1", rawTotal: 150000, note: "Giao giờ hành chính", status: "Chưa đặt cọc",
             cart: [{ id: "SP_UNO", qty: 1, variantId: "" }]
           },
           {
@@ -1180,6 +1180,14 @@ class TestBusinessLogic(unittest.TestCase):
         isDuplicateFilterActive = false;
         let filteredInactive = getFilteredOrders();
         console.assert(filteredInactive.length === 7, "Khi tắt lọc, phải hiển thị đầy đủ cả 7 đơn, nhận được: " + filteredInactive.length);
+
+        // Kiểm tra logic xóa đơn trùng: rowsToDelete không bị rỗng khi gọi closeDuplicateModal
+        currentModalDuplicateRows = [2, 3];
+        let rowsToDelete = currentModalDuplicateRows.map(r => parseInt(r, 10)).filter(r => r >= 2);
+        console.assert(rowsToDelete.length === 2, "rowsToDelete phải giữ được 2 phần tử");
+        closeDuplicateModal();
+        console.assert(currentModalDuplicateRows.length === 0, "currentModalDuplicateRows đã được reset");
+        console.assert(rowsToDelete.length === 2 && rowsToDelete[0] === 2 && rowsToDelete[1] === 3, "rowsToDelete không bị ảnh hưởng bởi closeDuplicateModal");
         """
 
         p = subprocess.run(["node", "-e", test_js], capture_output=True, text=True)
