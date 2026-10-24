@@ -1938,6 +1938,48 @@
         </div>
       </div>
 
+      <!-- CẤU HÌNH QUÀ TẶNG KÈM & HẠN GIỜ (FLASH DEAL) -->
+      <div style="background: #fffaf0; border: 1.5px solid #fbd38d; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #c05621; cursor: pointer; user-select: none;">
+          <input type="checkbox" id="combo-has-gift" onchange="toggleComboGiftSection(this.checked)" style="width: 18px; height: 18px; accent-color: #dd6b20;">
+          <span style="font-size: 14.5px;">🎁 Bật Chế Độ Ưu Đãi Kèm Quà Tặng & Hạn Giờ (Flash Deal)</span>
+        </label>
+        
+        <div id="combo-gift-config-box" style="display: none; margin-top: 14px; border-top: 1px dashed #fbd38d; padding-top: 12px;">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label style="font-weight: 600; color: #7b341e; font-size: 13.5px;">Chọn Linh Kiện Làm Quà Tặng (Giá 0đ cho khách):</label>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <select id="combo-gift-product-select" style="flex: 1; min-width: 200px; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13.5px;">
+              </select>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 13px; color: #4a5568;">Số lượng tặng:</span>
+                <input type="number" id="combo-gift-qty" value="1" min="1" max="99" style="width: 60px; padding: 7px; border: 1px solid #cbd5e0; border-radius: 6px; text-align: center; font-weight: bold;">
+              </div>
+            </div>
+            <div style="font-size: 12px; color: #718096; margin-top: 4px;">Khách mua Combo sẽ được nhận món quà này miễn phí (0đ). Khi hoàn thành đơn, kho món quà này cũng sẽ được trừ tương ứng.</div>
+          </div>
+
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+            <div class="form-group" style="flex: 1; min-width: 180px; margin-bottom: 0;">
+              <label style="font-weight: 600; color: #7b341e; font-size: 13px;">⏱️ Bắt đầu từ ngày giờ:</label>
+              <input type="datetime-local" id="combo-start-time" style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13px;">
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 180px; margin-bottom: 0;">
+              <label style="font-weight: 600; color: #7b341e; font-size: 13px;">⏳ Kết thúc vào ngày giờ:</label>
+              <input type="datetime-local" id="combo-end-time" style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13px;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-weight: 600; color: #7b341e; font-size: 13px;">Hành vi khi hết thời hạn khuyến mãi:</label>
+            <select id="combo-expire-action" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13px;">
+              <option value="hide">🚫 Ẩn hoàn toàn Combo này khỏi trang web (Khách không thể xem hoặc đặt)</option>
+              <option value="remove_gift">📦 Giữ lại Combo bán bình thường, nhưng tự động BỎ quà tặng đính kèm</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div style="display:flex; justify-content:space-between; background:#edf2f7; padding:15px; border-radius:8px; font-weight:bold; margin-bottom: 20px;">
         <div>Tổng Giá Bán: <span id="combo-preview-price" style="color:#e53e3e; font-size:18px;">0đ</span></div>
         <div>Tồn Kho Tối Đa: <span id="combo-preview-stock" style="color:#2f855a; font-size:18px;">0</span></div>
@@ -3140,10 +3182,32 @@
         let stockHtml = c.stock <= 2 ? `<span class="stock-warning">${c.stock}</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${c.stock}</span>`;
         let firstImg = c.images && c.images.length > 0 ? c.images[0] : "";
         
+        let flashBadge = "";
+        let giftDetailHtml = "";
+        if (c.hasGift && c.giftItems && c.giftItems.length > 0) {
+          flashBadge = `<span style="display:inline-block; margin-left:6px; background:linear-gradient(135deg, #dd6b20, #e53e3e); color:#fff; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:bold;">🎁 FLASH DEAL</span>`;
+          let giftLines = c.giftItems.map(g => `🎁 <b>${escapeHtml(g.name)}</b> (x${g.qty})`).join('<br>');
+          let timeInfo = "";
+          if (c.startTime || c.endTime) {
+            let sStr = c.startTime ? c.startTime.replace("T", " ") : "Ngay bây giờ";
+            let eStr = c.endTime ? c.endTime.replace("T", " ") : "Không giới hạn";
+            let actText = c.expireAction === "remove_gift" ? "Bỏ quà tặng" : "Ẩn Combo";
+            timeInfo = `<div style="font-size:11.5px; color:#c05621; margin-top:3px;">⏱️ ${sStr} ➔ ${eStr} (Hết hạn: ${actText})</div>`;
+          }
+          giftDetailHtml = `<div style="margin-top:6px; padding:6px 10px; background:#fffaf0; border-left:3px solid #dd6b20; border-radius:4px; font-size:12px; color:#7b341e;">${giftLines}${timeInfo}</div>`;
+        }
+
         tbody.innerHTML += `<tr>
             <td data-label="ID Combo" style="color:#718096; font-size: 13px;">${escapeHtml(c.id)}</td>
             <td data-label="Ảnh Nội Suy"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
-            <td data-label="Tên & Thành Phần"><b style="font-size:15px; color:#c53030;">[COMBO] ${escapeHtml(c.name)}</b><div style="font-size:12px; color:#718096; margin-top:5px;">${itemsHtml}</div></td>
+            <td data-label="Tên & Thành Phần">
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <b style="font-size:15px; color:#c53030;">[COMBO] ${escapeHtml(c.name)}</b>
+                ${flashBadge}
+              </div>
+              <div style="font-size:12px; color:#718096; margin-top:5px;">${itemsHtml}</div>
+              ${giftDetailHtml}
+            </td>
             <td data-label="Giá Tự Động"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(c.price)}</div></td>
             <td data-label="Kho Tự Động">${stockHtml}</td>
             <td data-label="Thao tác">
@@ -3751,9 +3815,55 @@
       renderComboProductSelector();
     }
 
+    function formatDateTimeLocal(dtStr) {
+      if (!dtStr) return "";
+      let s = dtStr.replace(" ", "T");
+      if (s.length >= 16) return s.slice(0, 16);
+      return s;
+    }
+
+    function toggleComboGiftSection(checked) {
+      const box = document.getElementById('combo-gift-config-box');
+      if (box) box.style.display = checked ? 'block' : 'none';
+    }
+
+    function renderComboGiftProductOptions(selectedVal = '') {
+      const select = document.getElementById('combo-gift-product-select');
+      if (!select) return;
+      select.innerHTML = '<option value="">-- Chọn sản phẩm làm quà tặng --</option>';
+      if (!globalProductsData || globalProductsData.length === 0) return;
+
+      globalProductsData.forEach(p => {
+        if (p.isCombo) return;
+        if (p.variants && p.variants.length > 0) {
+          p.variants.forEach(v => {
+            const val = `${p.id}:::${v.id}`;
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = `${p.name} - [${v.name}] (Tồn: ${v.stock})`;
+            if (val === selectedVal) opt.selected = true;
+            select.appendChild(opt);
+          });
+        } else {
+          const val = `${p.id}`;
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = `${p.name} (Tồn: ${p.stock})`;
+          if (val === selectedVal) opt.selected = true;
+          select.appendChild(opt);
+        }
+      });
+    }
+
     function openComboModal(comboId = null) {
       const searchInput = document.getElementById("combo-search-input");
       if (searchInput) searchInput.value = "";
+
+      const hasGiftCheck = document.getElementById("combo-has-gift");
+      const giftQtyInput = document.getElementById("combo-gift-qty");
+      const startTimeInput = document.getElementById("combo-start-time");
+      const endTimeInput = document.getElementById("combo-end-time");
+      const expireActionSelect = document.getElementById("combo-expire-action");
 
       if(comboId) {
          let combo = globalCombosData.find(c => c.id === comboId); if(!combo) return;
@@ -3763,6 +3873,24 @@
          document.getElementById("combo-desc").value = combo.desc;
          currentComboEditImages = combo.rawManualImages ? combo.rawManualImages.split('\n').map(i => i.trim()).filter(i => i !== "") : [];
          try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
+
+         let firstGift = (combo.giftItems && combo.giftItems.length > 0) ? combo.giftItems[0] : null;
+         let isGiftActive = !!(combo.hasGift || firstGift);
+         if (hasGiftCheck) hasGiftCheck.checked = isGiftActive;
+         toggleComboGiftSection(isGiftActive);
+
+         let selectedGiftVal = "";
+         if (firstGift) {
+           selectedGiftVal = firstGift.variantId ? `${firstGift.id}:::${firstGift.variantId}` : String(firstGift.id);
+           if (giftQtyInput) giftQtyInput.value = firstGift.qty || 1;
+         } else {
+           if (giftQtyInput) giftQtyInput.value = 1;
+         }
+         renderComboGiftProductOptions(selectedGiftVal);
+
+         if (startTimeInput) startTimeInput.value = formatDateTimeLocal(combo.startTime);
+         if (endTimeInput) endTimeInput.value = formatDateTimeLocal(combo.endTime);
+         if (expireActionSelect) expireActionSelect.value = combo.expireAction || "hide";
       } else {
          document.getElementById("combo-modal-title").innerText = "Tạo Combo Mới";
          document.getElementById("combo-edit-id").value = ""; 
@@ -3770,6 +3898,14 @@
          document.getElementById("combo-desc").value = "";
          currentComboEditImages = [];
          currentComboItems = [];
+
+         if (hasGiftCheck) hasGiftCheck.checked = false;
+         toggleComboGiftSection(false);
+         renderComboGiftProductOptions("");
+         if (giftQtyInput) giftQtyInput.value = 1;
+         if (startTimeInput) startTimeInput.value = "";
+         if (endTimeInput) endTimeInput.value = "";
+         if (expireActionSelect) expireActionSelect.value = "hide";
       }
       renderImagePreviews('combo-image-preview-container', currentComboEditImages, 'removeComboEditImage');
       renderComboProductSelector(); 
@@ -3779,14 +3915,61 @@
     function closeComboModal() { document.getElementById("combo-modal").style.display = "none"; document.body.style.overflow = "auto"; }
 
     async function saveComboChanges() {
-      let cId = document.getElementById("combo-edit-id").value; let cName = document.getElementById("combo-name").value; let cDesc = document.getElementById("combo-desc").value;
+      let cId = document.getElementById("combo-edit-id").value;
+      let cName = document.getElementById("combo-name").value;
+      let cDesc = document.getElementById("combo-desc").value;
       if(!cName) { alert("Tên Combo không được bỏ trống!"); return; }
       if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
+
+      let hasGiftCheck = document.getElementById("combo-has-gift");
+      let hasGift = hasGiftCheck ? hasGiftCheck.checked : false;
+      let giftItems = [];
+      let startTime = "";
+      let endTime = "";
+      let expireAction = "hide";
+
+      if (hasGift) {
+        let giftSelect = document.getElementById("combo-gift-product-select");
+        let giftVal = giftSelect ? giftSelect.value : "";
+        if (!giftVal) {
+          alert("Vui lòng chọn linh kiện làm quà tặng cho Combo!");
+          return;
+        }
+        let giftQty = parseInt(document.getElementById("combo-gift-qty")?.value, 10) || 1;
+        let [gId, gVarId] = giftVal.split(":::");
+        giftItems.push({
+          id: gId,
+          variantId: gVarId || "",
+          qty: giftQty
+        });
+
+        startTime = (document.getElementById("combo-start-time")?.value || "").trim();
+        endTime = (document.getElementById("combo-end-time")?.value || "").trim();
+        expireAction = document.getElementById("combo-expire-action")?.value || "hide";
+
+        if (startTime && endTime && new Date(startTime) >= new Date(endTime)) {
+          alert("Thời gian kết thúc phải sau thời gian bắt đầu!");
+          return;
+        }
+      }
       
       showLoading(true); closeComboModal();
-      let payload = { action: "saveCombo", token: getAdminToken(), comboId: cId, name: cName, desc: cDesc, items: JSON.stringify(currentComboItems), images: currentComboEditImages.join('\n') };
+      let payload = {
+        action: "saveCombo",
+        token: getAdminToken(),
+        comboId: cId,
+        name: cName,
+        desc: cDesc,
+        items: JSON.stringify(currentComboItems),
+        images: currentComboEditImages.join('\n'),
+        giftItems: hasGift ? JSON.stringify(giftItems) : "",
+        startTime: hasGift ? startTime : "",
+        endTime: hasGift ? endTime : "",
+        expireAction: hasGift ? expireAction : "hide"
+      };
       try {
-        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); let data = await res.json();
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
         alert("Đã lưu Combo thành công!"); loadData();
       } catch (e) { alert("Lỗi khi lưu!"); showLoading(false); }

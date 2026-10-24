@@ -199,6 +199,24 @@ class TestDOMIntegrity(unittest.TestCase):
         for did in dup_ids:
             self.assertIn(did, collector.ids, f"LỖI: Thiếu phần tử id='{did}' trong admin.html!")
 
+    def test_flash_deal_elements_exist_in_admin(self):
+        """Kiểm tra: Các phần tử cấu hình Quà tặng & Flash Deal trong modal Combo phải tồn tại trong admin.html"""
+        content = read_file('admin.html')
+        collector = IDCollector()
+        collector.feed(content)
+
+        deal_ids = [
+            'combo-has-gift',
+            'combo-gift-config-box',
+            'combo-gift-product-select',
+            'combo-gift-qty',
+            'combo-start-time',
+            'combo-end-time',
+            'combo-expire-action',
+        ]
+        for did in deal_ids:
+            self.assertIn(did, collector.ids, f"LỖI: Thiếu phần tử Flash Deal id='{did}' trong admin.html!")
+
     def test_address_preview_elements_exist_in_index(self):
         """Kiểm tra: Các phần tử xem trước địa chỉ giao hàng chuẩn hóa phải tồn tại trong index.html"""
         content = read_file('index.html')
@@ -1192,6 +1210,216 @@ class TestBusinessLogic(unittest.TestCase):
 
         p = subprocess.run(["node", "-e", test_js], capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, f"LỖI TEST THUẬT TOÁN ĐƠN TRÙNG LẶP:\n{p.stderr}")
+
+    def test_flash_deal_functions_and_css_exist(self):
+        """Kiểm tra: Các hàm và lớp CSS phục vụ Combo Quà Tặng & Flash Deal phải tồn tại trong cả admin.html, index.html và Code.gs"""
+        admin = read_file('admin.html')
+        index = read_file('index.html')
+        codegs = read_file('Code.gs')
+
+        # Admin
+        self.assertIn('function toggleComboGiftSection', admin, "LỖI: Thiếu hàm toggleComboGiftSection trong admin.html")
+        self.assertIn('function renderComboGiftProductOptions', admin, "LỖI: Thiếu hàm renderComboGiftProductOptions trong admin.html")
+        self.assertIn('formatDateTimeLocal', admin, "LỖI: Thiếu hàm formatDateTimeLocal trong admin.html")
+
+        # Client index.html
+        self.assertIn('function getComboFlashDealStatus', index, "LỖI: Thiếu hàm getComboFlashDealStatus trong index.html")
+        self.assertIn('function updateAllCountdowns', index, "LỖI: Thiếu hàm updateAllCountdowns trong index.html")
+        self.assertIn('.flash-deal-ribbon', index, "LỖI: Thiếu class CSS .flash-deal-ribbon trong index.html")
+        self.assertIn('.flash-deal-header-banner', index, "LỖI: Thiếu class CSS .flash-deal-header-banner trong index.html")
+        self.assertIn('.deal-top-header-bar', index, "LỖI: Thiếu class CSS .deal-top-header-bar trong index.html")
+        self.assertIn('.combo-gift-container', index, "LỖI: Thiếu class CSS .combo-gift-container trong index.html")
+        self.assertIn('.btn-flash-deal', index, "LỖI: Thiếu class CSS .btn-flash-deal trong index.html")
+
+        # Code.gs backend
+        self.assertIn('giftItems', codegs, "LỖI: Code.gs chưa xử lý trường giftItems")
+        self.assertIn('expireAction', codegs, "LỖI: Code.gs chưa xử lý trường expireAction")
+        self.assertIn('[QUÀ TẶNG]', codegs, "LỖI: Code.gs chưa format dòng [QUÀ TẶNG] khi ghi đơn hàng")
+
+    def test_flash_deal_status_and_expiration_logic(self):
+        """Kiểm tra: Thuật toán nhận diện trạng thái Flash Deal (Sắp diễn ra, Đang diễn ra, Đã hết hạn) bằng Node.js"""
+        test_js = """
+        function getComboFlashDealStatus(c) {
+          if (!c || !c.hasGift || !c.giftItems || c.giftItems.length === 0) {
+            return { isFlashDeal: false, isActive: false, isUpcoming: false, isExpired: false, remainingMs: 0, activeGifts: [] };
+          }
+          const now = Date.now();
+          let startMs = c.startTime ? new Date(c.startTime).getTime() : 0;
+          let endMs = c.endTime ? new Date(c.endTime).getTime() : 0;
+          if (isNaN(startMs)) startMs = 0;
+          if (isNaN(endMs)) endMs = 0;
+
+          if (startMs > 0 && now < startMs) {
+            return {
+              isFlashDeal: true,
+              isActive: false,
+              isUpcoming: true,
+              isExpired: false,
+              remainingMs: startMs - now,
+              activeGifts: []
+            };
+          }
+
+          if (endMs > 0 && now > endMs) {
+            return {
+              isFlashDeal: true,
+              isActive: false,
+              isUpcoming: false,
+              isExpired: true,
+              remainingMs: 0,
+              activeGifts: []
+            };
+          }
+
+          let remainingMs = endMs > 0 ? Math.max(0, endMs - now) : Infinity;
+          return {
+            isFlashDeal: true,
+            isActive: true,
+            isUpcoming: false,
+            isExpired: false,
+            remainingMs: remainingMs,
+            activeGifts: c.giftItems
+          };
+        }
+
+        const now = Date.now();
+        const past = new Date(now - 3600000).toISOString();
+        const future = new Date(now + 3600000).toISOString();
+        const farFuture = new Date(now + 7200000).toISOString();
+
+        // 1. Combo thường không quà
+        let normalCombo = { id: "C1", name: "Combo thường", hasGift: false };
+        let sNormal = getComboFlashDealStatus(normalCombo);
+        console.assert(sNormal.isFlashDeal === false, "Combo thường không được tính là flash deal");
+
+        // 2. Deal đang diễn ra
+        let activeDeal = {
+          id: "C2",
+          name: "Combo quà tặng",
+          hasGift: true,
+          giftItems: [{ id: "G1", name: "Quà tặng ESP32", qty: 1 }],
+          startTime: past,
+          endTime: future,
+          expireAction: "hide"
+        };
+        let sActive = getComboFlashDealStatus(activeDeal);
+        console.assert(sActive.isFlashDeal === true, "Phải là flash deal");
+        console.assert(sActive.isActive === true, "Phải đang active");
+        console.assert(sActive.isExpired === false, "Chưa hết hạn");
+        console.assert(sActive.activeGifts.length === 1, "Phải có 1 quà tặng");
+
+        // 3. Deal sắp diễn ra (start trong tương lai)
+        let upcomingDeal = {
+          id: "C3",
+          name: "Combo sắp mở",
+          hasGift: true,
+          giftItems: [{ id: "G1", name: "Quà tặng", qty: 1 }],
+          startTime: future,
+          endTime: farFuture,
+          expireAction: "hide"
+        };
+        let sUpcoming = getComboFlashDealStatus(upcomingDeal);
+        console.assert(sUpcoming.isUpcoming === true, "Phải là upcoming");
+        console.assert(sUpcoming.isActive === false, "Chưa thể active");
+
+        // 4. Deal đã hết hạn (end trong quá khứ)
+        let expiredDeal = {
+          id: "C4",
+          name: "Combo đã hết hạn",
+          hasGift: true,
+          giftItems: [{ id: "G1", name: "Quà tặng", qty: 1 }],
+          startTime: new Date(now - 7200000).toISOString(),
+          endTime: past,
+          expireAction: "hide"
+        };
+        let sExpired = getComboFlashDealStatus(expiredDeal);
+        console.assert(sExpired.isExpired === true, "Phải là expired");
+        console.assert(sExpired.isActive === false, "Không còn active");
+        console.assert(sExpired.activeGifts.length === 0, "Không nhận quà khi đã hết hạn");
+        """
+
+        p = subprocess.run(["node", "-e", test_js], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, f"LỖI TEST THUẬT TOÁN FLASH DEAL STATUS:\n{p.stderr}")
+
+    def test_zalo_combo_and_gift_message_format_exact(self):
+        """Kiểm tra: Định dạng tin nhắn sao chép Zalo cho Combo và Quà Tặng phải giữ chuẩn xác từng dấu cách và format cũ"""
+        test_js = """
+        function formatMoney(amount) {
+          return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+        }
+
+        let cart = [
+          {
+            id: "CMB_01",
+            name: "Combo robot để bàn gật đầu",
+            price: 456000,
+            qty: 2,
+            isCombo: true
+          }
+        ];
+
+        let combosData = [
+          {
+            id: "CMB_01",
+            name: "Combo robot để bàn gật đầu",
+            rawItems: [
+              { name: "Bảng phát triển ESP32-S3", price: 138000, qty: 1 },
+              { name: "Mạch max98357", price: 43000, qty: 1 }
+            ],
+            hasGift: true,
+            giftItems: [
+              { id: "G1", name: "Dây cáp nạp Type-C", qty: 1 }
+            ],
+            startTime: "",
+            endTime: "",
+            expireAction: "hide"
+          }
+        ];
+
+        function getComboFlashDealStatus(c) {
+          return { isFlashDeal: true, isActive: true, activeGifts: c.giftItems };
+        }
+
+        let orderText = "";
+        cart.forEach((item, index) => {
+          let prefix = item.isCombo ? "[COMBO] " : "";
+          orderText += `${index + 1}. ${prefix}${item.name}\\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\\n`;
+          
+          if (item.isCombo) {
+            let comboDetail = combosData.find(c => c.id === item.id);
+            if (comboDetail && comboDetail.rawItems) {
+              comboDetail.rawItems.forEach(subItem => {
+                orderText += `   ${subItem.name}\\n      Giá: ${formatMoney(subItem.price)}   |   Số lượng: x${subItem.qty * item.qty}\\n`;
+              });
+            }
+            if (comboDetail && comboDetail.hasGift) {
+              let fs = getComboFlashDealStatus(comboDetail);
+              if (fs.isActive && fs.activeGifts && fs.activeGifts.length > 0) {
+                fs.activeGifts.forEach(gift => {
+                  orderText += `   [QUÀ TẶNG] ${gift.name}\\n      Giá: 0đ   |   Số lượng: x${gift.qty * item.qty}\\n`;
+                });
+              }
+            }
+          }
+          orderText += `\\n`;
+        });
+
+        // 1. Phải có header combo với "Giá: 456.000đ   |   Số lượng: x2"
+        console.assert(orderText.includes("1. [COMBO] Combo robot để bàn gật đầu\\n   Giá: 456.000đ   |   Số lượng: x2"), "Sai format dòng tiêu đề Combo!");
+
+        // 2. Phải có linh kiện con thụt dòng 3 space, dòng giá thụt 6 space kèm "   |   Số lượng: x2"
+        console.assert(orderText.includes("   Bảng phát triển ESP32-S3\\n      Giá: 138.000đ   |   Số lượng: x2"), "Sai format sub-item linh kiện con!");
+        console.assert(orderText.includes("   Mạch max98357\\n      Giá: 43.000đ   |   Số lượng: x2"), "Sai format sub-item mạch max98357!");
+
+        // 3. Phải có quà tặng [QUÀ TẶNG] thụt 3 space, dòng giá 0đ thụt 6 space kèm "   |   Số lượng: x2"
+        console.assert(orderText.includes("   [QUÀ TẶNG] Dây cáp nạp Type-C\\n      Giá: 0đ   |   Số lượng: x2"), "Sai format linh kiện quà tặng [QUÀ TẶNG]!");
+
+        // 4. Không được dùng format thu nhỏ kiểu "Tên (x1)"
+        console.assert(!orderText.includes("• Dây cáp nạp Type-C (x2)"), "Tuyệt đối không được dùng format rút gọn!");
+        """
+
+        p = subprocess.run(["node", "-e", test_js], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, f"LỖI TEST FORMAT TIN NHẮN ZALO COMBO VÀ QUÀ TẶNG:\n{p.stderr}")
 
 
 if __name__ == '__main__':

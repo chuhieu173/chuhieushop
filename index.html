@@ -22,6 +22,21 @@
     
     body.theme-dark .product-card { background: #232336; box-shadow: 0 4px 10px rgba(0,0,0,0.5); color: #e2e8f0; }
     body.theme-dark .combo-card { background: #2d2610; border-color: #d69e2e; }
+    body.theme-dark .combo-card.flash-deal { background: #251815; border-color: #ff5722; box-shadow: 0 6px 22px rgba(255, 87, 34, 0.35); }
+    body.theme-dark .flash-deal-header-banner { background: linear-gradient(135deg, #c53030 0%, #dd6b20 100%); }
+    body.theme-dark .deal-top-header-bar { background: linear-gradient(135deg, #e53e3e 0%, #dd6b20 100%); }
+    body.theme-dark .deal-countdown-box { background: #3b1818; border-color: #742a2a; }
+    body.theme-dark .deal-countdown-box .cd-label { color: #feb2b2; }
+    body.theme-dark .countdown-timer { color: #feb2b2; }
+    body.theme-dark .cd-seg { background: #111; color: #ffeb3b; }
+    body.theme-dark .cd-seg-label { color: #feb2b2; }
+    body.theme-dark .cd-colon { color: #fc8181; }
+    body.theme-dark .combo-gift-container { background: linear-gradient(135deg, #2b1814 0%, #3a1e17 100%); border-color: #ed8936; }
+    body.theme-dark .combo-gift-header { color: #fbd38d; }
+    body.theme-dark .combo-gift-item { background: rgba(0,0,0,0.35); border-color: rgba(237, 137, 54, 0.3); }
+    body.theme-dark .gift-name { color: #feebc8; }
+    body.theme-dark .gift-orig-val { color: #a0aec0; }
+    body.theme-dark .deal-hot-status { background: rgba(255, 87, 34, 0.2); color: #feb2b2; }
     body.theme-dark .product-card h3 { color: #fff; } 
     body.theme-dark .product-card p { color: #a0aec0; }
     body.theme-dark .combo-items-text { background: rgba(255,255,255,0.05); color: #cbd5e0; border: 1px dashed #4a5568; }
@@ -148,8 +163,275 @@
     .product-card { position: relative; background: #eef2f5; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; color: #333; transition: 0.3s;}
     .discount-badge { position: absolute; top: 10px; right: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 3px; z-index: 10;}
     
+    @keyframes dealPulseGlow {
+      0% { box-shadow: 0 4px 15px rgba(238, 77, 45, 0.25), 0 0 0 1px rgba(238, 77, 45, 0.2); }
+      50% { box-shadow: 0 8px 25px rgba(238, 77, 45, 0.45), 0 0 14px rgba(255, 107, 0, 0.35); }
+      100% { box-shadow: 0 4px 15px rgba(238, 77, 45, 0.25), 0 0 0 1px rgba(238, 77, 45, 0.2); }
+    }
+    @keyframes giftShake {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-10deg); }
+      40% { transform: rotate(10deg); }
+      60% { transform: rotate(-5deg); }
+      80% { transform: rotate(5deg); }
+    }
+    @keyframes shimmerSweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(200%); }
+    }
+
+    .flash-deal-header-banner {
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 50%, #f76b1c 100%);
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(255, 75, 43, 0.28);
+      text-align: center;
+      margin-bottom: 22px;
+      position: relative;
+    }
+    .flash-deal-header-banner .f-title {
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .flash-deal-header-banner .f-icon {
+      font-size: 20px;
+      display: inline-block;
+      animation: giftShake 2s infinite ease-in-out;
+    }
+    .flash-deal-header-banner .f-badge {
+      background: #ffeb3b;
+      color: #9c4221;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    .flash-deal-header-banner .f-desc {
+      font-size: 12px;
+      margin-top: 4px;
+      opacity: 0.95;
+      font-weight: 500;
+    }
+
     .combo-card { border: 2px solid #ffd700; background: #fffdf0; }
+    .combo-card.flash-deal {
+      border: 2px solid #ff4b2b;
+      background: #fffdfc;
+      box-shadow: 0 4px 18px rgba(238, 77, 45, 0.25);
+      animation: dealPulseGlow 3s infinite ease-in-out;
+      border-radius: 12px;
+      overflow: hidden;
+      padding-top: 0;
+      transform: translateY(-2px);
+    }
     .combo-ribbon { position: absolute; top: -5px; left: -5px; background: #e53e3e; color: white; padding: 5px 12px; font-weight: bold; font-size: 12px; z-index: 10; box-shadow: 2px 2px 4px rgba(0,0,0,0.2); border-radius: 3px; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;}
+    .combo-ribbon.flash-deal-ribbon { background: linear-gradient(135deg, #dd6b20, #e53e3e); }
+    
+    .deal-top-header-bar {
+      margin: 0 -15px 12px -15px;
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      color: #fff;
+      padding: 8px 12px;
+      font-weight: 800;
+      font-size: 11.5px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 6px rgba(255, 75, 43, 0.25);
+    }
+    .deal-top-header-bar .tag-left {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .deal-top-header-bar .tag-right {
+      background: rgba(255,255,255,0.25);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .deal-countdown-box {
+      background: linear-gradient(135deg, #fff5f5, #ffe8e8);
+      border: 1px solid #feb2b2;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin: 8px 0 6px 0;
+      text-align: center;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .deal-countdown-box .cd-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #c53030;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .countdown-timer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 3px;
+      font-weight: 800;
+    }
+    .cd-seg-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .cd-seg {
+      background: #1a1a24;
+      color: #ffeb3b;
+      padding: 3px 6px;
+      border-radius: 4px;
+      min-width: 22px;
+      text-align: center;
+      font-family: 'Courier New', monospace, sans-serif;
+      font-size: 12.5px;
+      font-weight: 900;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    .cd-seg-label {
+      font-size: 8.5px;
+      color: #742a2a;
+      font-weight: 600;
+      margin-top: 2px;
+      text-transform: uppercase;
+    }
+    .cd-colon {
+      font-weight: 900;
+      color: #c53030;
+      font-size: 13px;
+      margin-bottom: 11px;
+    }
+    .deal-hot-status {
+      font-size: 10.5px;
+      color: #c53030;
+      font-weight: 700;
+      background: #fed7d7;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 6px;
+      display: inline-block;
+    }
+
+    .combo-gift-container {
+      background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+      border: 1.5px solid #dd6b20;
+      border-radius: 8px;
+      padding: 9px;
+      margin: 8px 0 10px 0;
+      text-align: left;
+      box-shadow: 0 3px 8px rgba(221, 107, 32, 0.15);
+      position: relative;
+    }
+    .combo-gift-header {
+      font-size: 11px;
+      font-weight: 900;
+      color: #9c4221;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .gift-icon-badge {
+      display: inline-block;
+      font-size: 14px;
+      animation: giftShake 2.5s infinite ease-in-out;
+      transform-origin: bottom center;
+    }
+    .gift-value-badge {
+      background: #e53e3e;
+      color: #fff;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+    .combo-gift-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.75);
+      padding: 5px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(221, 107, 32, 0.2);
+    }
+    .gift-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 5px;
+      object-fit: cover;
+      border: 1px solid #dd6b20;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .gift-info { flex: 1; min-width: 0; }
+    .gift-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #7b341e;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .gift-pricing {
+      margin-top: 2px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .gift-orig-val { text-decoration: line-through; color: #888; font-size: 10.5px; }
+    .gift-free-price { color: #e53e3e; font-weight: 900; font-size: 11.5px; }
+
+    .btn-flash-deal {
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%) !important;
+      font-weight: 800 !important;
+      font-size: 14px !important;
+      padding: 11px 10px !important;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 12px rgba(255, 75, 43, 0.35) !important;
+      position: relative;
+      overflow: hidden;
+      border: none;
+      border-radius: 6px;
+    }
+    .btn-flash-deal::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: shimmerSweep 2.5s infinite;
+      pointer-events: none;
+    }
+    .btn-flash-deal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(255, 75, 43, 0.5) !important;
+    }
     .combo-items-text { font-size: 12px; color: #555; margin-bottom: 10px; text-align: left; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 6px; border: 1px dashed #ccc;}
     
     /* GIAO DIỆN CAROUSEL CÓ CHÚ THÍCH (CAPTION) */
@@ -377,8 +659,19 @@
   
   <!-- KHU VỰC HIỂN THỊ SẢN PHẨM -->
   <div id="view-products">
+    <!-- KỆ FLASH DEAL KÈM QUÀ TẶNG (RIÊNG BIỆT TRÊN CÙNG) -->
+    <div id="flash-deal-section" style="display: none; margin-bottom: 25px;">
+      <div class="flash-deal-header-banner">
+        <div class="f-title"><span class="f-icon">⚡</span> FLASH SALE - COMBO KÈM QUÀ TẶNG ĐỘC QUYỀN <span class="f-badge">SỐ LƯỢNG CÓ HẠN</span></div>
+        <div class="f-desc">Ưu đãi giới hạn theo khung giờ vàng • Tặng kèm linh kiện miễn phí 0đ khi đặt Combo</div>
+      </div>
+      <div class="container" id="flash-deal-list"></div>
+      <div style="border-bottom: 2px dashed #fbd38d; margin: 35px auto 25px auto; max-width: 320px;"></div>
+    </div>
+
+    <!-- KHU VỰC COMBO LẮP RÁP TRỌN BỘ (COMBO THƯỜNG) -->
     <div id="combo-section" style="display: none;">
-      <h2 style="color: #e53e3e; font-size: 22px; margin-top: 10px;">🔥 COMBO ĐẶC BIỆT 🔥</h2>
+      <h2 style="color: #e53e3e; font-size: 22px; margin-top: 10px;">📦 COMBO LẮP RÁP TRỌN BỘ</h2>
       <div class="container" id="combo-list"></div>
       <div style="border-bottom: 2px dashed #ccc; margin: 40px auto; max-width: 300px;"></div>
     </div>
@@ -984,15 +1277,123 @@
       });
     }
 
+    function getComboFlashDealStatus(c) {
+      if (!c || !c.hasGift || !c.giftItems || c.giftItems.length === 0) {
+        return { isFlashDeal: false, isActive: false, isUpcoming: false, isExpired: false, remainingMs: 0, activeGifts: [] };
+      }
+      const now = Date.now();
+      let startMs = c.startTime ? new Date(c.startTime).getTime() : 0;
+      let endMs = c.endTime ? new Date(c.endTime).getTime() : 0;
+      if (isNaN(startMs)) startMs = 0;
+      if (isNaN(endMs)) endMs = 0;
+
+      if (startMs > 0 && now < startMs) {
+        return {
+          isFlashDeal: true,
+          isActive: false,
+          isUpcoming: true,
+          isExpired: false,
+          remainingMs: startMs - now,
+          activeGifts: []
+        };
+      }
+
+      if (endMs > 0 && now > endMs) {
+        return {
+          isFlashDeal: true,
+          isActive: false,
+          isUpcoming: false,
+          isExpired: true,
+          remainingMs: 0,
+          activeGifts: []
+        };
+      }
+
+      let remainingMs = endMs > 0 ? Math.max(0, endMs - now) : Infinity;
+      return {
+        isFlashDeal: true,
+        isActive: true,
+        isUpcoming: false,
+        isExpired: false,
+        remainingMs: remainingMs,
+        activeGifts: c.giftItems
+      };
+    }
+
+    function updateAllCountdowns() {
+      const timers = document.querySelectorAll('.countdown-timer[data-end]');
+      if (!timers || timers.length === 0) return;
+
+      const now = Date.now();
+      let hasJustExpired = false;
+
+      timers.forEach(t => {
+        let endStr = t.getAttribute('data-end');
+        if (!endStr) return;
+        let endMs = new Date(endStr).getTime();
+        if (isNaN(endMs)) return;
+
+        let diff = endMs - now;
+        if (diff <= 0) {
+          t.innerHTML = `<span style="color:#c53030; font-weight:bold; font-size:13px;">ĐÃ KẾT THÚC KHUYẾN MÃI</span>`;
+          if (!t.getAttribute('data-expired')) {
+            t.setAttribute('data-expired', 'true');
+            hasJustExpired = true;
+          }
+        } else {
+          let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          let hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+          let mins = Math.floor((diff / (1000 * 60)) % 60);
+          let secs = Math.floor((diff / 1000) % 60);
+
+          let segs = [];
+          if (days > 0) {
+            segs.push(`<div class="cd-seg-wrap"><div class="cd-seg">${days}</div><span class="cd-seg-label">Ngày</span></div>`);
+            segs.push(`<span class="cd-colon">:</span>`);
+          }
+          segs.push(`<div class="cd-seg-wrap"><div class="cd-seg">${String(hours).padStart(2, '0')}</div><span class="cd-seg-label">Giờ</span></div>`);
+          segs.push(`<span class="cd-colon">:</span>`);
+          segs.push(`<div class="cd-seg-wrap"><div class="cd-seg">${String(mins).padStart(2, '0')}</div><span class="cd-seg-label">Phút</span></div>`);
+          segs.push(`<span class="cd-colon">:</span>`);
+          segs.push(`<div class="cd-seg-wrap"><div class="cd-seg">${String(secs).padStart(2, '0')}</div><span class="cd-seg-label">Giây</span></div>`);
+          t.innerHTML = segs.join('');
+        }
+      });
+
+      if (hasJustExpired) {
+        setTimeout(() => { renderData(); }, 1200);
+      }
+    }
+    setInterval(updateAllCountdowns, 1000);
+
     function renderData() {
       document.getElementById('loading').classList.add('hidden');
       
-      const cList = document.getElementById('combo-list'); cList.innerHTML = '';
+      const fdSection = document.getElementById('flash-deal-section');
+      const fdList = document.getElementById('flash-deal-list');
+      const comboSection = document.getElementById('combo-section');
+      const comboList = document.getElementById('combo-list');
+
+      if (fdList) fdList.innerHTML = '';
+      if (comboList) comboList.innerHTML = '';
+
+      let visibleFlashDealsCount = 0;
+      let visibleCombosCount = 0;
+
       if(combosData && combosData.length > 0) {
-        document.getElementById('combo-section').style.display = 'block';
-        document.getElementById('regular-title').style.display = 'block';
-        
         combosData.forEach(c => {
+          let flashStatus = getComboFlashDealStatus(c);
+
+          // Nếu hết hạn và chọn hide -> Ẩn
+          if (flashStatus.isExpired && c.expireAction === "hide") {
+            return;
+          }
+          // Nếu chưa tới giờ mở bán và chọn hide -> Ẩn
+          if (flashStatus.isUpcoming && c.expireAction === "hide") {
+            return;
+          }
+
+          let isDealActive = flashStatus.isActive;
           let itemsText = c.rawItems.map(i => `${i.qty}x ${i.name}`).join('<br> • ');
           
           let totalImgs = c.images.length;
@@ -1029,25 +1430,115 @@
           }
 
           let arrowsHtml = c.images.length > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${c.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${c.id}', 1)">&#10095;</button>` : '';
-          
-          let card = document.createElement('div'); card.className = 'product-card combo-card';
-          card.innerHTML = `
-            <div class="combo-ribbon">COMBO</div>
-            <div class="carousel"><div class="carousel-slides" id="slides-${c.id}">${imagesHtml}</div>${arrowsHtml}</div>
-            <h3 style="color:#c53030; margin-top:20px;">${escapeHtml(c.name)}</h3>
-            <p>${escapeHtml(c.desc)}</p>
-            <div class="combo-items-text"><b>Gồm:</b><br> • ${itemsText}</div>
-            <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
-            <div class="qty-wrapper">
-              <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
-              <input type="number" id="qty-${c.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${c.id}')">
-              <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
-            </div>
-            <button class="btn-primary" style="background:#e53e3e;" onclick="addToCart('${c.id}', true)">🛒 Chọn Combo</button>
-          `;
-          cList.appendChild(card);
+
+          let card = document.createElement('div');
+
+          if (isDealActive) {
+            // === CARD FLASH DEAL VIP (KÈM QUÀ) ===
+            card.className = 'product-card combo-card flash-deal';
+
+            let countdownHtml = '';
+            if (c.endTime) {
+              countdownHtml = `
+                <div class="deal-countdown-box" id="deal-box-${c.id}">
+                  <div class="cd-label">⏳ KẾT THÚC KHUYẾN MÃI TRONG:</div>
+                  <div class="countdown-timer" id="timer-${c.id}" data-end="${escapeHtml(c.endTime)}">Đang tính...</div>
+                  <div class="deal-hot-status">🔥 Ưu đãi có hạn • Quà tặng số lượng ít</div>
+                </div>
+              `;
+            }
+
+            let giftBoxHtml = '';
+            if (flashStatus.activeGifts && flashStatus.activeGifts.length > 0) {
+              let giftItemsHtml = flashStatus.activeGifts.map(g => {
+                let gThumb = g.image
+                  ? `<img src="${escapeHtml(g.image)}" class="gift-thumb">`
+                  : `<div class="gift-thumb" style="display:flex;align-items:center;justify-content:center;font-size:22px;">🎁</div>`;
+                
+                let origValHtml = '';
+                if (g.price && Number(g.price) > 0) {
+                  origValHtml = `<span class="gift-orig-val">Trị giá: ${formatMoney(g.price)}</span>`;
+                } else if (g.originalPrice && Number(g.originalPrice) > 0) {
+                  origValHtml = `<span class="gift-orig-val">Trị giá: ${formatMoney(g.originalPrice)}</span>`;
+                }
+
+                return `
+                  <div class="combo-gift-item">
+                    ${gThumb}
+                    <div class="gift-info">
+                      <div class="gift-name" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</div>
+                      <div class="gift-pricing">
+                        <span style="color:#742a2a; font-weight:700;">x${g.qty}</span>
+                        ${origValHtml}
+                        <span class="gift-free-price">➔ 0đ (TẶNG MIỄN PHÍ)</span>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('');
+
+              giftBoxHtml = `
+                <div class="combo-gift-container">
+                  <div class="combo-gift-header">
+                    <span><span class="gift-icon-badge">🎁</span> QUÀ TẶNG KÈM THEO COMBO:</span>
+                    <span class="gift-value-badge">MIỄN PHÍ 0Đ</span>
+                  </div>
+                  ${giftItemsHtml}
+                </div>
+              `;
+            }
+
+            card.innerHTML = `
+              <div class="deal-top-header-bar">
+                <span class="tag-left"><span class="gift-icon-badge">🔥</span> FLASH DEAL KÈM QUÀ</span>
+                <span class="tag-right">ĐẶC BIỆT</span>
+              </div>
+              <div class="carousel"><div class="carousel-slides" id="slides-${c.id}">${imagesHtml}</div>${arrowsHtml}</div>
+              ${countdownHtml}
+              <h3 style="color:#c53030; margin-top:10px;">${escapeHtml(c.name)}</h3>
+              <p>${escapeHtml(c.desc)}</p>
+              <div class="combo-items-text"><b>Gồm các linh kiện:</b><br> • ${itemsText}</div>
+              ${giftBoxHtml}
+              <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
+              <div class="qty-wrapper">
+                <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
+                <input type="number" id="qty-${c.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${c.id}')">
+                <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
+              </div>
+              <button class="btn-primary btn-flash-deal" onclick="addToCart('${c.id}', true)">🎁 Nhận Combo & Quà Tặng</button>
+            `;
+            if (fdList) fdList.appendChild(card);
+            visibleFlashDealsCount++;
+
+          } else {
+            // === CARD COMBO THƯỜNG ===
+            card.className = 'product-card combo-card';
+            card.innerHTML = `
+              <div class="combo-ribbon">COMBO</div>
+              <div class="carousel"><div class="carousel-slides" id="slides-${c.id}">${imagesHtml}</div>${arrowsHtml}</div>
+              <h3 style="color:#c53030; margin-top:20px;">${escapeHtml(c.name)}</h3>
+              <p>${escapeHtml(c.desc)}</p>
+              <div class="combo-items-text"><b>Gồm:</b><br> • ${itemsText}</div>
+              <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
+              <div class="qty-wrapper">
+                <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
+                <input type="number" id="qty-${c.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${c.id}')">
+                <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
+              </div>
+              <button class="btn-primary" style="background:#e53e3e;" onclick="addToCart('${c.id}', true)">🛒 Chọn Combo</button>
+            `;
+            if (comboList) comboList.appendChild(card);
+            visibleCombosCount++;
+          }
         });
       }
+
+      if (fdSection) fdSection.style.display = visibleFlashDealsCount > 0 ? 'block' : 'none';
+      if (comboSection) comboSection.style.display = visibleCombosCount > 0 ? 'block' : 'none';
+
+      let hasAnyCombos = (visibleFlashDealsCount > 0 || visibleCombosCount > 0);
+      document.getElementById('regular-title').style.display = hasAnyCombos ? 'block' : 'none';
+      updateAllCountdowns();
 
       const pList = document.getElementById('product-list'); pList.innerHTML = '';
       productsData.forEach(p => {
@@ -1258,6 +1749,13 @@
       if (isCombo) {
         let product = combosData.find(p => p.id === id);
         if (!product) return;
+
+        let fs = getComboFlashDealStatus(product);
+        if (product.hasGift && fs.isExpired && product.expireAction === "hide") {
+          alert("Combo ưu đãi này đã kết thúc chương trình khuyến mãi!");
+          return;
+        }
+
         let qtyInput = document.getElementById('qty-' + id);
         let qtyToAdd = parseInt(qtyInput ? qtyInput.value : 1) || 1;
         let item = cart.find(i => i.id === id && i.isCombo);
@@ -1345,11 +1843,25 @@
         let itemTotal = item.price * item.qty; total += itemTotal; totalQty += item.qty;
         let prefix = item.isCombo ? `<span style="color:#e53e3e; font-weight:bold;">[COMBO]</span> ` : '';
         let variantTag = item.variantName ? `<div class="cart-variant-tag">Phân loại: ${escapeHtml(item.variantName)}</div>` : '';
+        
+        let comboGiftTag = "";
+        if (item.isCombo && typeof combosData !== 'undefined' && combosData) {
+          let cDetail = combosData.find(c => c.id === item.id);
+          if (cDetail && cDetail.hasGift) {
+            let fs = getComboFlashDealStatus(cDetail);
+            if (fs.isActive && fs.activeGifts && fs.activeGifts.length > 0) {
+              let gList = fs.activeGifts.map(g => `🎁 Tặng: ${escapeHtml(g.name)} (x${g.qty * item.qty})`).join('<br>');
+              comboGiftTag = `<div style="font-size: 11.5px; color: #c05621; margin-top: 3px; font-weight: 600;">${gList}</div>`;
+            }
+          }
+        }
+
         cartDiv.innerHTML += `
           <div class="cart-item">
             <div style="flex: 1; padding-right: 10px;">
               <b style="font-size: 14px; line-height: 1.4;">${prefix}${escapeHtml(item.name)}</b>
               ${variantTag}
+              ${comboGiftTag}
               <div class="cart-qty-wrapper">
                 <button class="qty-btn small" onclick="changeCartQty(${index}, -1)">-</button>
                 <input type="number" class="qty-input small" value="${item.qty}" min="1" onchange="setCartQty(${index}, this.value)">
@@ -1390,6 +1902,22 @@
       }
       if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
+      if (typeof combosData !== 'undefined' && combosData) {
+        for (let i = 0; i < cart.length; i++) {
+          let item = cart[i];
+          if (item.isCombo) {
+            let comboDetail = combosData.find(c => c.id === item.id);
+            if (comboDetail && comboDetail.hasGift) {
+              let fs = getComboFlashDealStatus(comboDetail);
+              if (fs.isExpired && comboDetail.expireAction === "hide") {
+                alert(`Combo ưu đãi [ ${comboDetail.name} ] đã hết thời hạn khuyến mãi! Vui lòng xóa khỏi giỏ hàng trước khi đặt hàng.`);
+                return;
+              }
+            }
+          }
+        }
+      }
+
       const name = (document.getElementById('customer-name')?.value || '').trim();
       const phone = (document.getElementById('customer-phone')?.value || '').trim();
       const detailAddress = (document.getElementById('customer-address-detail')?.value || '').trim();
@@ -1416,6 +1944,8 @@
         let varText = item.variantName ? ` [Phân loại: ${item.variantName}]` : "";
         orderText += `${index + 1}. ${prefix}${item.name}${varText}\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n`; 
         
+        let sheetItemText = `- ${prefix}${item.name}${varText} (x${item.qty})`;
+
         if (item.isCombo) {
           let comboDetail = combosData.find(c => c.id === item.id);
           if (comboDetail && comboDetail.rawItems) {
@@ -1423,10 +1953,20 @@
               orderText += `   ${subItem.name}\n      Giá: ${formatMoney(subItem.price)}   |   Số lượng: x${subItem.qty * item.qty}\n`;
             });
           }
+          if (comboDetail && comboDetail.hasGift) {
+            let fs = getComboFlashDealStatus(comboDetail);
+            if (fs.isActive && fs.activeGifts && fs.activeGifts.length > 0) {
+              fs.activeGifts.forEach(gift => {
+                orderText += `   [QUÀ TẶNG] ${gift.name}\n      Giá: 0đ   |   Số lượng: x${gift.qty * item.qty}\n`;
+              });
+              let giftNamesStr = fs.activeGifts.map(g => `${g.name} x${g.qty * item.qty}`).join(', ');
+              sheetItemText += ` [Quà tặng: ${giftNamesStr}]`;
+            }
+          }
         }
         orderText += `\n`;
 
-        itemsForSheet.push(`- ${prefix}${item.name}${varText} (x${item.qty})`);
+        itemsForSheet.push(sheetItemText);
         total += (item.price * item.qty);
       });
       let finalTotal = total + globalShippingFee;
