@@ -178,6 +178,27 @@ class TestDOMIntegrity(unittest.TestCase):
         for pid in profit_ids:
             self.assertIn(pid, collector.ids, f"LỖI: Thiếu phần tử id='{pid}' trong admin.html!")
 
+    def test_duplicate_order_elements_exist_in_admin(self):
+        """Kiểm tra: Các phần tử thông báo và modal quản lý đơn hàng trùng lặp phải tồn tại trong admin.html"""
+        content = read_file('admin.html')
+        collector = IDCollector()
+        collector.feed(content)
+
+        dup_ids = [
+            'duplicate-notice-bar',
+            'duplicate-filtered-count',
+            'duplicate-notice-desc',
+            'btn-toggle-duplicate-filter',
+            'duplicate-toggle-text',
+            'duplicate-btn-count',
+            'duplicate-modal',
+            'duplicate-modal-title',
+            'duplicate-modal-content',
+            'btn-delete-duplicates',
+        ]
+        for did in dup_ids:
+            self.assertIn(did, collector.ids, f"LỖI: Thiếu phần tử id='{did}' trong admin.html!")
+
     def test_address_preview_elements_exist_in_index(self):
         """Kiểm tra: Các phần tử xem trước địa chỉ giao hàng chuẩn hóa phải tồn tại trong index.html"""
         content = read_file('index.html')
@@ -1047,6 +1068,122 @@ class TestBusinessLogic(unittest.TestCase):
 
         p = subprocess.run(["node", "-e", test_js], capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, f"LỖI TEST ĐỊA CHỈ TRÙNG LẶP:\n{p.stderr}")
+
+    def test_duplicate_order_functions_exist_in_admin(self):
+        """Kiểm tra: Các hàm xử lý lọc và quản lý đơn hàng trùng lặp phải tồn tại trong admin.html"""
+        admin = read_file('admin.html')
+        funcs = [
+            'function areOrdersIdentical',
+            'function detectAndGroupDuplicateOrders',
+            'function updateDuplicateNoticeBar',
+            'function toggleDuplicateFilter',
+            'function showDuplicateDetailsModal',
+            'function closeDuplicateModal',
+            'function deleteCurrentDuplicateOrders',
+        ]
+        for f in funcs:
+            self.assertIn(f, admin, f"LỖI: Thiếu hàm '{f}' trong admin.html!")
+
+    def test_duplicate_order_detection_algorithm(self):
+        """Kiểm tra: Thuật toán nhận diện và lọc đơn hàng trùng lặp (khách ấn nhiều lần) bằng Node.js"""
+        admin_content = read_file('admin.html')
+        m_dup = re.search(r"(function removeDiacritics[\s\S]*?)(?=function renderOrders)", admin_content)
+        self.assertIsNotNone(m_dup, "Không trích xuất được code xử lý đơn hàng trong admin.html")
+        dup_code = m_dup.group(1)
+
+        test_js = """
+        const document = { getElementById: () => null };
+        function escapeHtml(s) { return String(s || ''); }
+        function parseOrderDate(rawDate) {
+          if (!rawDate) return null;
+          let m = String(rawDate).match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})(?:\\s+(\\d{1,2}):(\\d{1,2}))?/);
+          if (m) return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]), parseInt(m[4] || 0), parseInt(m[5] || 0));
+          return new Date(rawDate);
+        }
+        """ + dup_code + """
+
+        // Dữ liệu thử nghiệm:
+        // Đơn 1, 2, 3: Khách Hoàng Tân bấm 3 lần liên tiếp trong 1 phút (trùng lặp)
+        // Đơn 4: Khách Lê Văn B đặt bình thường (duy nhất)
+        // Đơn 5: Khách Hoàng Tân đặt lại đúng sản phẩm đó sau 30 ngày (re-order, KHÔNG được coi là trùng)
+        // Đơn 6, 7: Khách Trần C bấm 2 lần liên tiếp (trùng lặp)
+        let sampleOrders = [
+          {
+            row: 2, orderId: "DH01", date: "24/10/2026 08:00", name: "Hoàng Ngọc Tân", phone: "0982925329",
+            address: "187/8 đường số 6, Phường Hạnh Thông, Thành phố Hồ Chí Minh",
+            details: "- Arduino Uno R3 | Số lượng: x1", rawTotal: 150000, note: "Giao giờ hành chính", status: "Khách đặt hàng",
+            cart: [{ id: "SP_UNO", qty: 1, variantId: "" }]
+          },
+          {
+            row: 3, orderId: "DH02", date: "24/10/2026 08:00", name: "Hoàng Ngọc Tân", phone: "0982925329",
+            address: "187/8 đường số 6, Phường Hạnh Thông, Thành phố Hồ Chí Minh",
+            details: "- Arduino Uno R3 | Số lượng: x1", rawTotal: 150000, note: "Giao giờ hành chính", status: "Khách đặt hàng",
+            cart: [{ id: "SP_UNO", qty: 1, variantId: "" }]
+          },
+          {
+            row: 4, orderId: "DH03", date: "24/10/2026 08:01", name: "Hoàng Ngọc Tân", phone: "0982925329",
+            address: "187/8 đường số 6, Phường Hạnh Thông, Thành phố Hồ Chí Minh",
+            details: "- Arduino Uno R3 | Số lượng: x1", rawTotal: 150000, note: "Giao giờ hành chính", status: "Đang chuẩn bị hàng",
+            cart: [{ id: "SP_UNO", qty: 1, variantId: "" }]
+          },
+          {
+            row: 5, orderId: "DH04", date: "24/10/2026 08:05", name: "Lê Văn B", phone: "0912345678",
+            address: "12 Ba Đình, Phường 1, Hà Nội",
+            details: "- Màn hình OLED | Số lượng: x2", rawTotal: 100000, note: "", status: "Khách đặt hàng",
+            cart: [{ id: "SP_OLED", qty: 2, variantId: "" }]
+          },
+          {
+            row: 6, orderId: "DH05", date: "24/11/2026 08:00", name: "Hoàng Ngọc Tân", phone: "0982925329",
+            address: "187/8 đường số 6, Phường Hạnh Thông, Thành phố Hồ Chí Minh",
+            details: "- Arduino Uno R3 | Số lượng: x1", rawTotal: 150000, note: "Giao giờ hành chính", status: "Khách đặt hàng",
+            cart: [{ id: "SP_UNO", qty: 1, variantId: "" }]
+          },
+          {
+            row: 7, orderId: "DH06", date: "24/10/2026 09:10", name: "Trần C", phone: "0933333333",
+            address: "45 Lê Lợi, Quận 1, TPHCM",
+            details: "- Cảm biến | Số lượng: x1", rawTotal: 50000, note: "", status: "Khách đặt hàng",
+            cart: [{ id: "SP_CB", qty: 1, variantId: "" }]
+          },
+          {
+            row: 8, orderId: "DH07", date: "24/10/2026 09:10", name: "Trần C", phone: "0933333333",
+            address: "45 Lê Lợi, Quận 1, TPHCM",
+            details: "- Cảm biến | Số lượng: x1", rawTotal: 50000, note: "", status: "Khách đặt hàng",
+            cart: [{ id: "SP_CB", qty: 1, variantId: "" }]
+          }
+        ];
+
+        let stats = detectAndGroupDuplicateOrders(sampleOrders);
+        console.assert(stats.totalDuplicates === 3, "Tổng số đơn trùng lặp phải là 3 (2 bản sao của Tân + 1 bản sao của C), nhận được: " + stats.totalDuplicates);
+        console.assert(stats.groupCount === 2, "Tổng số nhóm trùng lặp phải là 2, nhận được: " + stats.groupCount);
+
+        let tanLeader = sampleOrders.find(o => o.orderId === "DH03");
+        console.assert(tanLeader.isDuplicateGroupLeader === true, "DH03 phải là đơn chính của nhóm");
+        console.assert(tanLeader.duplicateCount === 2, "DH03 phải có duplicateCount = 2, nhận được: " + tanLeader.duplicateCount);
+
+        let tanCopy1 = sampleOrders.find(o => o.orderId === "DH01");
+        let tanCopy2 = sampleOrders.find(o => o.orderId === "DH02");
+        console.assert(tanCopy1.isDuplicateCopy === true, "DH01 phải là duplicate copy");
+        console.assert(tanCopy2.isDuplicateCopy === true, "DH02 phải là duplicate copy");
+
+        let tanReorder = sampleOrders.find(o => o.orderId === "DH05");
+        console.assert(!tanReorder.isDuplicateCopy && !tanReorder.isDuplicateGroupLeader, "Đơn sau 30 ngày không được coi là trùng");
+
+        globalOrdersData = sampleOrders;
+        isDuplicateFilterActive = true;
+        let filteredActive = getFilteredOrders();
+        console.assert(filteredActive.length === 4, "Khi bật lọc, chỉ hiển thị 4 đơn duy nhất, nhận được: " + filteredActive.length);
+        console.assert(filteredActive.some(o => o.orderId === "DH03"), "DH03 phải có trong danh sách hiển thị");
+        console.assert(!filteredActive.some(o => o.orderId === "DH01"), "DH01 phải bị ẩn");
+        console.assert(!filteredActive.some(o => o.orderId === "DH02"), "DH02 phải bị ẩn");
+        console.assert(!filteredActive.some(o => o.orderId === "DH07"), "DH07 phải bị ẩn");
+
+        isDuplicateFilterActive = false;
+        let filteredInactive = getFilteredOrders();
+        console.assert(filteredInactive.length === 7, "Khi tắt lọc, phải hiển thị đầy đủ cả 7 đơn, nhận được: " + filteredInactive.length);
+        """
+
+        p = subprocess.run(["node", "-e", test_js], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, f"LỖI TEST THUẬT TOÁN ĐƠN TRÙNG LẶP:\n{p.stderr}")
 
 
 if __name__ == '__main__':

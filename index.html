@@ -1381,7 +1381,13 @@
       if (cart.length > 0) setTimeout(() => { document.getElementById('customer-name').focus(); }, 500);
     }
 
+    let isSubmittingOrder = false;
+
     function checkout(openZalo) {
+      if (isSubmittingOrder) {
+        alert("Đơn hàng đang được gửi đi, vui lòng không nhấn đặt hàng liên tục!");
+        return;
+      }
       if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
       const name = (document.getElementById('customer-name')?.value || '').trim();
@@ -1427,6 +1433,8 @@
       orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + formatMoney(globalShippingFee) + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
 
       let orderData = { action: "createOrder", name: name, phone: phone, address: fullAddress, note: note, itemsText: itemsForSheet.join('\n'), total: formatMoney(finalTotal), cartJSON: JSON.stringify(cart) };
+      isSubmittingOrder = true;
+      setTimeout(() => { isSubmittingOrder = false; }, 3500);
       fetch(API_URL, { method: 'POST', body: JSON.stringify(orderData) }).catch(err => console.error(err));
 
       const temp = document.createElement("textarea"); temp.value = orderText; document.body.appendChild(temp); temp.select();

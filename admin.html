@@ -1117,6 +1117,120 @@
       accent-color: #2b6cb0;
     }
 
+    /* Duplicate Orders Notice & Badges */
+    .duplicate-notice-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+      border: 1.5px solid #fbd38d;
+      border-radius: 8px;
+      margin-top: 10px;
+      animation: fadeInDown 0.25s ease-out;
+    }
+    .duplicate-notice-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .duplicate-notice-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+    .duplicate-notice-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #7b341e;
+    }
+    .duplicate-notice-desc {
+      font-size: 12.5px;
+      color: #9c4221;
+    }
+    .btn-duplicate-filter {
+      background: white;
+      border: 1.5px solid #dd6b20;
+      color: #c05621;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-duplicate-filter:hover {
+      background: #dd6b20;
+      color: white;
+    }
+    .btn-duplicate-filter.active {
+      background: #2b6cb0;
+      border-color: #2b6cb0;
+      color: white;
+    }
+    .btn-duplicate-filter.active:hover {
+      background: #2c5282;
+      border-color: #2c5282;
+    }
+    .badge-duplicate-tag {
+      display: inline-block;
+      background: #feebc8;
+      color: #c05621;
+      border: 1px solid #fbd38d;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .badge-duplicate-tag:hover {
+      background: #fbd38d;
+      transform: scale(1.04);
+      box-shadow: 0 1px 4px rgba(192, 86, 33, 0.25);
+    }
+    .badge-duplicate-copy {
+      display: inline-block;
+      background: #fff5f5;
+      color: #c53030;
+      border: 1px solid #feb2b2;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 4px;
+      user-select: none;
+    }
+    .dup-item-card {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .dup-badge-idx {
+      background: #edf2f7;
+      color: #4a5568;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+    .dup-status-pill {
+      background: #ebf8ff;
+      color: #2b6cb0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
     /* Toast Notification */
     .toast-container {
       position: fixed;
@@ -1209,6 +1323,26 @@
             <div class="order-pill" onclick="filterOrdersByStatus('Đang chuẩn bị hàng', this)">Đang chuẩn bị</div>
             <div class="order-pill" onclick="filterOrdersByStatus('Đã giao cho đơn vị vận chuyển', this)">Đã giao ĐVVC</div>
             <div class="order-pill" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành</div>
+          </div>
+        </div>
+
+        <!-- Thanh Thông Báo Lọc Đơn Hàng Trùng Lặp -->
+        <div id="duplicate-notice-bar" class="duplicate-notice-bar" style="display: none;">
+          <div class="duplicate-notice-info">
+            <span class="duplicate-notice-icon">🛡️</span>
+            <div>
+              <div class="duplicate-notice-title">
+                Đã tự động lọc <span id="duplicate-filtered-count">0</span> đơn hàng trùng lặp do khách bấm đặt hàng nhiều lần.
+              </div>
+              <div class="duplicate-notice-desc" id="duplicate-notice-desc">
+                (Hệ thống chỉ hiển thị 1 đơn chính, các bản sao trùng lặp đã được ẩn)
+              </div>
+            </div>
+          </div>
+          <div class="duplicate-notice-actions">
+            <button type="button" id="btn-toggle-duplicate-filter" class="btn-duplicate-filter" onclick="toggleDuplicateFilter()">
+              <span id="duplicate-toggle-text">👁️ Xem tất cả</span> (<span id="duplicate-btn-count">0</span> đơn trùng)
+            </button>
           </div>
         </div>
 
@@ -1845,6 +1979,22 @@
     </div>
   </div>
 
+  <!-- MODAL CHI TIẾT ĐƠN HÀNG TRÙNG LẶP -->
+  <div id="duplicate-modal" class="edit-modal">
+    <div class="edit-content" style="max-width: 550px;">
+      <h2 id="duplicate-modal-title" style="color: #c05621; font-size: 18px; border-bottom: 2px solid #feebc8; padding-bottom: 10px;">
+        🛡️ Chi Tiết Đơn Hàng Trùng Lặp
+      </h2>
+      <div id="duplicate-modal-content"></div>
+      <div class="edit-actions" style="justify-content: space-between; margin-top: 15px;">
+        <button type="button" id="btn-delete-duplicates" class="btn-bulk-delete" style="padding: 9px 16px; font-weight: 700;" onclick="deleteCurrentDuplicateOrders()">
+          🗑️ Xóa Các Đơn Trùng Này
+        </button>
+        <button type="button" class="btn-cancel" onclick="closeDuplicateModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
@@ -2189,6 +2339,8 @@
     let pendingOrderChanges = new Map();
     let currentOrderStatusFilter = 'all';
     let currentOrderSearchQuery = '';
+    let isDuplicateFilterActive = true;
+    let currentModalDuplicateRows = [];
 
     function showToast(message, type = 'success') {
       let container = document.getElementById('toast-container');
@@ -2217,9 +2369,293 @@
       renderOrders(globalOrdersData);
     }
 
+    /* =========================================================================
+       PHÂN HỆ XỬ LÝ & LỌC ĐƠN HÀNG TRÙNG LẶP (DUPLICATE ORDERS FILTER)
+       ========================================================================= */
+
+    function getStatusProgressRank(status) {
+      let st = (status || '').toLowerCase();
+      if (st === 'hoàn thành') return 4;
+      if (st === 'đã giao cho đơn vị vận chuyển') return 3;
+      if (st === 'đang chuẩn bị hàng') return 2;
+      return 1;
+    }
+
+    function areOrdersIdentical(a, b) {
+      if (!a || !b) return false;
+      if (a.row === b.row) return false;
+
+      // 1. Số điện thoại (bắt buộc phải có và giống nhau)
+      let phoneA = String(a.phone || '').replace(/\D/g, '');
+      let phoneB = String(b.phone || '').replace(/\D/g, '');
+      if (phoneA.startsWith('84') && phoneA.length >= 11) phoneA = '0' + phoneA.slice(2);
+      if (phoneB.startsWith('84') && phoneB.length >= 11) phoneB = '0' + phoneB.slice(2);
+      if (!phoneA || !phoneB || phoneA.length < 8 || phoneA !== phoneB) return false;
+
+      // 2. Tên khách hàng (chuẩn hóa khoảng trắng & chữ thường)
+      let nameA = String(a.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      let nameB = String(b.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      if (nameA !== nameB) return false;
+
+      // 3. Địa chỉ giao hàng
+      let addrA = cleanFullAddress(a.address || '').toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
+      let addrB = cleanFullAddress(b.address || '').toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
+      if (addrA !== addrB) return false;
+
+      // 4. Tổng tiền đơn hàng
+      let totA = Number(a.rawTotal) || Number(String(a.total || '').replace(/[^\d]/g, '')) || 0;
+      let totB = Number(b.rawTotal) || Number(String(b.total || '').replace(/[^\d]/g, '')) || 0;
+      if (totA !== totB) return false;
+
+      // 5. Ghi chú đơn hàng
+      let noteA = String(a.note || '').trim().toLowerCase();
+      let noteB = String(b.note || '').trim().toLowerCase();
+      if (noteA !== noteB) return false;
+
+      // 6. Chi tiết hàng hóa (Cart hoặc Details)
+      let hasCartA = Array.isArray(a.cart) && a.cart.length > 0;
+      let hasCartB = Array.isArray(b.cart) && b.cart.length > 0;
+      if (hasCartA && hasCartB) {
+        let itemsA = [...a.cart].map(i => `${String(i.id).trim()}_${String(i.variantId || '').trim()}_${parseInt(i.qty, 10) || 1}`).sort().join('|');
+        let itemsB = [...b.cart].map(i => `${String(i.id).trim()}_${String(i.variantId || '').trim()}_${parseInt(i.qty, 10) || 1}`).sort().join('|');
+        if (itemsA !== itemsB) return false;
+      } else {
+        let detA = String(a.details || '').toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
+        let detB = String(b.details || '').toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
+        if (detA !== detB) return false;
+      }
+
+      // 7. Khoảng thời gian đặt hàng (Khách bấm nhiều lần nên cùng ngày hoặc trong vòng 24 giờ)
+      let dateA = parseOrderDate(a.date);
+      let dateB = parseOrderDate(b.date);
+      if (dateA && dateB) {
+        let diffHours = Math.abs(dateA.getTime() - dateB.getTime()) / (1000 * 60 * 60);
+        if (diffHours > 24) return false;
+      }
+
+      return true;
+    }
+
+    function detectAndGroupDuplicateOrders(orders) {
+      if (!orders || orders.length === 0) return { totalDuplicates: 0, groupCount: 0 };
+
+      // Reset các cờ duplicate
+      orders.forEach(o => {
+        o.isDuplicateCopy = false;
+        o.isDuplicateGroupLeader = false;
+        o.duplicateCount = 0;
+        o.duplicateOrders = [];
+        o.primaryOrderId = null;
+        o.primaryRow = null;
+      });
+
+      let assigned = new Set();
+      let totalDuplicates = 0;
+      let groupCount = 0;
+
+      for (let i = 0; i < orders.length; i++) {
+        let ordA = orders[i];
+        if (assigned.has(ordA.row)) continue;
+
+        let duplicates = [];
+        for (let j = i + 1; j < orders.length; j++) {
+          let ordB = orders[j];
+          if (assigned.has(ordB.row)) continue;
+          if (areOrdersIdentical(ordA, ordB)) {
+            duplicates.push(ordB);
+          }
+        }
+
+        if (duplicates.length > 0) {
+          let cluster = [ordA, ...duplicates];
+          cluster.forEach(o => assigned.add(o.row));
+
+          // Chọn đơn chính: ưu tiên đơn có pendingChanges > trạng thái đã tiến hành > row nhỏ nhất (đặt trước)
+          cluster.sort((a, b) => {
+            let hasPendingA = pendingOrderChanges.has(a.row) ? 1 : 0;
+            let hasPendingB = pendingOrderChanges.has(b.row) ? 1 : 0;
+            if (hasPendingA !== hasPendingB) return hasPendingB - hasPendingA;
+
+            let rankA = getStatusProgressRank(a.status);
+            let rankB = getStatusProgressRank(b.status);
+            if (rankA !== rankB) return rankB - rankA;
+
+            return a.row - b.row;
+          });
+
+          let primaryOrder = cluster[0];
+          let copyOrders = cluster.slice(1);
+
+          primaryOrder.isDuplicateGroupLeader = true;
+          primaryOrder.duplicateCount = copyOrders.length;
+          primaryOrder.duplicateOrders = copyOrders;
+
+          copyOrders.forEach(copy => {
+            copy.isDuplicateCopy = true;
+            copy.primaryOrderId = primaryOrder.orderId;
+            copy.primaryRow = primaryOrder.row;
+          });
+
+          totalDuplicates += copyOrders.length;
+          groupCount++;
+        }
+      }
+
+      return { totalDuplicates, groupCount };
+    }
+
+    function updateDuplicateNoticeBar(totalDuplicates) {
+      let noticeBar = document.getElementById('duplicate-notice-bar');
+      let countEl = document.getElementById('duplicate-filtered-count');
+      let btnCountEl = document.getElementById('duplicate-btn-count');
+      let descEl = document.getElementById('duplicate-notice-desc');
+      let toggleBtn = document.getElementById('btn-toggle-duplicate-filter');
+      let toggleText = document.getElementById('duplicate-toggle-text');
+
+      if (!noticeBar) return;
+
+      if (totalDuplicates <= 0) {
+        noticeBar.style.display = 'none';
+        return;
+      }
+
+      noticeBar.style.display = 'flex';
+      if (countEl) countEl.innerText = String(totalDuplicates);
+      if (btnCountEl) btnCountEl.innerText = String(totalDuplicates);
+
+      if (isDuplicateFilterActive) {
+        if (descEl) descEl.innerText = "(Hệ thống chỉ hiển thị 1 đơn chính, các bản sao trùng lặp đã được ẩn)";
+        if (toggleText) toggleText.innerText = "👁️ Xem tất cả";
+        if (toggleBtn) toggleBtn.className = "btn-duplicate-filter";
+      } else {
+        if (descEl) descEl.innerText = "(Đang hiển thị tất cả bản sao trùng lặp để bạn đối chiếu hoặc xóa)";
+        if (toggleText) toggleText.innerText = "✅ Bật lại lọc đơn trùng";
+        if (toggleBtn) toggleBtn.className = "btn-duplicate-filter active";
+      }
+    }
+
+    function toggleDuplicateFilter() {
+      isDuplicateFilterActive = !isDuplicateFilterActive;
+      renderOrders(globalOrdersData);
+      if (isDuplicateFilterActive) {
+        showToast("🛡️ Đã bật lọc đơn trùng lặp (chỉ hiện 1 đơn)", "info");
+      } else {
+        showToast("👁️ Đang hiển thị tất cả các đơn trùng lặp", "info");
+      }
+    }
+
+    function showDuplicateDetailsModal(primaryRow) {
+      let primaryOrder = (globalOrdersData || []).find(o => o.row === primaryRow);
+      if (!primaryOrder || !primaryOrder.duplicateOrders || primaryOrder.duplicateOrders.length === 0) return;
+
+      currentModalDuplicateRows = primaryOrder.duplicateOrders.map(o => o.row);
+
+      let modal = document.getElementById('duplicate-modal');
+      let titleEl = document.getElementById('duplicate-modal-title');
+      let contentEl = document.getElementById('duplicate-modal-content');
+
+      if (!modal || !contentEl) return;
+
+      if (titleEl) {
+        titleEl.innerHTML = `🛡️ Chi Tiết Đơn Hàng Trùng Lặp (Đã lọc ${primaryOrder.duplicateCount} đơn)`;
+      }
+
+      let dupRowsHtml = primaryOrder.duplicateOrders.map((d, idx) => {
+        let dDate = formatOrderDate(d.date);
+        return `
+          <div class="dup-item-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div>
+                <span class="dup-badge-idx">Bản sao #${idx + 1}</span>
+                <b style="color: #2b6cb0; font-size: 14px;">${escapeHtml(d.orderId)}</b>
+              </div>
+              <span style="font-size: 12.5px; color: #718096;">🕒 ${escapeHtml(dDate)}</span>
+            </div>
+            <div style="font-size: 13px; color: #4a5568; line-height: 1.5;">
+              <div><b>Trạng thái:</b> <span class="dup-status-pill">${escapeHtml(d.status)}</span></div>
+              <div><b>Tổng tiền:</b> <b style="color: #ee4d2d;">${escapeHtml(d.total)}</b></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      contentEl.innerHTML = `
+        <div style="margin-bottom: 15px; padding: 12px; background: #ebf8ff; border-radius: 8px; border: 1px solid #bee3f8; font-size: 13px; color: #2b6cb0;">
+          <div>📌 <b>Đơn hàng chính đang giữ:</b> <b style="color:#1a2935;">${escapeHtml(primaryOrder.orderId)}</b> (${escapeHtml(formatOrderDate(primaryOrder.date))})</div>
+          <div>👤 <b>Khách hàng:</b> ${escapeHtml(primaryOrder.name)} - 📞 <b>SĐT:</b> ${escapeHtml(primaryOrder.phone)}</div>
+          <div>📍 <b>Địa chỉ:</b> ${escapeHtml(cleanFullAddress(primaryOrder.address))}</div>
+        </div>
+
+        <div style="font-size: 13.5px; font-weight: 700; color: #1a2935; margin-bottom: 8px;">
+          Danh sách ${primaryOrder.duplicateOrders.length} đơn trùng do khách bấm đặt hàng nhiều lần:
+        </div>
+        <div style="max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          ${dupRowsHtml}
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+    }
+
+    function closeDuplicateModal() {
+      let modal = document.getElementById('duplicate-modal');
+      if (modal) modal.style.display = 'none';
+      currentModalDuplicateRows = [];
+    }
+
+    async function deleteCurrentDuplicateOrders() {
+      if (!currentModalDuplicateRows || currentModalDuplicateRows.length === 0) return;
+      let count = currentModalDuplicateRows.length;
+      if (!confirm(`Bạn có chắc chắn muốn XÓA ${count} đơn hàng trùng lặp này khỏi hệ thống không?\n(Dữ liệu sẽ được đánh dấu Đã Xóa trên Google Sheets, đơn chính vẫn được giữ nguyên)`)) {
+        return;
+      }
+      closeDuplicateModal();
+      showLoading(true);
+      try {
+        let payload = { action: "deleteBatchOrders", token: getAdminToken(), rows: currentModalDuplicateRows };
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        let data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg);
+          showLoading(false);
+          return;
+        }
+
+        let deletedSet = new Set(currentModalDuplicateRows);
+        globalOrdersData = (globalOrdersData || []).filter(o => !deletedSet.has(o.row));
+        currentModalDuplicateRows.forEach(r => {
+          selectedOrderRows.delete(r);
+          pendingOrderChanges.delete(r);
+        });
+
+        renderOrders(globalOrdersData);
+        if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
+          renderAnalytics();
+        }
+        if (document.getElementById('profit') && document.getElementById('profit').classList.contains('active')) {
+          renderProfitAnalytics();
+        }
+        showLoading(false);
+        showToast(`🗑️ Đã xóa sạch ${count} đơn hàng trùng lặp!`, "success");
+      } catch (e) {
+        showLoading(false);
+        alert("Lỗi kết nối khi xóa đơn hàng trùng lặp!");
+      }
+    }
+
     function getFilteredOrders() {
       if (!globalOrdersData) return [];
+
+      let dupStats = detectAndGroupDuplicateOrders(globalOrdersData);
+      updateDuplicateNoticeBar(dupStats.totalDuplicates);
+
       return globalOrdersData.filter(order => {
+        // Lọc ẩn các bản sao trùng lặp nếu chế độ lọc đang bật
+        if (isDuplicateFilterActive && order.isDuplicateCopy) {
+          return false;
+        }
+
         if (currentOrderStatusFilter !== 'all' && order.status !== currentOrderStatusFilter) {
           return false;
         }
@@ -2372,8 +2808,9 @@
         selectHtml += `</select>`;
         
         let isCompleted = order.status === "Hoàn thành";
-        let rowStyle = isCompleted ? "background-color: #f0fff4; opacity: 0.85;" : "";
-        let statusColor = isCompleted ? "#38a169" : "#2b6cb0";
+        let isDupCopy = !!order.isDuplicateCopy;
+        let rowStyle = isCompleted ? "background-color: #f0fff4; opacity: 0.85;" : (isDupCopy ? "background-color: #fffaf0; opacity: 0.9; border-left: 4px solid #dd6b20;" : "");
+        let statusColor = isCompleted ? "#38a169" : (isDupCopy ? "#c05621" : "#2b6cb0");
         let phoneClean = escapeHtml(order.phone).replace(/[^0-9]/g, '');
         let isSelected = selectedOrderRows.has(order.row);
         let rowClass = hasPending ? "row-pending-change" : "";
@@ -2410,7 +2847,19 @@
             <td data-label="Chọn" style="text-align: center;">
               <input type="checkbox" class="order-item-cb" value="${order.row}" onchange="toggleOrderSelect(${order.row}, this.checked)" ${isSelected ? 'checked' : ''}>
             </td>
-            <td data-label="Mã ĐH"><b style="font-family:'Montserrat',sans-serif; color:#1a2935;">${escapeHtml(order.orderId)}</b></td>
+            <td data-label="Mã ĐH">
+              <b style="font-family:'Montserrat',sans-serif; color:${isDupCopy ? '#c05621' : '#1a2935'};">${escapeHtml(order.orderId)}</b>
+              ${order.isDuplicateGroupLeader && order.duplicateCount > 0 ? `
+                <div class="badge-duplicate-tag" onclick="showDuplicateDetailsModal(${order.row})" title="Khách bấm đặt nhiều lần - Bấm để xem chi tiết ${order.duplicateCount} đơn trùng lặp">
+                  ⚠️ Đã lọc ${order.duplicateCount} đơn trùng
+                </div>
+              ` : ''}
+              ${isDupCopy ? `
+                <div class="badge-duplicate-copy" title="Đây là bản sao trùng lặp của mã ${escapeHtml(order.primaryOrderId || '')}">
+                  ⚠️ Bản sao trùng
+                </div>
+              ` : ''}
+            </td>
             <td data-label="Thời gian"><span style="color:#718096; font-size:13px;">${escapeHtml(formatOrderDate(order.date))}</span></td>
             <td data-label="Khách hàng">
               <b style="font-size:15px; color:#1a2935;">${escapeHtml(order.name)}</b><br>
@@ -3772,6 +4221,7 @@
       const statusFilter = statusFilterEl ? statusFilterEl.value : 'valid';
 
       let inRangeOrders = globalOrdersData.filter(o => {
+        if (isDuplicateFilterActive && o.isDuplicateCopy) return false;
         let d = parseOrderDate(o.date);
         if (!d) return true;
         if (bounds.start && d < bounds.start) return false;
@@ -4642,6 +5092,7 @@
       const statusFilter = statusFilterEl ? statusFilterEl.value : 'valid';
 
       let inRangeOrders = globalOrdersData.filter(o => {
+        if (isDuplicateFilterActive && o.isDuplicateCopy) return false;
         let d = parseOrderDate(o.date);
         if (!d) return true;
         if (bounds.start && d < bounds.start) return false;
