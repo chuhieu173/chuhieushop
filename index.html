@@ -16,7 +16,7 @@
        GIAO DIỆN DARK-MODE HOÀN CHỈNH 
        ========================================= */
     body.theme-dark { background: #1a1a2e; color: #e2e8f0; }
-    body.theme-dark h1, body.theme-dark h2, body.theme-dark h3 { color: #fff; }
+    body.theme-dark h1, body.theme-dark h2, body.theme-dark h3 { color: #fff; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85); }
     body.theme-dark .loader { background: #1a1a2e; }
     body.theme-dark .loader-text { color: #fff; }
     
@@ -79,6 +79,7 @@
       height: auto;
       transform: translate(-50%, -50%);
       object-fit: cover;
+      object-position: center center;
       display: none;
       opacity: 0;
       transition: opacity 0.8s ease-in-out;
@@ -144,13 +145,22 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(12, 12, 20, 0.48);
+      background: rgba(10, 10, 20, 0.18);
       pointer-events: none;
       display: none;
-      backdrop-filter: blur(1.5px);
     }
     #theme-bg-overlay.active {
       display: block;
+    }
+
+    /* TỐI ƯU GIAO DIỆN NỀN TRÊN ĐIỆN THOẠI (MOBILE & TABLET) */
+    @media (max-width: 768px) {
+      #theme-bg-overlay {
+        background: rgba(10, 10, 20, 0.28) !important;
+      }
+      #theme-bg-yt {
+        transform: translate(-50%, -50%) scale(1.35) !important;
+      }
     }
 
     /* ĐẶC TRƯNG MÀU SẮC RIÊNG CỦA CÁC CHỦ ĐỀ CÔNG NGHỆ */
@@ -889,6 +899,7 @@
     let activeCanvasTheme = null;
     let themeResizeHandler = null;
     let activeWebGlRenderer = null;
+    let current2dRenderFunc = null;
 
     document.addEventListener("DOMContentLoaded", function() {
       let savedTheme = localStorage.getItem('userSelectedTheme');
@@ -915,6 +926,60 @@
       let currentTheme = document.getElementById('user-theme-selector').value;
       if (currentTheme === 'auto') applyTheme('auto');
     });
+
+    // TỐI ƯU PIN & TÀI NGUYÊN (PAGE VISIBILITY API)
+    document.addEventListener('visibilitychange', function() {
+      const isHidden = document.hidden;
+      const video = document.getElementById('theme-bg-video');
+      const ytIframe = document.getElementById('theme-bg-yt');
+      const ytWrapper = document.getElementById('theme-bg-yt-wrapper');
+
+      if (isHidden) {
+        if (video && video.classList.contains('active')) {
+          video.pause();
+        }
+        if (themeAnimId) {
+          cancelAnimationFrame(themeAnimId);
+          themeAnimId = null;
+        }
+        if (ytWrapper && ytWrapper.classList.contains('active') && ytIframe && ytIframe.contentWindow) {
+          try {
+            ytIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+          } catch(e) {}
+        }
+      } else {
+        if (video && video.classList.contains('active')) {
+          video.play().catch(function(e) {});
+        }
+        if (activeCanvasTheme && !themeAnimId) {
+          resumeCanvasTheme();
+        }
+        if (ytWrapper && ytWrapper.classList.contains('active') && ytIframe && ytIframe.contentWindow) {
+          try {
+            ytIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          } catch(e) {}
+        }
+      }
+    });
+
+    function resumeCanvasTheme() {
+      if (!activeCanvasTheme || themeAnimId) return;
+      if (activeWebGlRenderer) {
+        function glLoop() {
+          if (!activeWebGlRenderer) return;
+          activeWebGlRenderer.render();
+          themeAnimId = requestAnimationFrame(glLoop);
+        }
+        themeAnimId = requestAnimationFrame(glLoop);
+      } else if (current2dRenderFunc) {
+        function animLoop() {
+          if (!current2dRenderFunc) return;
+          current2dRenderFunc();
+          themeAnimId = requestAnimationFrame(animLoop);
+        }
+        themeAnimId = requestAnimationFrame(animLoop);
+      }
+    }
 
     // ENGINE QUẢN LÝ VIDEO NỀN (YOUTUBE & MP4)
     function stopThemeYouTube() {
@@ -971,7 +1036,11 @@
       let playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch(function(err) {
-          console.log('Autoplay prevented or video load error:', err);
+          console.log('Autoplay prevented or Low Power Mode active:', err);
+          // Tự động fallback sang Aurora canvas nếu điện thoại bật chế độ Tiết kiệm pin
+          if (!activeCanvasTheme) {
+            startCanvasTheme('aurora');
+          }
         });
       }
     }
@@ -1001,6 +1070,7 @@
         activeWebGlRenderer.destroy();
         activeWebGlRenderer = null;
       }
+      current2dRenderFunc = null;
       const canvas = document.getElementById('theme-bg-canvas');
       if (canvas) {
         canvas.classList.remove('active');
@@ -1212,9 +1282,10 @@
     `;
 
     function initMatrix(canvas, ctx) {
+      let isMobile = window.innerWidth <= 768;
       let chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ";
       let charArr = chars.split("");
-      let fontSize = 16;
+      let fontSize = isMobile ? 18 : 16;
       let columns = Math.floor(canvas.width / fontSize) + 1;
       let drops = [];
       for (let i = 0; i < columns; i++) drops[i] = Math.floor(Math.random() * -40);
@@ -1238,6 +1309,9 @@
     }
 
     function initWaves(canvas, ctx) {
+      let isMobile = window.innerWidth <= 768;
+      let maxRows = isMobile ? 14 : 22;
+      let xStep = isMobile ? 36 : 25;
       let time = 0;
       return function render() {
         time += 0.025;
@@ -1248,14 +1322,14 @@
         let h = canvas.height;
         let horizon = h * 0.42;
         
-        for (let row = 0; row < 22; row++) {
-          let z = (row + 1) / 22;
+        for (let row = 0; row < maxRows; row++) {
+          let z = (row + 1) / maxRows;
           let yBase = horizon + Math.pow(z, 2.2) * (h - horizon);
-          let amplitude = 22 * Math.pow(z, 1.8);
+          let amplitude = (isMobile ? 16 : 22) * Math.pow(z, 1.8);
           
           ctx.beginPath();
           let first = true;
-          for (let x = 0; x <= w; x += 25) {
+          for (let x = 0; x <= w; x += xStep) {
             let wave = Math.sin(x * 0.008 + time + row * 0.35) * Math.cos(x * 0.004 - time * 0.7) * amplitude;
             let y = yBase + wave;
             if (first) { ctx.moveTo(x, y); first = false; }
@@ -1264,8 +1338,10 @@
           let alpha = 0.15 + z * 0.65;
           ctx.strokeStyle = `rgba(0, 212, 255, ${alpha.toFixed(2)})`;
           ctx.lineWidth = 1 + z * 1.5;
-          ctx.shadowBlur = 8 * z;
-          ctx.shadowColor = "#00d4ff";
+          if (!isMobile) {
+            ctx.shadowBlur = 8 * z;
+            ctx.shadowColor = "#00d4ff";
+          }
           ctx.stroke();
         }
         ctx.shadowBlur = 0;
@@ -1273,6 +1349,9 @@
     }
 
     function initCyberpunk(canvas, ctx) {
+      let isMobile = window.innerWidth <= 768;
+      let numHorizLines = isMobile ? 12 : 18;
+      let numGroundLines = isMobile ? 16 : 26;
       let speed = 0.035;
       let offset = 0;
       return function render() {
@@ -1284,7 +1363,7 @@
         let h = canvas.height;
         let horizon = h * 0.48;
 
-        let sunR = Math.min(w, h) * 0.22;
+        let sunR = Math.min(w, h) * (isMobile ? 0.26 : 0.22);
         let sunX = w / 2;
         let sunY = horizon - sunR * 0.25;
 
@@ -1297,37 +1376,41 @@
         ctx.beginPath();
         ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
         ctx.fillStyle = grad;
-        ctx.shadowBlur = 25;
+        ctx.shadowBlur = isMobile ? 8 : 25;
         ctx.shadowColor = "#ff007f";
         ctx.fill();
 
         ctx.fillStyle = "rgba(10, 6, 20, 0.95)";
-        for (let i = 0; i < 9; i++) {
-          let blindY = sunY + (i / 9) * sunR;
+        let numBlinds = isMobile ? 6 : 9;
+        for (let i = 0; i < numBlinds; i++) {
+          let blindY = sunY + (i / numBlinds) * sunR;
           let blindH = 1 + (i * 0.7);
           ctx.fillRect(sunX - sunR - 10, blindY, sunR * 2 + 20, blindH);
         }
         ctx.restore();
 
-        for (let i = 0; i < 18; i++) {
-          let progress = (i + offset) / 18;
+        for (let i = 0; i < numHorizLines; i++) {
+          let progress = (i + offset) / numHorizLines;
           let y = horizon + Math.pow(progress, 2.5) * (h - horizon);
           let lineAlpha = Math.pow(progress, 1.5) * 0.85;
           ctx.strokeStyle = `rgba(0, 243, 255, ${lineAlpha.toFixed(2)})`;
-          ctx.shadowBlur = 8;
-          ctx.shadowColor = "#00f3ff";
+          if (!isMobile) {
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = "#00f3ff";
+          }
           ctx.beginPath();
           ctx.moveTo(0, y);
           ctx.lineTo(w, y);
           ctx.stroke();
         }
 
-        let numLines = 26;
-        for (let i = 0; i <= numLines; i++) {
-          let groundX = (i / numLines) * (w * 2.4) - (w * 0.7);
+        for (let i = 0; i <= numGroundLines; i++) {
+          let groundX = (i / numGroundLines) * (w * 2.4) - (w * 0.7);
           ctx.strokeStyle = "rgba(255, 0, 127, 0.55)";
-          ctx.shadowBlur = 8;
-          ctx.shadowColor = "#ff007f";
+          if (!isMobile) {
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = "#ff007f";
+          }
           ctx.beginPath();
           ctx.moveTo(sunX, horizon);
           ctx.lineTo(groundX, h);
@@ -1338,13 +1421,16 @@
     }
 
     function initAurora(canvas, ctx) {
+      let isMobile = window.innerWidth <= 768;
+      let starCount = isMobile ? 35 : 80;
+      let xStep = isMobile ? 24 : 15;
       let time = 0;
       let stars = [];
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < starCount; i++) {
         stars.push({
           x: Math.random(),
           y: Math.random(),
-          size: Math.random() * 2 + 0.5,
+          size: Math.random() * (isMobile ? 1.8 : 2) + 0.5,
           twinkleSpeed: Math.random() * 0.05 + 0.01,
           phase: Math.random() * Math.PI * 2
         });
@@ -1367,16 +1453,16 @@
         }
 
         let layers = [
-          { color1: "rgba(6, 182, 212, 0.25)", color2: "rgba(139, 92, 246, 0.0)", yOffset: h * 0.28, freq: 0.003, speed: 0.8, amp: 75 },
-          { color1: "rgba(168, 85, 247, 0.28)", color2: "rgba(236, 72, 153, 0.0)", yOffset: h * 0.42, freq: 0.0025, speed: -0.6, amp: 95 },
-          { color1: "rgba(34, 197, 94, 0.22)", color2: "rgba(6, 182, 212, 0.0)", yOffset: h * 0.55, freq: 0.0035, speed: 1.1, amp: 65 }
+          { color1: "rgba(6, 182, 212, 0.25)", color2: "rgba(139, 92, 246, 0.0)", yOffset: h * 0.28, freq: 0.003, speed: 0.8, amp: isMobile ? 55 : 75 },
+          { color1: "rgba(168, 85, 247, 0.28)", color2: "rgba(236, 72, 153, 0.0)", yOffset: h * 0.42, freq: 0.0025, speed: -0.6, amp: isMobile ? 70 : 95 },
+          { color1: "rgba(34, 197, 94, 0.22)", color2: "rgba(6, 182, 212, 0.0)", yOffset: h * 0.55, freq: 0.0035, speed: 1.1, amp: isMobile ? 50 : 65 }
         ];
 
         for (let layer of layers) {
           ctx.save();
           ctx.beginPath();
           ctx.moveTo(0, h);
-          for (let x = 0; x <= w; x += 15) {
+          for (let x = 0; x <= w; x += xStep) {
             let wave1 = Math.sin(x * layer.freq + time * layer.speed) * layer.amp;
             let wave2 = Math.cos(x * layer.freq * 1.8 - time * 0.5) * (layer.amp * 0.4);
             let y = layer.yOffset + wave1 + wave2;
@@ -1396,8 +1482,10 @@
     }
 
     function initSnow(canvas, ctx) {
+      let isMobile = window.innerWidth <= 768;
       let flakes = [];
-      let count = Math.min(100, Math.floor(window.innerWidth / 12));
+      let maxFlakes = isMobile ? 35 : 100;
+      let count = Math.min(maxFlakes, Math.floor(window.innerWidth / (isMobile ? 18 : 12)));
       for (let i = 0; i < count; i++) {
         flakes.push({
           x: Math.random() * canvas.width,
@@ -1432,7 +1520,7 @@
           ctx.beginPath();
           ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
-          if (f.z > 0.7) {
+          if (f.z > 0.7 && !isMobile) {
             ctx.shadowBlur = 6;
             ctx.shadowColor = "#ffffff";
           } else {
@@ -1494,6 +1582,8 @@
       else if (themeName === 'snow') renderFunc = initSnow(canvas, ctx);
 
       if (!renderFunc) return;
+
+      current2dRenderFunc = renderFunc;
 
       function animLoop() {
         renderFunc();

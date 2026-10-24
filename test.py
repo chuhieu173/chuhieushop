@@ -1510,6 +1510,28 @@ class TestBusinessLogic(unittest.TestCase):
         p = subprocess.run(["node", "-e", test_bg_video_js], capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, f"LỖI TEST NHẬN DIỆN VIDEO NỀN YOUTUBE & MP4:\n{p.stderr}")
 
+    def test_background_mobile_and_pc_optimizations(self):
+        """Kiểm tra: Bộ 5 biện pháp tối ưu Background toàn diện cho cả Mobile và PC trong index.html"""
+        index = read_file('index.html')
+
+        # 1. Page Visibility API & Tiết kiệm pin
+        self.assertIn("visibilitychange", index, "LỖI: index.html phải lắng nghe sự kiện visibilitychange để ngắt render và pause video khi ẩn tab!")
+        self.assertIn("resumeCanvasTheme", index, "LỖI: index.html phải có hàm resumeCanvasTheme để kích hoạt lại render loop khi mở lại tab!")
+
+        # 2. Smart Aspect Ratio & Cropping
+        self.assertIn("object-position: center center", index, "LỖI: Video MP4 nền phải có object-position: center center để căn giữa chuẩn trên mobile dọc!")
+
+        # 3. Mobile Overlay & YouTube Scale
+        self.assertIn("rgba(10, 10, 20, 0.28)", index, "LỖI: CSS media query mobile phải có overlay nền trong trẻo, rõ nét!")
+        self.assertIn("scale(1.35)", index, "LỖI: Iframe YouTube trên mobile phải được scale để giấu viền đen và tiêu đề!")
+
+        # 4. Low Power Mode fallback
+        self.assertIn("Autoplay prevented or Low Power Mode active", index, "LỖI: index.html phải bắt lỗi autoplay/Low Power Mode và fallback tự động!")
+
+        # 5. Mobile Canvas Optimization
+        self.assertIn("isMobile", index, "LỖI: Các hàm Canvas phải có cờ isMobile để giảm số lượng hạt và bước tính toán trên điện thoại!")
+
+
 
 if __name__ == '__main__':
     print("=" * 65)
