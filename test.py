@@ -288,6 +288,13 @@ class TestDOMIntegrity(unittest.TestCase):
         essential_theme_ids_admin = [
             'edit-theme',
             'edit-theme-video',
+            'saved-theme-videos-select',
+            'btn-theme-video-history',
+            'theme-video-history-modal',
+            'modal-video-history-badge',
+            'manual-add-video-url',
+            'theme-video-history-list',
+            'theme-video-history-count',
             'theme-video-file-input',
             'btn-upload-theme-video',
             'btn-config-cloudinary',
@@ -1471,8 +1478,12 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('uploadVideoToCloudinary', admin, "LỖI: admin.html phải có hàm uploadVideoToCloudinary!")
         self.assertIn('triggerThemeVideoUpload', admin, "LỖI: admin.html phải có hàm triggerThemeVideoUpload!")
         self.assertIn('openCloudinaryConfigModal', admin, "LỖI: admin.html phải có hàm openCloudinaryConfigModal!")
+        self.assertIn('saveVideoToHistory', admin, "LỖI: admin.html phải có hàm saveVideoToHistory lưu thư viện video!")
+        self.assertIn('getThemeVideoHistory', admin, "LỖI: admin.html phải có hàm getThemeVideoHistory!")
+        self.assertIn('applySavedThemeVideo', admin, "LỖI: admin.html phải có hàm applySavedThemeVideo!")
 
         index = read_file('index.html')
+        self.assertIn('chuhieushop_last_theme_video', index, "LỖI: index.html phải lưu giữ video nền cuối cùng trong localStorage để không bị reset về demo!")
         theme_funcs = ['playThemeVideo', 'stopThemeVideo', 'playThemeYouTube', 'stopThemeYouTube', 'startCanvasTheme', 'stopCanvasTheme', 'applyTheme', 'createWebGLRenderer']
         for fn in theme_funcs:
             self.assertIn(fn, index, f"LỖI: index.html phải có hàm '{fn}'!")

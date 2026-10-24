@@ -1010,7 +1010,10 @@
     function playThemeVideo(videoUrl) {
       stopThemeVideo();
       const overlay = document.getElementById('theme-bg-overlay');
-      let finalUrl = (videoUrl || currentServerThemeVideo || '').trim();
+      let finalUrl = (videoUrl || currentServerThemeVideo || localStorage.getItem('chuhieushop_last_theme_video') || '').trim();
+      if (finalUrl) {
+        localStorage.setItem('chuhieushop_last_theme_video', finalUrl);
+      }
 
       // Kiểm tra nếu là link YouTube (watch, youtu.be, shorts, embed)
       const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
@@ -1640,7 +1643,10 @@
       } else if (themeToApply === 'snow') {
         startCanvasTheme('snow');
       } else if (themeToApply === 'video') {
-        let vUrl = currentServerThemeVideo || 'https://cdn.jsdelivr.net/npm/video-media-samples@1.0.0/big-buck-bunny-480p-30sec.mp4';
+        let vUrl = (currentServerThemeVideo || localStorage.getItem('chuhieushop_last_theme_video') || '').trim();
+        if (!vUrl) {
+          vUrl = 'https://cdn.jsdelivr.net/npm/video-media-samples@1.0.0/big-buck-bunny-480p-30sec.mp4';
+        }
         playThemeVideo(vUrl);
       } else if (themeToApply === 'space' || themeToApply === 'particles') {
         if (pjs) pjs.style.display = 'block';
@@ -1706,7 +1712,12 @@
           });
 
           currentServerTheme = resData.theme || 'default';
-          currentServerThemeVideo = resData.themeVideo || '';
+          if (resData.themeVideo) {
+            currentServerThemeVideo = resData.themeVideo;
+            localStorage.setItem('chuhieushop_last_theme_video', resData.themeVideo);
+          } else {
+            currentServerThemeVideo = localStorage.getItem('chuhieushop_last_theme_video') || '';
+          }
           let activeTheme = localStorage.getItem('userSelectedTheme') || 'shop-default';
           applyTheme(activeTheme);
 

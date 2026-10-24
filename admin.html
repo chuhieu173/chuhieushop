@@ -1433,6 +1433,10 @@
               <option value="video">🎬 Video Nền (YouTube / MP4)</option>
             </select>
             <input type="text" id="edit-theme-video" placeholder="Dán link YouTube hoặc video MP4 nền..." style="display: none; padding: 9px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; width: 280px;">
+            <select id="saved-theme-videos-select" onchange="applySavedThemeVideo(this.value)" style="display: none; padding: 9px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13px; background: #fff; max-width: 200px; color: #2d3748;" title="Chọn lại video đã lưu trước đó">
+              <option value="">📋 Chọn video đã lưu...</option>
+            </select>
+            <button type="button" id="btn-theme-video-history" onclick="openThemeVideoHistoryModal()" style="display: none; background: #4a5568; color: #fff; border: none; padding: 9px 12px; border-radius: 6px; font-size: 13.5px; cursor: pointer; font-weight: 500;" title="Quản lý thư viện video nền">🎬 Thư viện (<span id="theme-video-history-count">0</span>)</button>
             <input type="file" id="theme-video-file-input" accept="video/mp4,video/webm,video/*" style="display: none;" onchange="handleThemeVideoFile(this)">
             <button type="button" id="btn-upload-theme-video" class="btn-update" onclick="triggerThemeVideoUpload()" style="display: none; background: #805ad5; padding: 9px 13px; font-size: 13.5px;" title="Tải video từ máy tính lên Cloudinary">📁 Tải video từ máy</button>
             <button type="button" id="btn-config-cloudinary" onclick="openCloudinaryConfigModal()" title="Cài đặt tài khoản Cloudinary" style="display: none; background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer;">⚙️</button>
@@ -2094,6 +2098,33 @@
     </div>
   </div>
 
+  <!-- MODAL THƯ VIỆN VIDEO NỀN ĐÃ LƯU / ĐÃ TẢI -->
+  <div id="theme-video-history-modal" class="edit-modal">
+    <div class="edit-content" style="max-width: 650px; text-align: left; max-height: 85vh; display: flex; flex-direction: column;">
+      <h2 style="margin-top: 0; color: #2b6cb0; font-size: 18px; border-bottom: 2px solid #bee3f8; padding-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="display: flex; align-items: center; gap: 8px;">🎬 Thư Viện Video Nền Đã Dùng / Đã Tải</span>
+        <span id="modal-video-history-badge" style="font-size: 12px; background: #ebf8ff; color: #2b6cb0; padding: 3px 8px; border-radius: 12px; border: 1px solid #bee3f8;">0 video</span>
+      </h2>
+      <p style="font-size: 13px; color: #4a5568; margin-top: 0; margin-bottom: 12px;">
+        Danh sách tất cả các video MP4 đã tải lên Cloudinary hoặc các link YouTube bạn đã từng cấu hình. Bạn có thể chọn lại bất kỳ lúc nào chỉ bằng 1 cú nhấp chuột.
+      </p>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <input type="text" id="manual-add-video-url" placeholder="Dán thêm link YouTube hoặc MP4 vào thư viện..." style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13px;">
+        <button type="button" onclick="addManualVideoToHistory()" style="background: #3182ce; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap;">+ Thêm</button>
+      </div>
+
+      <div id="theme-video-history-list" style="flex: 1; overflow-y: auto; max-height: 380px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background: #f8fafc;">
+        <!-- Danh sách video render tại đây -->
+      </div>
+
+      <div class="edit-actions" style="justify-content: space-between; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+        <button type="button" onclick="clearAllThemeVideoHistory()" style="background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; padding: 8px 14px; border-radius: 6px; font-size: 12.5px; cursor: pointer; font-weight: 600;">🗑️ Xóa sạch lịch sử</button>
+        <button type="button" class="btn-cancel" onclick="closeThemeVideoHistoryModal()" style="padding: 8px 18px;">Đóng</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
@@ -2236,8 +2267,14 @@
           document.getElementById("edit-theme").value = resData.theme || "default";
           let themeVideoInput = document.getElementById("edit-theme-video");
           if (themeVideoInput) {
-            themeVideoInput.value = resData.themeVideo || "";
+            let loadedVideo = (resData.themeVideo || localStorage.getItem('last_admin_theme_video') || "").trim();
+            themeVideoInput.value = loadedVideo;
+            if (loadedVideo) {
+              localStorage.setItem('last_admin_theme_video', loadedVideo);
+              saveVideoToHistory(loadedVideo, "Video nền");
+            }
             toggleThemeVideoInput(resData.theme || "default");
+            renderSavedThemeVideosSelect();
           }
         } else { globalProductsData = resData; }
         
@@ -2261,10 +2298,15 @@
       let vBtn = document.getElementById("btn-upload-theme-video");
       let vCfg = document.getElementById("btn-config-cloudinary");
       let vProg = document.getElementById("theme-video-progress-box");
+      let vSel = document.getElementById("saved-theme-videos-select");
+      let vHist = document.getElementById("btn-theme-video-history");
       if (vInput) vInput.style.display = isVideo ? "inline-block" : "none";
       if (vBtn) vBtn.style.display = isVideo ? "inline-block" : "none";
       if (vCfg) vCfg.style.display = isVideo ? "inline-block" : "none";
+      if (vSel) vSel.style.display = isVideo ? "inline-block" : "none";
+      if (vHist) vHist.style.display = isVideo ? "inline-block" : "none";
       if (!isVideo && vProg) vProg.style.display = "none";
+      if (isVideo) renderSavedThemeVideosSelect();
     }
 
     function openCloudinaryConfigModal() {
@@ -2296,6 +2338,202 @@
       localStorage.setItem('cloudinary_upload_preset', cPreset);
       closeCloudinaryConfigModal();
       showToast("Đã lưu cấu hình Cloudinary thành công!");
+    }
+
+    // === QUẢN LÝ THƯ VIỆN VIDEO NỀN (LƯU LẠI LINK ĐỂ CHỌN LẠI DỄ DÀNG) ===
+    function getThemeVideoHistory() {
+      try {
+        let raw = localStorage.getItem('theme_video_history');
+        let list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) ? list : [];
+      } catch(e) {
+        return [];
+      }
+    }
+
+    function saveVideoToHistory(url, optName) {
+      if (!url || typeof url !== 'string') return;
+      let trimmed = url.trim();
+      if (!trimmed) return;
+
+      let list = getThemeVideoHistory();
+      let isYt = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/.test(trimmed);
+      let existingIdx = list.findIndex(item => item.url === trimmed);
+
+      let nowStr = new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      let displayName = optName;
+      if (!displayName || displayName === "Video nền" || displayName === "Video nền đang dùng") {
+        if (isYt) {
+          let match = trimmed.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+          displayName = "YouTube (" + (match ? match[1] : "Video") + ")";
+        } else {
+          let parts = trimmed.split('/');
+          let lastPart = parts[parts.length - 1].split('?')[0];
+          try {
+            displayName = decodeURIComponent(lastPart) || "Video MP4";
+          } catch(e) {
+            displayName = lastPart || "Video MP4";
+          }
+        }
+      }
+
+      if (existingIdx !== -1) {
+        list[existingIdx].date = nowStr;
+        if (optName && optName !== "Video nền") list[existingIdx].name = displayName;
+        let item = list.splice(existingIdx, 1)[0];
+        list.unshift(item);
+      } else {
+        list.unshift({
+          id: 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          url: trimmed,
+          name: displayName,
+          type: isYt ? 'youtube' : 'mp4',
+          date: nowStr
+        });
+      }
+
+      if (list.length > 50) list = list.slice(0, 50);
+
+      localStorage.setItem('theme_video_history', JSON.stringify(list));
+      renderSavedThemeVideosSelect();
+    }
+
+    function deleteVideoFromHistory(id) {
+      let list = getThemeVideoHistory();
+      list = list.filter(item => item.id !== id);
+      localStorage.setItem('theme_video_history', JSON.stringify(list));
+      renderThemeVideoHistoryModal();
+      renderSavedThemeVideosSelect();
+    }
+
+    function clearAllThemeVideoHistory() {
+      if (!confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử video đã lưu không?")) return;
+      localStorage.removeItem('theme_video_history');
+      renderThemeVideoHistoryModal();
+      renderSavedThemeVideosSelect();
+    }
+
+    function applySavedThemeVideo(url) {
+      if (!url) return;
+      let vInput = document.getElementById('edit-theme-video');
+      if (vInput) {
+        vInput.value = url;
+      }
+      localStorage.setItem('last_admin_theme_video', url);
+      let sel = document.getElementById('saved-theme-videos-select');
+      if (sel) sel.value = url;
+      closeThemeVideoHistoryModal();
+      showToast("✅ Đã chọn video vào ô cấu hình!");
+    }
+
+    function applySavedThemeVideoById(id) {
+      let list = getThemeVideoHistory();
+      let found = list.find(x => x.id === id);
+      if (found) {
+        applySavedThemeVideo(found.url);
+      }
+    }
+
+    function openThemeVideoHistoryModal() {
+      renderThemeVideoHistoryModal();
+      let m = document.getElementById('theme-video-history-modal');
+      if (m) m.style.display = 'block';
+    }
+
+    function closeThemeVideoHistoryModal() {
+      let m = document.getElementById('theme-video-history-modal');
+      if (m) m.style.display = 'none';
+    }
+
+    function addManualVideoToHistory() {
+      let inp = document.getElementById('manual-add-video-url');
+      if (!inp) return;
+      let val = inp.value.trim();
+      if (!val) { alert("Vui lòng nhập link video!"); return; }
+      saveVideoToHistory(val);
+      inp.value = "";
+      renderThemeVideoHistoryModal();
+      renderSavedThemeVideosSelect();
+      showToast("✅ Đã thêm video vào thư viện!");
+    }
+
+    function renderThemeVideoHistoryModal() {
+      let list = getThemeVideoHistory();
+      let container = document.getElementById('theme-video-history-list');
+      let badge = document.getElementById('modal-video-history-badge');
+      if (badge) badge.innerText = list.length + " video";
+      if (!container) return;
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 35px 20px; color: #a0aec0;">
+            <div style="font-size: 32px; margin-bottom: 8px;">🎬</div>
+            <div style="font-size: 14px; font-weight: 500;">Chưa có video nào được lưu trong thư viện.</div>
+            <div style="font-size: 12px; margin-top: 4px;">Khi bạn tải video lên Cloudinary hoặc dán link video, hệ thống sẽ tự động lưu lại ở đây!</div>
+          </div>
+        `;
+        return;
+      }
+
+      let currentVideoUrl = (document.getElementById('edit-theme-video') ? document.getElementById('edit-theme-video').value.trim() : "");
+
+      let html = '';
+      list.forEach((item, idx) => {
+        let isSelected = (currentVideoUrl && currentVideoUrl === item.url);
+        let icon = item.type === 'youtube' ? '🔴' : '🎬';
+        let typeBadge = item.type === 'youtube' 
+          ? '<span style="background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">YouTube</span>'
+          : '<span style="background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">MP4 Video</span>';
+
+        html += `
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid ${isSelected ? '#3182ce' : '#e2e8f0'}; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                <span style="font-size: 16px;">${icon}</span>
+                <span style="font-weight: 700; font-size: 13.5px; color: #2d3748; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</span>
+                ${typeBadge}
+                ${isSelected ? '<span style="background: #c6f6d5; color: #22543d; font-size: 10px; font-weight: bold; padding: 1px 6px; border-radius: 4px;">Đang dùng</span>' : ''}
+              </div>
+              <div style="font-size: 11.5px; color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.url}">
+                🔗 ${item.url}
+              </div>
+              <div style="font-size: 10.5px; color: #a0aec0; margin-top: 2px;">
+                🕒 Đã lưu: ${item.date || 'Gần đây'}
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <a href="${item.url}" target="_blank" rel="noopener noreferrer" style="background: #edf2f7; color: #4a5568; padding: 6px 10px; border-radius: 5px; font-size: 12px; text-decoration: none; font-weight: 500;" title="Mở xem thử">👁️ Xem</a>
+              <button type="button" onclick="applySavedThemeVideoById('${item.id}')" style="background: ${isSelected ? '#38a169' : '#3182ce'}; color: #fff; border: none; padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer;">
+                ${isSelected ? '✓ Đang dùng' : '✅ Chọn'}
+              </button>
+              <button type="button" onclick="deleteVideoFromHistory('${item.id}')" style="background: transparent; color: #e53e3e; border: 1px solid #fed7d7; padding: 5px 8px; border-radius: 5px; font-size: 12px; cursor: pointer;" title="Xóa khỏi thư viện">🗑️</button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderSavedThemeVideosSelect() {
+      let sel = document.getElementById('saved-theme-videos-select');
+      let countEl = document.getElementById('theme-video-history-count');
+      let list = getThemeVideoHistory();
+      if (countEl) countEl.innerText = list.length;
+      if (!sel) return;
+
+      let currentVal = (document.getElementById('edit-theme-video') ? document.getElementById('edit-theme-video').value.trim() : "");
+
+      let html = `<option value="">📋 Chọn video đã lưu (${list.length})...</option>`;
+      list.forEach((item, idx) => {
+        let isSel = (currentVal && currentVal === item.url) ? 'selected' : '';
+        let icon = item.type === 'youtube' ? '🔴' : '🎬';
+        let shortName = item.name.length > 28 ? item.name.substring(0, 28) + '...' : item.name;
+        html += `<option value="${item.url}" ${isSel}>${icon} ${shortName}</option>`;
+      });
+
+      sel.innerHTML = html;
     }
 
     function triggerThemeVideoUpload() {
@@ -2378,7 +2616,10 @@
             if (videoUrl) {
               const vInput = document.getElementById('edit-theme-video');
               if (vInput) vInput.value = videoUrl;
-              if (progText) progText.innerHTML = '<span style="color:#38a169; font-weight:bold;">✅ Tải video thành công! Link đã tự điền vào ô bên dưới.</span>';
+              localStorage.setItem('last_admin_theme_video', videoUrl);
+              saveVideoToHistory(videoUrl, file.name);
+              renderSavedThemeVideosSelect();
+              if (progText) progText.innerHTML = '<span style="color:#38a169; font-weight:bold;">✅ Tải video thành công! Link đã tự điền và lưu vào Thư viện.</span>';
               if (progBar) {
                 progBar.style.width = '100%';
                 progBar.style.background = '#38a169';
@@ -2415,6 +2656,12 @@
     async function updateTheme() {
       let theme = document.getElementById("edit-theme").value;
       let themeVideo = document.getElementById("edit-theme-video") ? document.getElementById("edit-theme-video").value.trim() : "";
+      if (!themeVideo) {
+        themeVideo = localStorage.getItem('last_admin_theme_video') || "";
+      } else {
+        localStorage.setItem('last_admin_theme_video', themeVideo);
+        saveVideoToHistory(themeVideo, "Video nền");
+      }
       showLoading(true);
       try {
         let res = await fetch(API_URL, {
