@@ -1433,7 +1433,20 @@
               <option value="video">🎬 Video Nền (YouTube / MP4)</option>
             </select>
             <input type="text" id="edit-theme-video" placeholder="Dán link YouTube hoặc video MP4 nền..." style="display: none; padding: 9px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; width: 280px;">
+            <input type="file" id="theme-video-file-input" accept="video/mp4,video/webm,video/*" style="display: none;" onchange="handleThemeVideoFile(this)">
+            <button type="button" id="btn-upload-theme-video" class="btn-update" onclick="triggerThemeVideoUpload()" style="display: none; background: #805ad5; padding: 9px 13px; font-size: 13.5px;" title="Tải video từ máy tính lên Cloudinary">📁 Tải video từ máy</button>
+            <button type="button" id="btn-config-cloudinary" onclick="openCloudinaryConfigModal()" title="Cài đặt tài khoản Cloudinary" style="display: none; background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer;">⚙️</button>
             <button class="btn-update" onclick="updateTheme()" style="background: #d69e2e;">Đổi Chủ Đề</button>
+            
+            <div id="theme-video-progress-box" style="display: none; width: 100%; margin-top: 8px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; color: #4a5568;">
+                <span id="theme-video-progress-text">Đang tải video lên Cloudinary... 0%</span>
+                <span id="theme-video-progress-size" style="font-weight: 600;"></span>
+              </div>
+              <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                <div id="theme-video-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #805ad5, #3182ce); transition: width 0.2s;"></div>
+              </div>
+            </div>
           </div>
         </div>
         <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px; height: fit-content;" onclick="openEditModal()">+ TẠO SẢN PHẨM MỚI</button>
@@ -2044,6 +2057,43 @@
     </div>
   </div>
 
+  <!-- MODAL CẤU HÌNH CLOUDINARY UPLOAD -->
+  <div id="cloudinary-config-modal" class="edit-modal">
+    <div class="edit-content" style="max-width: 520px; text-align: left;">
+      <h2 style="margin-top: 0; color: #2b6cb0; font-size: 18px; border-bottom: 2px solid #bee3f8; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <span>☁️</span> Cấu Hình Cloudinary Upload Video
+      </h2>
+      <p style="font-size: 13.5px; color: #4a5568; line-height: 1.5; margin-bottom: 12px;">
+        Cloudinary cung cấp <b>25GB lưu trữ & băng thông miễn phí hàng tháng</b> với CDN toàn cầu siêu tốc. Bạn chỉ cần cài đặt 1 lần duy nhất:
+      </p>
+
+      <div style="background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: #2c5282; margin-bottom: 15px; line-height: 1.6;">
+        <b>Hướng dẫn 2 phút (chỉ cần làm 1 lần):</b>
+        <ol style="margin: 6px 0 0 16px; padding: 0;">
+          <li>Đăng ký/Đăng nhập tại <a href="https://cloudinary.com/users/register_free" target="_blank" rel="noopener noreferrer" style="color: #2b6cb0; font-weight: bold; text-decoration: underline;">cloudinary.com</a> (miễn phí).</li>
+          <li>Copy <b>Cloud Name</b> ở góc trang chính (Dashboard).</li>
+          <li>Vào <b>Settings (Bánh răng)</b> ➔ chọn thẻ <b>Upload</b> ➔ cuộn xuống mục <b>Upload presets</b> ➔ bấm <b>Add upload preset</b>.</li>
+          <li>Đặt <b>Signing Mode</b> là <b>Unsigned</b> (Bắt buộc) ➔ Bấm <b>Save</b> và copy <b>Tên Preset</b> (ví dụ: <code>chuhieu_video</code>).</li>
+        </ol>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label style="font-weight: bold; font-size: 13.5px; color: #2d3748;">1. Cloud Name:</label>
+        <input type="text" id="cfg-cloudinary-cloud-name" placeholder="Ví dụ: my-cloud-name" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 18px;">
+        <label style="font-weight: bold; font-size: 13.5px; color: #2d3748;">2. Upload Preset (Chế độ Unsigned):</label>
+        <input type="text" id="cfg-cloudinary-upload-preset" placeholder="Ví dụ: chuhieu_video" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+      </div>
+
+      <div class="edit-actions" style="justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn-cancel" onclick="closeCloudinaryConfigModal()" style="padding: 9px 18px;">Hủy</button>
+        <button type="button" class="btn-save" onclick="saveCloudinaryConfig()" style="background: #3182ce; padding: 9px 20px;">Lưu Cấu Hình</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
@@ -2206,10 +2256,160 @@
     }
 
     function toggleThemeVideoInput(val) {
+      let isVideo = (val === "video");
       let vInput = document.getElementById("edit-theme-video");
-      if (vInput) {
-        vInput.style.display = (val === "video") ? "inline-block" : "none";
+      let vBtn = document.getElementById("btn-upload-theme-video");
+      let vCfg = document.getElementById("btn-config-cloudinary");
+      let vProg = document.getElementById("theme-video-progress-box");
+      if (vInput) vInput.style.display = isVideo ? "inline-block" : "none";
+      if (vBtn) vBtn.style.display = isVideo ? "inline-block" : "none";
+      if (vCfg) vCfg.style.display = isVideo ? "inline-block" : "none";
+      if (!isVideo && vProg) vProg.style.display = "none";
+    }
+
+    function openCloudinaryConfigModal() {
+      const m = document.getElementById('cloudinary-config-modal');
+      const cNameInput = document.getElementById('cfg-cloudinary-cloud-name');
+      const cPresetInput = document.getElementById('cfg-cloudinary-upload-preset');
+      if (cNameInput) cNameInput.value = localStorage.getItem('cloudinary_cloud_name') || '';
+      if (cPresetInput) cPresetInput.value = localStorage.getItem('cloudinary_upload_preset') || '';
+      if (m) m.style.display = 'block';
+    }
+
+    function closeCloudinaryConfigModal() {
+      const m = document.getElementById('cloudinary-config-modal');
+      if (m) m.style.display = 'none';
+    }
+
+    function saveCloudinaryConfig() {
+      const cNameInput = document.getElementById('cfg-cloudinary-cloud-name');
+      const cPresetInput = document.getElementById('cfg-cloudinary-upload-preset');
+      const cName = cNameInput ? cNameInput.value.trim() : '';
+      const cPreset = cPresetInput ? cPresetInput.value.trim() : '';
+
+      if (!cName || !cPreset) {
+        alert("Vui lòng nhập đầy đủ Cloud Name và Upload Preset!");
+        return;
       }
+
+      localStorage.setItem('cloudinary_cloud_name', cName);
+      localStorage.setItem('cloudinary_upload_preset', cPreset);
+      closeCloudinaryConfigModal();
+      showToast("Đã lưu cấu hình Cloudinary thành công!");
+    }
+
+    function triggerThemeVideoUpload() {
+      let cName = localStorage.getItem('cloudinary_cloud_name');
+      let cPreset = localStorage.getItem('cloudinary_upload_preset');
+      if (!cName || !cPreset) {
+        openCloudinaryConfigModal();
+        return;
+      }
+      let fileInput = document.getElementById('theme-video-file-input');
+      if (fileInput) fileInput.click();
+    }
+
+    function handleThemeVideoFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('video/') && !file.name.match(/\.(mp4|webm|mov|mkv)$/i)) {
+        alert("Vui lòng chọn tệp video (định dạng MP4, WebM, MOV)!");
+        input.value = "";
+        return;
+      }
+
+      if (file.size > 100 * 1024 * 1024) {
+        if (!confirm("Video này khá lớn (>100MB), có thể mất thời gian tải lên và gây chậm khi khách vào web. Bạn vẫn muốn tiếp tục?")) {
+          input.value = "";
+          return;
+        }
+      }
+
+      uploadVideoToCloudinary(file);
+      input.value = "";
+    }
+
+    function uploadVideoToCloudinary(file) {
+      let cName = localStorage.getItem('cloudinary_cloud_name');
+      let cPreset = localStorage.getItem('cloudinary_upload_preset');
+      if (!cName || !cPreset) {
+        openCloudinaryConfigModal();
+        return;
+      }
+
+      const progBox = document.getElementById('theme-video-progress-box');
+      const progBar = document.getElementById('theme-video-progress-bar');
+      const progText = document.getElementById('theme-video-progress-text');
+      const progSize = document.getElementById('theme-video-progress-size');
+      const uploadBtn = document.getElementById('btn-upload-theme-video');
+
+      if (progBox) progBox.style.display = 'block';
+      if (progBar) {
+        progBar.style.width = '0%';
+        progBar.style.background = 'linear-gradient(90deg, #805ad5, #3182ce)';
+      }
+      if (progText) progText.innerText = 'Đang chuẩn bị tải lên Cloudinary...';
+      if (progSize) progSize.innerText = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+      if (uploadBtn) uploadBtn.disabled = true;
+
+      const url = `https://api.cloudinary.com/v1_1/${encodeURIComponent(cName)}/video/upload`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', cPreset);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+          let percent = Math.round((e.loaded / e.total) * 100);
+          if (progBar) progBar.style.width = percent + '%';
+          if (progText) progText.innerText = `Đang tải lên Cloudinary... ${percent}%`;
+        }
+      };
+
+      xhr.onload = function() {
+        if (uploadBtn) uploadBtn.disabled = false;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            const videoUrl = res.secure_url || res.url;
+            if (videoUrl) {
+              const vInput = document.getElementById('edit-theme-video');
+              if (vInput) vInput.value = videoUrl;
+              if (progText) progText.innerHTML = '<span style="color:#38a169; font-weight:bold;">✅ Tải video thành công! Link đã tự điền vào ô bên dưới.</span>';
+              if (progBar) {
+                progBar.style.width = '100%';
+                progBar.style.background = '#38a169';
+              }
+              setTimeout(() => {
+                if (progBox) progBox.style.display = 'none';
+              }, 6000);
+              showToast("Tải video lên Cloudinary thành công!");
+              return;
+            }
+          } catch (err) {}
+        }
+
+        let errMsg = "Không thể tải video lên Cloudinary.";
+        try {
+          const errRes = JSON.parse(xhr.responseText);
+          if (errRes.error && errRes.error.message) {
+            errMsg += ` (${errRes.error.message})`;
+          }
+        } catch(e) {}
+        if (progText) progText.innerHTML = `<span style="color:#e53e3e; font-weight:bold;">❌ Lỗi: ${errMsg}</span>`;
+        alert(errMsg + "\nVui lòng kiểm tra lại Cloud Name và Upload Preset (phải bật chế độ Unsigned trong Cloudinary).");
+      };
+
+      xhr.onerror = function() {
+        if (uploadBtn) uploadBtn.disabled = false;
+        if (progText) progText.innerHTML = '<span style="color:#e53e3e; font-weight:bold;">❌ Lỗi kết nối mạng khi tải lên Cloudinary.</span>';
+        alert("Lỗi kết nối khi tải lên Cloudinary. Vui lòng thử lại!");
+      };
+
+      xhr.send(formData);
     }
 
     async function updateTheme() {

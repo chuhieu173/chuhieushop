@@ -288,6 +288,15 @@ class TestDOMIntegrity(unittest.TestCase):
         essential_theme_ids_admin = [
             'edit-theme',
             'edit-theme-video',
+            'theme-video-file-input',
+            'btn-upload-theme-video',
+            'btn-config-cloudinary',
+            'theme-video-progress-box',
+            'theme-video-progress-text',
+            'theme-video-progress-bar',
+            'cloudinary-config-modal',
+            'cfg-cloudinary-cloud-name',
+            'cfg-cloudinary-upload-preset',
         ]
         for tid in essential_theme_ids_admin:
             self.assertIn(tid, adm_collector.ids, f"LỖI: Thiếu phần tử theme id='{tid}' trong admin.html!")
@@ -1459,6 +1468,9 @@ class TestBusinessLogic(unittest.TestCase):
 
         admin = read_file('admin.html')
         self.assertIn('toggleThemeVideoInput', admin, "LỖI: admin.html phải có hàm toggleThemeVideoInput!")
+        self.assertIn('uploadVideoToCloudinary', admin, "LỖI: admin.html phải có hàm uploadVideoToCloudinary!")
+        self.assertIn('triggerThemeVideoUpload', admin, "LỖI: admin.html phải có hàm triggerThemeVideoUpload!")
+        self.assertIn('openCloudinaryConfigModal', admin, "LỖI: admin.html phải có hàm openCloudinaryConfigModal!")
 
         index = read_file('index.html')
         theme_funcs = ['playThemeVideo', 'stopThemeVideo', 'playThemeYouTube', 'stopThemeYouTube', 'startCanvasTheme', 'stopCanvasTheme', 'applyTheme', 'createWebGLRenderer']
