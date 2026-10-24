@@ -1418,14 +1418,21 @@
             <button class="btn-update" onclick="updateShippingFee()" style="background: #2b6cb0;">Lưu Phí Ship</button>
           </div>
           <!-- Theme -->
-          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
             <h3 style="margin: 0; font-size: 16px; color: #1a2935; width: 120px;">🎨 Giao diện:</h3>
-            <select id="edit-theme" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 15px; font-weight: bold; color: #2b6cb0; width: 170px;">
-              <option value="default">Mặc định (Sáng)</option>
-              <option value="snow">Tuyết rơi (Tối)</option>
-              <option value="space">Không gian ảo (Tối)</option>
-              <option value="particles">Hạt công nghệ (Sáng)</option>
+            <select id="edit-theme" onchange="toggleThemeVideoInput(this.value)" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14.5px; font-weight: bold; color: #2b6cb0; min-width: 195px;">
+              <option value="default">☀️ Mặc định (Sáng)</option>
+              <option value="dark">🌑 Tối Tinh Tế (Dark Minimalist)</option>
+              <option value="matrix">💻 Ma Trận Số - Matrix (WebGL)</option>
+              <option value="waves">🌊 Sóng 3D Công Nghệ (WebGL)</option>
+              <option value="cyberpunk">🌆 Cyberpunk Synthwave (Neon 3D)</option>
+              <option value="aurora">🌌 Cực Quang Vũ Trụ (Aurora)</option>
+              <option value="snow">❄️ Mùa Đông Tuyết Rơi 3D</option>
+              <option value="space">🚀 Không Gian Ảo (Starfield)</option>
+              <option value="particles">⚛️ Hạt Công Nghệ (Tech Network)</option>
+              <option value="video">🎬 Video Nền (YouTube / MP4)</option>
             </select>
+            <input type="text" id="edit-theme-video" placeholder="Dán link YouTube hoặc video MP4 nền..." style="display: none; padding: 9px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; width: 280px;">
             <button class="btn-update" onclick="updateTheme()" style="background: #d69e2e;">Đổi Chủ Đề</button>
           </div>
         </div>
@@ -2177,6 +2184,11 @@
           globalPostsData = resData.posts || []; 
           document.getElementById("edit-shipping-fee").value = resData.shippingFee;
           document.getElementById("edit-theme").value = resData.theme || "default";
+          let themeVideoInput = document.getElementById("edit-theme-video");
+          if (themeVideoInput) {
+            themeVideoInput.value = resData.themeVideo || "";
+            toggleThemeVideoInput(resData.theme || "default");
+          }
         } else { globalProductsData = resData; }
         
         renderInventory(globalProductsData);
@@ -2193,14 +2205,31 @@
       showLoading(false);
     }
 
+    function toggleThemeVideoInput(val) {
+      let vInput = document.getElementById("edit-theme-video");
+      if (vInput) {
+        vInput.style.display = (val === "video") ? "inline-block" : "none";
+      }
+    }
+
     async function updateTheme() {
       let theme = document.getElementById("edit-theme").value;
+      let themeVideo = document.getElementById("edit-theme-video") ? document.getElementById("edit-theme-video").value.trim() : "";
       showLoading(true);
       try {
-        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "updateTheme", token: getAdminToken(), theme: theme }) });
+        let res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "updateTheme",
+            token: getAdminToken(),
+            theme: theme,
+            themeVideo: themeVideo
+          })
+        });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
-        alert("Cập nhật Chủ đề thành công! Hãy ra trang khách hàng Refresh lại để xem thành quả."); loadData();
+        alert("Cập nhật Chủ đề thành công! Hãy ra trang khách hàng Refresh lại để xem thành quả.");
+        loadData();
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 

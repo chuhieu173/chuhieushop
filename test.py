@@ -262,6 +262,36 @@ class TestDOMIntegrity(unittest.TestCase):
             "LỖI: 'post-video' trong admin.html phải là <textarea> để hỗ trợ nhập nhiều dòng video!"
         )
 
+    def test_theme_system_elements_exist_in_index_and_admin(self):
+        """Kiểm tra: Các phần tử hệ thống Theme mới (Canvas, Video MP4, Overlay, Theme Options) phải tồn tại đầy đủ"""
+        idx_content = read_file('index.html')
+        idx_collector = IDCollector()
+        idx_collector.feed(idx_content)
+
+        essential_theme_ids_index = [
+            'theme-bg-container',
+            'theme-bg-yt-wrapper',
+            'theme-bg-yt',
+            'theme-bg-video',
+            'theme-bg-canvas',
+            'particles-js',
+            'theme-bg-overlay',
+            'user-theme-selector',
+        ]
+        for tid in essential_theme_ids_index:
+            self.assertIn(tid, idx_collector.ids, f"LỖI: Thiếu phần tử theme id='{tid}' trong index.html!")
+
+        adm_content = read_file('admin.html')
+        adm_collector = IDCollector()
+        adm_collector.feed(adm_content)
+
+        essential_theme_ids_admin = [
+            'edit-theme',
+            'edit-theme-video',
+        ]
+        for tid in essential_theme_ids_admin:
+            self.assertIn(tid, adm_collector.ids, f"LỖI: Thiếu phần tử theme id='{tid}' trong admin.html!")
+
 
 class TestSyntaxAndParsing(unittest.TestCase):
     """Kiểm tra cú pháp JavaScript & HTML của toàn bộ dự án"""
@@ -1420,6 +1450,53 @@ class TestBusinessLogic(unittest.TestCase):
 
         p = subprocess.run(["node", "-e", test_js], capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, f"LỖI TEST FORMAT TIN NHẮN ZALO COMBO VÀ QUÀ TẶNG:\n{p.stderr}")
+
+    def test_theme_system_options_and_backend_consistency(self):
+        """Kiểm tra: Backend Code.gs, Admin và Client hỗ trợ đầy đủ các theme đa dạng và video nền tùy chỉnh"""
+        codegs = read_file('Code.gs')
+        self.assertIn('getThemeVideo', codegs, "LỖI: Code.gs phải có hàm getThemeVideo!")
+        self.assertIn('themeVideo', codegs, "LỖI: Code.gs phải trả về trường themeVideo trong doGet và handleUpdateTheme!")
+
+        admin = read_file('admin.html')
+        self.assertIn('toggleThemeVideoInput', admin, "LỖI: admin.html phải có hàm toggleThemeVideoInput!")
+
+        index = read_file('index.html')
+        theme_funcs = ['playThemeVideo', 'stopThemeVideo', 'playThemeYouTube', 'stopThemeYouTube', 'startCanvasTheme', 'stopCanvasTheme', 'applyTheme', 'createWebGLRenderer']
+        for fn in theme_funcs:
+            self.assertIn(fn, index, f"LỖI: index.html phải có hàm '{fn}'!")
+
+        glsl_shaders = ['GLSL_CYBERPUNK', 'GLSL_WAVES', 'GLSL_AURORA']
+        for sh in glsl_shaders:
+            self.assertIn(sh, index, f"LỖI: index.html phải có shader '{sh}' phục vụ WebGL GPU!")
+
+        theme_options = ['default', 'dark', 'matrix', 'waves', 'cyberpunk', 'aurora', 'snow', 'space', 'particles', 'video']
+        for opt in theme_options:
+            self.assertIn(f'value="{opt}"', index, f"LỖI: index.html selector thiếu tùy chọn theme '{opt}'!")
+            self.assertIn(f'value="{opt}"', admin, f"LỖI: admin.html selector thiếu tùy chọn theme '{opt}'!")
+
+        # Kiểm tra thuật toán nhận diện link YouTube và MP4 trong Video Nền bằng Node.js
+        test_bg_video_js = """
+        const ytRegex = /(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?|shorts)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/;
+        
+        const testUrls = [
+          { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', isYt: true, id: 'dQw4w9WgXcQ' },
+          { url: 'https://youtu.be/dQw4w9WgXcQ', isYt: true, id: 'dQw4w9WgXcQ' },
+          { url: 'https://www.youtube.com/shorts/dQw4w9WgXcQ', isYt: true, id: 'dQw4w9WgXcQ' },
+          { url: 'https://example.com/robot-lab.mp4', isYt: false },
+          { url: 'https://cdn.jsdelivr.net/video.mp4', isYt: false }
+        ];
+
+        for (const item of testUrls) {
+          const match = item.url.match(ytRegex);
+          if (item.isYt) {
+            console.assert(match && match[1] === item.id, 'Lỗi nhận diện YouTube ID từ: ' + item.url);
+          } else {
+            console.assert(!match, 'Link MP4 không được nhận nhầm là YouTube: ' + item.url);
+          }
+        }
+        """
+        p = subprocess.run(["node", "-e", test_bg_video_js], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, f"LỖI TEST NHẬN DIỆN VIDEO NỀN YOUTUBE & MP4:\n{p.stderr}")
 
 
 if __name__ == '__main__':

@@ -57,6 +57,120 @@
     .theme-switcher { position: absolute; top: 15px; right: 15px; z-index: 1000; }
     .theme-switcher select { padding: 8px 12px; border-radius: 20px; border: 1px solid #cbd5e0; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.9); cursor: pointer; outline: none; font-family: 'Roboto', sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: #333; transition: 0.3s; }
     body.theme-dark .theme-switcher select { background: rgba(35, 35, 54, 0.9); border-color: #4a5568; color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    
+    /* KHUNG NỀN THÔNG MINH (VIDEO MP4 / CANVAS / PARTICLES / OVERLAY) */
+    #theme-bg-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -2;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #theme-bg-video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+    }
+    #theme-bg-video.active {
+      display: block;
+      opacity: 1;
+    }
+    #theme-bg-yt-wrapper {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100vw;
+      height: 100vh;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+      overflow: hidden;
+    }
+    #theme-bg-yt-wrapper.active {
+      display: block;
+      opacity: 1;
+    }
+    #theme-bg-yt {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100vw;
+      height: 56.25vw;
+      min-height: 100vh;
+      min-width: 177.77vh;
+      transform: translate(-50%, -50%) scale(1.15);
+      pointer-events: none;
+      border: 0;
+    }
+    #theme-bg-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+    }
+    #theme-bg-canvas.active {
+      display: block;
+      opacity: 1;
+    }
+    #particles-js {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+    #theme-bg-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(12, 12, 20, 0.48);
+      pointer-events: none;
+      display: none;
+      backdrop-filter: blur(1.5px);
+    }
+    #theme-bg-overlay.active {
+      display: block;
+    }
+
+    /* ĐẶC TRƯNG MÀU SẮC RIÊNG CỦA CÁC CHỦ ĐỀ CÔNG NGHỆ */
+    body.theme-matrix h1, body.theme-matrix h2, body.theme-matrix h3 { color: #22c55e !important; text-shadow: 0 0 10px rgba(34, 197, 94, 0.45); }
+    body.theme-matrix .btn-primary { background: #16a34a !important; box-shadow: 0 0 14px rgba(34, 197, 94, 0.4) !important; }
+    body.theme-matrix .product-card { border-color: rgba(34, 197, 94, 0.35) !important; }
+    body.theme-matrix .tab-btn.active { background: #16a34a !important; border-color: #22c55e !important; }
+
+    body.theme-cyberpunk h1, body.theme-cyberpunk h2, body.theme-cyberpunk h3 { color: #00f3ff !important; text-shadow: 0 0 12px rgba(0, 243, 255, 0.55); }
+    body.theme-cyberpunk .btn-primary { background: linear-gradient(135deg, #ff007f 0%, #00f3ff 100%) !important; box-shadow: 0 0 15px rgba(255, 0, 127, 0.45) !important; }
+    body.theme-cyberpunk .product-card { border-color: rgba(255, 0, 127, 0.35) !important; }
+    body.theme-cyberpunk .tab-btn.active { background: linear-gradient(135deg, #ff007f, #00f3ff) !important; border-color: #00f3ff !important; }
+
+    body.theme-waves h1, body.theme-waves h2, body.theme-waves h3 { color: #00d4ff !important; text-shadow: 0 0 10px rgba(0, 212, 255, 0.45); }
+    body.theme-waves .btn-primary { background: linear-gradient(135deg, #0068ff, #00d4ff) !important; box-shadow: 0 0 14px rgba(0, 212, 255, 0.4) !important; }
+    body.theme-waves .product-card { border-color: rgba(0, 212, 255, 0.3) !important; }
+
+    body.theme-aurora h1, body.theme-aurora h2, body.theme-aurora h3 { color: #a855f7 !important; text-shadow: 0 0 10px rgba(168, 85, 247, 0.45); }
+    body.theme-aurora .btn-primary { background: linear-gradient(135deg, #8b5cf6, #06b6d4) !important; box-shadow: 0 0 14px rgba(139, 92, 246, 0.4) !important; }
+    body.theme-aurora .product-card { border-color: rgba(168, 85, 247, 0.3) !important; }
     /* ========================================= */
 
     body { font-family: 'Roboto', sans-serif; margin: 0; padding: 20px; padding-bottom: 100px; background: #f4f4f9; transition: background 0.3s; }
@@ -629,14 +743,29 @@
     <select id="user-theme-selector" onchange="userChangeTheme(this.value)">
       <option value="shop-default">🏪 Theo cài đặt của Shop</option>
       <option value="auto">🌗 Theo giao diện Sáng/Tối của máy</option>
-      <option value="default">☀️ Mặc định (Sáng)</option>
-      <option value="snow">❄️ Tuyết rơi (Tối)</option>
-      <option value="space">🌌 Không gian ảo (Tối)</option>
-      <option value="particles">⚛️ Hạt công nghệ (Sáng)</option>
+      <option value="default">☀️ Mặc định (Sáng tối giản)</option>
+      <option value="dark">🌑 Tối Tinh Tế (Dark Minimalist)</option>
+      <option value="matrix">💻 Ma Trận Số - Matrix (WebGL)</option>
+      <option value="waves">🌊 Sóng 3D Công Nghệ (WebGL)</option>
+      <option value="cyberpunk">🌆 Cyberpunk Synthwave (Neon 3D)</option>
+      <option value="aurora">🌌 Cực Quang Vũ Trụ (Aurora)</option>
+      <option value="snow">❄️ Mùa Đông Tuyết Rơi 3D</option>
+      <option value="space">🚀 Không Gian Ảo (Starfield)</option>
+      <option value="particles">⚛️ Hạt Công Nghệ (Tech Network)</option>
+      <option value="video">🎬 Video Nền (YouTube / MP4)</option>
     </select>
   </div>
 
-  <div id="particles-js"></div>
+  <!-- KHUNG NỀN THÔNG MINH (YOUTUBE / VIDEO MP4 / WEBGL CANVAS / PARTICLES / OVERLAY) -->
+  <div id="theme-bg-container">
+    <div id="theme-bg-yt-wrapper">
+      <iframe id="theme-bg-yt" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" title="YouTube Background"></iframe>
+    </div>
+    <video id="theme-bg-video" autoplay loop muted playsinline preload="auto"></video>
+    <canvas id="theme-bg-canvas"></canvas>
+    <div id="particles-js"></div>
+    <div id="theme-bg-overlay"></div>
+  </div>
 
   <h1>CỬA HÀNG CỦA MINH HIẾU</h1>
   
@@ -755,6 +884,11 @@
     let globalShippingFee = 18000;
     
     let currentServerTheme = 'default';
+    let currentServerThemeVideo = '';
+    let themeAnimId = null;
+    let activeCanvasTheme = null;
+    let themeResizeHandler = null;
+    let activeWebGlRenderer = null;
 
     document.addEventListener("DOMContentLoaded", function() {
       let savedTheme = localStorage.getItem('userSelectedTheme');
@@ -782,65 +916,658 @@
       if (currentTheme === 'auto') applyTheme('auto');
     });
 
+    // ENGINE QUẢN LÝ VIDEO NỀN (YOUTUBE & MP4)
+    function stopThemeYouTube() {
+      const ytWrapper = document.getElementById('theme-bg-yt-wrapper');
+      const ytIframe = document.getElementById('theme-bg-yt');
+      if (ytWrapper) ytWrapper.classList.remove('active');
+      if (ytIframe) ytIframe.src = 'about:blank';
+    }
+
+    function playThemeYouTube(ytId) {
+      stopThemeYouTube();
+      const ytWrapper = document.getElementById('theme-bg-yt-wrapper');
+      const ytIframe = document.getElementById('theme-bg-yt');
+      const overlay = document.getElementById('theme-bg-overlay');
+      if (!ytWrapper || !ytIframe) return;
+
+      // Cảnh báo nếu đang chạy qua giao thức file:// vì YouTube chặn nguồn file:// gây lỗi 153
+      if (window.location.protocol === 'file:') {
+        showToast("⚠️ YouTube chặn nhúng trên file:// (Lỗi 153). Hãy mở bằng localhost hoặc web online, hoặc dùng video MP4 / WebGL.");
+      }
+
+      // Sử dụng youtube-nocookie và bộ tham số tinh gọn chuẩn xác để chống lỗi cấu hình 153
+      ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&playsinline=1&rel=0`;
+      ytWrapper.classList.add('active');
+      if (overlay) overlay.classList.add('active');
+    }
+
+    function playThemeVideo(videoUrl) {
+      stopThemeVideo();
+      const overlay = document.getElementById('theme-bg-overlay');
+      let finalUrl = (videoUrl || currentServerThemeVideo || '').trim();
+
+      // Kiểm tra nếu là link YouTube (watch, youtu.be, shorts, embed)
+      const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+      const ytMatch = finalUrl.match(ytRegex);
+
+      if (ytMatch && ytMatch[1]) {
+        playThemeYouTube(ytMatch[1]);
+        return;
+      }
+
+      // Link file video MP4 trực tiếp hoặc mặc định
+      const video = document.getElementById('theme-bg-video');
+      if (!video) return;
+
+      let mp4Url = finalUrl || 'https://cdn.jsdelivr.net/npm/video-media-samples@1.0.0/big-buck-bunny-480p-30sec.mp4';
+      video.src = mp4Url;
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.classList.add('active');
+      if (overlay) overlay.classList.add('active');
+
+      let playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(function(err) {
+          console.log('Autoplay prevented or video load error:', err);
+        });
+      }
+    }
+
+    function stopThemeVideo() {
+      const video = document.getElementById('theme-bg-video');
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        video.classList.remove('active');
+      }
+      stopThemeYouTube();
+    }
+
+    // ENGINE RENDER HIỆU ỨNG CANVAS / WEBGL THEMES
+    function stopCanvasTheme() {
+      if (themeAnimId) {
+        cancelAnimationFrame(themeAnimId);
+        themeAnimId = null;
+      }
+      if (themeResizeHandler) {
+        window.removeEventListener('resize', themeResizeHandler);
+        themeResizeHandler = null;
+      }
+      if (activeWebGlRenderer) {
+        activeWebGlRenderer.destroy();
+        activeWebGlRenderer = null;
+      }
+      const canvas = document.getElementById('theme-bg-canvas');
+      if (canvas) {
+        canvas.classList.remove('active');
+        try {
+          const ctx = canvas.getContext('2d');
+          if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } catch(e) {}
+      }
+      activeCanvasTheme = null;
+    }
+
+    function getCleanThemeCanvas() {
+      let oldCanvas = document.getElementById('theme-bg-canvas');
+      if (!oldCanvas) return null;
+      let newCanvas = document.createElement('canvas');
+      newCanvas.id = 'theme-bg-canvas';
+      newCanvas.className = oldCanvas.className;
+      oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
+      return newCanvas;
+    }
+
+    function createWebGLRenderer(canvas, fragmentShaderSource) {
+      let gl = null;
+      try {
+        gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      } catch(e) { return null; }
+      if (!gl) return null;
+
+      const vsSource = "attribute vec2 a_pos; void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }";
+
+      function createShader(glCtx, type, source) {
+        const shader = glCtx.createShader(type);
+        glCtx.shaderSource(shader, source);
+        glCtx.compileShader(shader);
+        if (!glCtx.getShaderParameter(shader, glCtx.COMPILE_STATUS)) {
+          glCtx.deleteShader(shader);
+          return null;
+        }
+        return shader;
+      }
+
+      const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+      const fs = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+      if (!vs || !fs) return null;
+
+      const program = gl.createProgram();
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+
+      const posBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1.0, -1.0,
+         1.0, -1.0,
+        -1.0,  1.0,
+        -1.0,  1.0,
+         1.0, -1.0,
+         1.0,  1.0
+      ]), gl.STATIC_DRAW);
+
+      const aPosLoc = gl.getAttribLocation(program, "a_pos");
+      const uTimeLoc = gl.getUniformLocation(program, "u_time");
+      const uResLoc = gl.getUniformLocation(program, "u_resolution");
+
+      let startTime = performance.now();
+
+      return {
+        gl: gl,
+        render: function() {
+          gl.viewport(0, 0, canvas.width, canvas.height);
+          gl.useProgram(program);
+
+          gl.enableVertexAttribArray(aPosLoc);
+          gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+          gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+          let elapsed = (performance.now() - startTime) * 0.001;
+          if (uTimeLoc) gl.uniform1f(uTimeLoc, elapsed);
+          if (uResLoc) gl.uniform2f(uResLoc, canvas.width, canvas.height);
+
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        },
+        destroy: function() {
+          try {
+            gl.deleteBuffer(posBuffer);
+            gl.deleteProgram(program);
+            gl.deleteShader(vs);
+            gl.deleteShader(fs);
+          } catch(e) {}
+        }
+      };
+    }
+
+    const GLSL_CYBERPUNK = `
+      precision mediump float;
+      uniform vec2 u_resolution;
+      uniform float u_time;
+
+      void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+        vec3 col = vec3(0.04, 0.02, 0.08);
+        float horizon = -0.05;
+
+        if (uv.y > horizon) {
+          vec2 sunPos = vec2(0.0, 0.15);
+          float d = length(uv - sunPos);
+          float sunR = 0.32;
+          if (d < sunR) {
+            float t = (uv.y - (sunPos.y - sunR)) / (sunR * 2.0);
+            vec3 sunCol = mix(vec3(1.0, 0.0, 0.5), vec3(1.0, 0.85, 0.2), clamp(t, 0.0, 1.0));
+            float blind = sin(uv.y * 70.0);
+            if (uv.y < sunPos.y && blind > 0.3) {
+              sunCol = mix(sunCol, vec3(0.04, 0.02, 0.08), 0.95);
+            }
+            col = sunCol;
+          }
+          float glow = exp(-abs(uv.y - horizon) * 6.0);
+          col += vec3(0.8, 0.1, 0.5) * glow * 0.5;
+        } else {
+          float depth = horizon - uv.y;
+          float z = 1.0 / (depth * 8.0);
+          float x = uv.x * z * 8.0;
+          float zMove = z - u_time * 1.5;
+
+          float gridX = abs(fract(x) - 0.5);
+          float gridZ = abs(fract(zMove) - 0.5);
+          float lineX = smoothstep(0.06 * z, 0.0, gridX);
+          float lineZ = smoothstep(0.06 * z, 0.0, gridZ);
+          float grid = max(lineX, lineZ);
+
+          vec3 gridCol = mix(vec3(0.0, 0.95, 1.0), vec3(1.0, 0.0, 0.5), 0.35);
+          float fade = exp(-depth * 4.0);
+          col = mix(col, gridCol, grid * fade * 0.85);
+
+          float glow = exp(-depth * 10.0);
+          col += vec3(0.0, 0.8, 1.0) * glow * 0.4;
+        }
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const GLSL_WAVES = `
+      precision mediump float;
+      uniform vec2 u_resolution;
+      uniform float u_time;
+
+      void main() {
+        vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+        float t = u_time * 0.8;
+
+        float wave = 0.0;
+        wave += sin(uv.x * 3.5 + t) * 0.25;
+        wave += cos(uv.x * 2.2 - t * 0.7 + uv.y * 2.0) * 0.2;
+        wave += sin((uv.x + uv.y) * 4.0 + t * 1.2) * 0.15;
+
+        float dist = abs(uv.y + wave);
+        float glow1 = 0.04 / (dist + 0.04);
+        float glow2 = 0.02 / (abs(uv.y + wave * 0.7 - 0.2) + 0.03);
+        float glow3 = 0.03 / (abs(uv.y + wave * 1.3 + 0.25) + 0.05);
+
+        vec3 col = vec3(0.03, 0.05, 0.1);
+        col += vec3(0.0, 0.83, 1.0) * glow1 * 0.65;
+        col += vec3(0.0, 0.4, 1.0) * glow2 * 0.55;
+        col += vec3(0.4, 0.0, 0.9) * glow3 * 0.45;
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const GLSL_AURORA = `
+      precision mediump float;
+      uniform vec2 u_resolution;
+      uniform float u_time;
+
+      void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+        float t = u_time * 0.5;
+
+        vec3 col = vec3(0.03, 0.03, 0.07);
+
+        float y1 = 0.55 + sin(uv.x * 3.0 + t) * 0.12 + cos(uv.x * 6.0 - t * 0.8) * 0.06;
+        float d1 = abs(uv.y - y1);
+        float a1 = smoothstep(0.25, 0.0, d1) * (1.0 - uv.y * 0.5);
+        col += vec3(0.13, 0.77, 0.58) * a1 * 0.6;
+
+        float y2 = 0.4 + cos(uv.x * 2.5 - t * 0.6) * 0.15 + sin(uv.x * 5.0 + t) * 0.05;
+        float d2 = abs(uv.y - y2);
+        float a2 = smoothstep(0.28, 0.0, d2);
+        col += vec3(0.66, 0.33, 0.97) * a2 * 0.5;
+
+        float y3 = 0.7 + sin(uv.x * 4.0 + t * 0.9) * 0.09;
+        float d3 = abs(uv.y - y3);
+        float a3 = smoothstep(0.2, 0.0, d3);
+        col += vec3(0.0, 0.7, 0.95) * a3 * 0.45;
+
+        vec2 starGrid = fract(uv * vec2(35.0, 20.0)) - 0.5;
+        float starDist = length(starGrid);
+        float starSeed = sin(floor(uv.x * 35.0) * 12.9898 + floor(uv.y * 20.0) * 78.233);
+        if (starSeed > 0.6) {
+          float starTwinkle = 0.5 + 0.5 * sin(t * 3.0 + starSeed * 100.0);
+          col += vec3(1.0) * smoothstep(0.05, 0.0, starDist) * starTwinkle * 0.7;
+        }
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    function initMatrix(canvas, ctx) {
+      let chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ";
+      let charArr = chars.split("");
+      let fontSize = 16;
+      let columns = Math.floor(canvas.width / fontSize) + 1;
+      let drops = [];
+      for (let i = 0; i < columns; i++) drops[i] = Math.floor(Math.random() * -40);
+
+      return function render() {
+        ctx.fillStyle = "rgba(10, 15, 12, 0.08)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = fontSize + "px monospace";
+        for (let i = 0; i < drops.length; i++) {
+          let text = charArr[Math.floor(Math.random() * charArr.length)];
+          let x = i * fontSize;
+          let y = drops[i] * fontSize;
+          ctx.fillStyle = (Math.random() > 0.82) ? "#bbf7d0" : "#22c55e";
+          ctx.fillText(text, x, y);
+          if (y > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+          }
+          drops[i]++;
+        }
+      };
+    }
+
+    function initWaves(canvas, ctx) {
+      let time = 0;
+      return function render() {
+        time += 0.025;
+        ctx.fillStyle = "rgba(8, 12, 24, 0.22)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        let w = canvas.width;
+        let h = canvas.height;
+        let horizon = h * 0.42;
+        
+        for (let row = 0; row < 22; row++) {
+          let z = (row + 1) / 22;
+          let yBase = horizon + Math.pow(z, 2.2) * (h - horizon);
+          let amplitude = 22 * Math.pow(z, 1.8);
+          
+          ctx.beginPath();
+          let first = true;
+          for (let x = 0; x <= w; x += 25) {
+            let wave = Math.sin(x * 0.008 + time + row * 0.35) * Math.cos(x * 0.004 - time * 0.7) * amplitude;
+            let y = yBase + wave;
+            if (first) { ctx.moveTo(x, y); first = false; }
+            else { ctx.lineTo(x, y); }
+          }
+          let alpha = 0.15 + z * 0.65;
+          ctx.strokeStyle = `rgba(0, 212, 255, ${alpha.toFixed(2)})`;
+          ctx.lineWidth = 1 + z * 1.5;
+          ctx.shadowBlur = 8 * z;
+          ctx.shadowColor = "#00d4ff";
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+      };
+    }
+
+    function initCyberpunk(canvas, ctx) {
+      let speed = 0.035;
+      let offset = 0;
+      return function render() {
+        offset = (offset + speed) % 1;
+        ctx.fillStyle = "rgba(10, 6, 20, 0.28)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let w = canvas.width;
+        let h = canvas.height;
+        let horizon = h * 0.48;
+
+        let sunR = Math.min(w, h) * 0.22;
+        let sunX = w / 2;
+        let sunY = horizon - sunR * 0.25;
+
+        let grad = ctx.createLinearGradient(sunX, sunY - sunR, sunX, sunY + sunR);
+        grad.addColorStop(0, "#fde047");
+        grad.addColorStop(0.5, "#ff007f");
+        grad.addColorStop(1, "#7c3aed");
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = "#ff007f";
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(10, 6, 20, 0.95)";
+        for (let i = 0; i < 9; i++) {
+          let blindY = sunY + (i / 9) * sunR;
+          let blindH = 1 + (i * 0.7);
+          ctx.fillRect(sunX - sunR - 10, blindY, sunR * 2 + 20, blindH);
+        }
+        ctx.restore();
+
+        for (let i = 0; i < 18; i++) {
+          let progress = (i + offset) / 18;
+          let y = horizon + Math.pow(progress, 2.5) * (h - horizon);
+          let lineAlpha = Math.pow(progress, 1.5) * 0.85;
+          ctx.strokeStyle = `rgba(0, 243, 255, ${lineAlpha.toFixed(2)})`;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = "#00f3ff";
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+
+        let numLines = 26;
+        for (let i = 0; i <= numLines; i++) {
+          let groundX = (i / numLines) * (w * 2.4) - (w * 0.7);
+          ctx.strokeStyle = "rgba(255, 0, 127, 0.55)";
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = "#ff007f";
+          ctx.beginPath();
+          ctx.moveTo(sunX, horizon);
+          ctx.lineTo(groundX, h);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+      };
+    }
+
+    function initAurora(canvas, ctx) {
+      let time = 0;
+      let stars = [];
+      for (let i = 0; i < 80; i++) {
+        stars.push({
+          x: Math.random(),
+          y: Math.random(),
+          size: Math.random() * 2 + 0.5,
+          twinkleSpeed: Math.random() * 0.05 + 0.01,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+
+      return function render() {
+        time += 0.018;
+        ctx.fillStyle = "rgba(7, 8, 18, 0.22)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let w = canvas.width;
+        let h = canvas.height;
+
+        for (let s of stars) {
+          let alpha = 0.3 + 0.7 * Math.abs(Math.sin(time * s.twinkleSpeed * 60 + s.phase));
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
+          ctx.beginPath();
+          ctx.arc(s.x * w, s.y * h, s.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        let layers = [
+          { color1: "rgba(6, 182, 212, 0.25)", color2: "rgba(139, 92, 246, 0.0)", yOffset: h * 0.28, freq: 0.003, speed: 0.8, amp: 75 },
+          { color1: "rgba(168, 85, 247, 0.28)", color2: "rgba(236, 72, 153, 0.0)", yOffset: h * 0.42, freq: 0.0025, speed: -0.6, amp: 95 },
+          { color1: "rgba(34, 197, 94, 0.22)", color2: "rgba(6, 182, 212, 0.0)", yOffset: h * 0.55, freq: 0.0035, speed: 1.1, amp: 65 }
+        ];
+
+        for (let layer of layers) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(0, h);
+          for (let x = 0; x <= w; x += 15) {
+            let wave1 = Math.sin(x * layer.freq + time * layer.speed) * layer.amp;
+            let wave2 = Math.cos(x * layer.freq * 1.8 - time * 0.5) * (layer.amp * 0.4);
+            let y = layer.yOffset + wave1 + wave2;
+            ctx.lineTo(x, y);
+          }
+          ctx.lineTo(w, h);
+          ctx.closePath();
+
+          let grad = ctx.createLinearGradient(0, layer.yOffset - layer.amp, 0, layer.yOffset + layer.amp * 2);
+          grad.addColorStop(0, layer.color1);
+          grad.addColorStop(1, layer.color2);
+          ctx.fillStyle = grad;
+          ctx.fill();
+          ctx.restore();
+        }
+      };
+    }
+
+    function initSnow(canvas, ctx) {
+      let flakes = [];
+      let count = Math.min(100, Math.floor(window.innerWidth / 12));
+      for (let i = 0; i < count; i++) {
+        flakes.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          z: Math.random() * 0.8 + 0.2,
+          radius: (Math.random() * 2.5 + 1.2),
+          sway: Math.random() * Math.PI * 2,
+          swaySpeed: Math.random() * 0.02 + 0.01,
+          fallSpeed: Math.random() * 1.5 + 0.8
+        });
+      }
+
+      return function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let w = canvas.width;
+        let h = canvas.height;
+
+        for (let f of flakes) {
+          f.sway += f.swaySpeed;
+          f.x += Math.sin(f.sway) * (0.8 * f.z);
+          f.y += f.fallSpeed * f.z * 1.6;
+
+          if (f.y > h + 10) {
+            f.y = -10;
+            f.x = Math.random() * w;
+          }
+          if (f.x > w + 10) f.x = -10;
+          else if (f.x < -10) f.x = w + 10;
+
+          let r = f.radius * f.z;
+          let alpha = 0.3 + 0.6 * f.z;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
+          if (f.z > 0.7) {
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = "#ffffff";
+          } else {
+            ctx.shadowBlur = 0;
+          }
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+      };
+    }
+
+    function startCanvasTheme(themeName) {
+      stopCanvasTheme();
+      const canvas = getCleanThemeCanvas();
+      const overlay = document.getElementById('theme-bg-overlay');
+      if (!canvas) return;
+
+      activeCanvasTheme = themeName;
+      canvas.classList.add('active');
+      if (overlay) overlay.classList.add('active');
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      themeResizeHandler = resizeCanvas;
+      window.addEventListener('resize', themeResizeHandler);
+
+      // Thử khởi chạy WebGL Shader trước cho các theme hỗ trợ GPU
+      let webglShaderSource = null;
+      if (themeName === 'cyberpunk') webglShaderSource = GLSL_CYBERPUNK;
+      else if (themeName === 'waves') webglShaderSource = GLSL_WAVES;
+      else if (themeName === 'aurora') webglShaderSource = GLSL_AURORA;
+
+      if (webglShaderSource) {
+        let renderer = createWebGLRenderer(canvas, webglShaderSource);
+        if (renderer) {
+          activeWebGlRenderer = renderer;
+          function glLoop() {
+            if (!activeWebGlRenderer) return;
+            activeWebGlRenderer.render();
+            themeAnimId = requestAnimationFrame(glLoop);
+          }
+          themeAnimId = requestAnimationFrame(glLoop);
+          return;
+        }
+      }
+
+      // Fallback sang Canvas 2D mượt mà nếu thiết bị không hỗ trợ WebGL hoặc theme dùng Canvas 2D
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      let renderFunc = null;
+      if (themeName === 'matrix') renderFunc = initMatrix(canvas, ctx);
+      else if (themeName === 'waves') renderFunc = initWaves(canvas, ctx);
+      else if (themeName === 'cyberpunk') renderFunc = initCyberpunk(canvas, ctx);
+      else if (themeName === 'aurora') renderFunc = initAurora(canvas, ctx);
+      else if (themeName === 'snow') renderFunc = initSnow(canvas, ctx);
+
+      if (!renderFunc) return;
+
+      function animLoop() {
+        renderFunc();
+        themeAnimId = requestAnimationFrame(animLoop);
+      }
+      themeAnimId = requestAnimationFrame(animLoop);
+    }
+
     function applyTheme(userChoice) {
-      document.getElementById('user-theme-selector').value = userChoice;
+      const selector = document.getElementById('user-theme-selector');
+      if (selector) selector.value = userChoice;
       
       let themeToApply = userChoice;
       if (userChoice === 'shop-default') {
-         themeToApply = currentServerTheme;
+        themeToApply = currentServerTheme;
       }
       
+      // Tắt sạch các hiệu ứng nền trước đó để tránh xung đột
+      stopCanvasTheme();
+      stopThemeVideo();
+      const pjs = document.getElementById('particles-js');
+      if (pjs) {
+        pjs.style.display = 'none';
+        pjs.innerHTML = '';
+      }
+      const overlay = document.getElementById('theme-bg-overlay');
+      if (overlay) overlay.classList.remove('active');
+      
+      // Xóa các class theme đặc trưng
+      document.body.classList.remove('theme-dark', 'theme-matrix', 'theme-cyberpunk', 'theme-waves', 'theme-aurora');
+
       let isDark = false;
       if (themeToApply === 'auto') {
         isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      } else if (themeToApply === 'snow' || themeToApply === 'space') {
+      } else if (['dark', 'matrix', 'waves', 'cyberpunk', 'aurora', 'snow', 'space', 'video'].includes(themeToApply)) {
         isDark = true;
       }
-      
+
       if (isDark) document.body.classList.add('theme-dark');
-      else document.body.classList.remove('theme-dark');
-      
-      const pjs = document.getElementById('particles-js');
-      if (themeToApply === 'default' || themeToApply === 'auto' || !themeToApply) {
-        pjs.style.display = 'none'; return;
+
+      // Khởi tạo hiệu ứng nền tương ứng
+      if (themeToApply === 'matrix') {
+        document.body.classList.add('theme-matrix');
+        startCanvasTheme('matrix');
+      } else if (themeToApply === 'waves') {
+        document.body.classList.add('theme-waves');
+        startCanvasTheme('waves');
+      } else if (themeToApply === 'cyberpunk') {
+        document.body.classList.add('theme-cyberpunk');
+        startCanvasTheme('cyberpunk');
+      } else if (themeToApply === 'aurora') {
+        document.body.classList.add('theme-aurora');
+        startCanvasTheme('aurora');
+      } else if (themeToApply === 'snow') {
+        startCanvasTheme('snow');
+      } else if (themeToApply === 'video') {
+        let vUrl = currentServerThemeVideo || 'https://cdn.jsdelivr.net/npm/video-media-samples@1.0.0/big-buck-bunny-480p-30sec.mp4';
+        playThemeVideo(vUrl);
+      } else if (themeToApply === 'space' || themeToApply === 'particles') {
+        if (pjs) pjs.style.display = 'block';
+        let pConfig = {};
+        if (themeToApply === 'space') {
+          pConfig = {
+            "particles": { "number": { "value": 150 }, "color": { "value": "#ffffff" }, "shape": { "type": "star" }, "opacity": { "value": 0.8, "random": true, "anim": {"enable": true, "speed": 1, "opacity_min": 0.1, "sync": false} }, "size": { "value": 3, "random": true }, "line_linked": { "enable": false }, "move": { "enable": true, "speed": 0.5, "direction": "none", "random": true, "out_mode": "out" } },
+            "interactivity": { "events": { "onhover": { "enable": true, "mode": "bubble" }, "onclick": { "enable": true, "mode": "repulse" } }, "modes": { "bubble": { "distance": 200, "size": 6, "duration": 2, "opacity": 1, "speed": 3 }, "repulse": { "distance": 200, "duration": 0.4 } } }, "retina_detect": true
+          };
+        } else if (themeToApply === 'particles') {
+          pConfig = {
+            "particles": { "number": { "value": 60 }, "color": { "value": "#0068ff" }, "shape": { "type": "circle" }, "opacity": { "value": 0.5 }, "size": { "value": 3 }, "line_linked": { "enable": true, "distance": 150, "color": "#0068ff", "opacity": 0.4, "width": 1 }, "move": { "enable": true, "speed": 3, "direction": "none", "out_mode": "out" } },
+            "interactivity": { "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" } }, "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 1 } }, "push": { "particles_nb": 4 } } }, "retina_detect": true
+          };
+        }
+        if (window.particlesJS) particlesJS("particles-js", pConfig);
       }
-      
-      pjs.style.display = 'block';
-      pjs.innerHTML = ''; 
-      let pConfig = {};
-      
-      if (themeToApply === 'snow') {
-         pConfig = {
-          "particles": { 
-            "number": { "value": 70 }, 
-            "shape": { 
-              "type": "image",
-              "image": {
-                "src": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%27-50%20-50%20100%20100%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%272.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%20fill%3D%27none%27%3E%3Cg%20transform%3D%27rotate%2830%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%2890%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28150%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28210%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28270%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28330%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-26%27%2F%3E%3Cpolygon%20points%3D%270%2C-32%202.5%2C-26%200%2C-20%20-2.5%2C-26%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%280%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%2860%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28120%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28180%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28240%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27rotate%28300%29%27%3E%3Cline%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%27-40%27%2F%3E%3Cpolygon%20points%3D%270%2C-48%203.5%2C-40%200%2C-32%20-3.5%2C-40%27%2F%3E%3Cpolyline%20points%3D%27-10%2C-24%200%2C-34%2010%2C-24%27%2F%3E%3Cpolyline%20points%3D%27-14%2C-10%200%2C-24%2014%2C-10%27%2F%3E%3C%2Fg%3E%3Cpolygon%20points%3D%270%2C-12%2010.39%2C-6%2010.39%2C6%200%2C12%20-10.39%2C6%20-10.39%2C-6%27%2F%3E%3C%2Fsvg%3E",
-                "width": 100,
-                "height": 100
-              }
-            }, 
-            "opacity": { "value": 0.8, "random": true }, 
-            "size": { "value": 14, "random": true }, 
-            "line_linked": { "enable": false }, 
-            "move": { "enable": true, "speed": 1.5, "direction": "bottom", "random": true, "straight": false, "out_mode": "out" } 
-          },
-          "interactivity": { "events": { "onhover": { "enable": false }, "onclick": { "enable": false } } }, "retina_detect": true
-        };
-      } else if (themeToApply === 'space') {
-        pConfig = {
-          "particles": { "number": { "value": 150 }, "color": { "value": "#ffffff" }, "shape": { "type": "star" }, "opacity": { "value": 0.8, "random": true, "anim": {"enable": true, "speed": 1, "opacity_min": 0.1, "sync": false} }, "size": { "value": 3, "random": true }, "line_linked": { "enable": false }, "move": { "enable": true, "speed": 0.5, "direction": "none", "random": true, "out_mode": "out" } },
-          "interactivity": { "events": { "onhover": { "enable": true, "mode": "bubble" }, "onclick": { "enable": true, "mode": "repulse" } }, "modes": { "bubble": { "distance": 200, "size": 6, "duration": 2, "opacity": 1, "speed": 3 }, "repulse": { "distance": 200, "duration": 0.4 } } }, "retina_detect": true
-        };
-      } else if (themeToApply === 'particles') {
-        pConfig = {
-          "particles": { "number": { "value": 60 }, "color": { "value": "#0068ff" }, "shape": { "type": "circle" }, "opacity": { "value": 0.5 }, "size": { "value": 3 }, "line_linked": { "enable": true, "distance": 150, "color": "#0068ff", "opacity": 0.4, "width": 1 }, "move": { "enable": true, "speed": 3, "direction": "none", "out_mode": "out" } },
-          "interactivity": { "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" } }, "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 1 } }, "push": { "particles_nb": 4 } } }, "retina_detect": true
-        };
-      }
-      
-      if(window.particlesJS) particlesJS("particles-js", pConfig);
     }
 
     function showToast(message) {
@@ -889,6 +1616,7 @@
           });
 
           currentServerTheme = resData.theme || 'default';
+          currentServerThemeVideo = resData.themeVideo || '';
           let activeTheme = localStorage.getItem('userSelectedTheme') || 'shop-default';
           applyTheme(activeTheme);
 
@@ -897,6 +1625,8 @@
           if (Array.isArray(productsData)) {
             productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
           }
+          currentServerTheme = 'default';
+          currentServerThemeVideo = '';
           applyTheme('shop-default');
         }
         renderData();
