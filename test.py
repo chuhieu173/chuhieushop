@@ -448,6 +448,16 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn("justify-content: flex-start", admin, "LỖI: Thiếu justify-content: flex-start cho #login-overlay trên mobile")
         self.assertIn("padding-top: 50px", admin, "LỖI: Thiếu padding-top: 50px cho #login-overlay trên mobile")
 
+    def test_admin_orders_table_styling_and_completed_status(self):
+        """Kiểm tra: Bảng đơn hàng có khoảng cách phân cách rõ ràng, viền nổi bật và trạng thái Hoàn thành màu xanh đậm sắc nét"""
+        admin = read_file('admin.html')
+        self.assertIn('orders-table', admin, "LỖI: Thiếu class orders-table trong admin.html")
+        self.assertIn('border-collapse: separate', admin, "LỖI: orders-table phải dùng border-collapse: separate để tạo khoảng cách giữa các hàng")
+        self.assertIn('border-spacing: 0 14px', admin, "LỖI: orders-table phải có border-spacing để phân cách các đơn hàng")
+        self.assertIn('order-row-completed', admin, "LỖI: Thiếu class order-row-completed")
+        self.assertIn('#15803d', admin, "LỖI: Trạng thái Hoàn thành phải dùng màu xanh đậm sắc nét (#15803d)")
+        self.assertIn('status-badge-completed', admin, "LỖI: Thiếu badge trạng thái status-badge-completed")
+
     def test_youtube_id_extraction(self):
         """Kiểm tra: Thuật toán nhận diện và trích xuất YouTube ID từ mọi dạng link người dùng nhập"""
         yt_pattern = re.compile(r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})')

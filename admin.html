@@ -39,6 +39,161 @@
     tr:last-child td { border-bottom: none; }
     tr:hover { background: #f8fafc; }
     
+    /* TỐI ƯU KHOẢNG TRỐNG & VIỀN RÕ RÀNG CHO BẢNG ĐƠN HÀNG */
+    .orders-table {
+      width: 100%;
+      border-collapse: separate !important;
+      border-spacing: 0 14px !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+
+    .orders-table thead tr th {
+      background: #edf2f7;
+      color: #2d3748;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 12px 14px;
+      border: none;
+      border-bottom: 2px solid #cbd5e0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .orders-table thead tr th:first-child {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+    }
+    .orders-table thead tr th:last-child {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .orders-table tbody tr {
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: all 0.2s ease;
+    }
+    .orders-table tbody tr:hover {
+      box-shadow: 0 5px 16px rgba(0,0,0,0.11);
+      transform: translateY(-1px);
+    }
+
+    .orders-table tbody td {
+      padding: 15px 14px;
+      border-top: 1.5px solid #cbd5e0 !important;
+      border-bottom: 1.5px solid #cbd5e0 !important;
+      background: inherit;
+      vertical-align: middle;
+      font-size: 13.5px;
+    }
+    .orders-table tbody td:first-child {
+      border-left: 2px solid #cbd5e0 !important;
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+    .orders-table tbody td:last-child {
+      border-right: 2px solid #cbd5e0 !important;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+
+    /* TRẠNG THÁI HOÀN THÀNH: MÀU XANH LÁ ĐẬM SẮC NÉT, NỔI BẬT */
+    .orders-table tbody tr.order-row-completed {
+      background-color: #ecfdf5 !important;
+    }
+    .orders-table tbody tr.order-row-completed td {
+      border-top: 1.5px solid #86efac !important;
+      border-bottom: 1.5px solid #86efac !important;
+    }
+    .orders-table tbody tr.order-row-completed td:first-child {
+      border-left: 6px solid #15803d !important;
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+    .orders-table tbody tr.order-row-completed td:last-child {
+      border-right: 2px solid #86efac !important;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+
+    /* ĐƠN HÀNG BẢN SAO TRÙNG LẶP */
+    .orders-table tbody tr.order-row-duplicate {
+      background-color: #fffaf0 !important;
+    }
+    .orders-table tbody tr.order-row-duplicate td {
+      border-top: 1.5px solid #fbd38d !important;
+      border-bottom: 1.5px solid #fbd38d !important;
+    }
+    .orders-table tbody tr.order-row-duplicate td:first-child {
+      border-left: 6px solid #dd6b20 !important;
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+    .orders-table tbody tr.order-row-duplicate td:last-child {
+      border-right: 2px solid #fbd38d !important;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+
+    /* HUY HIỆU TRẠNG THÁI ĐƠN HÀNG */
+    .status-badge-completed {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #dcfce7;
+      color: #14532d;
+      border: 1.5px solid #86efac;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 13px;
+      box-shadow: 0 1px 3px rgba(22, 163, 74, 0.15);
+    }
+    .status-badge-shipping {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f3e8ff;
+      color: #6b21a8;
+      border: 1.5px solid #d8b4fe;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .status-badge-pending-deposit {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1.5px solid #fcd34d;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .status-badge-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #ebf8ff;
+      color: #1e40af;
+      border: 1.5px solid #93c5fd;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .status-select.completed {
+      border-color: #16a34a !important;
+      color: #15803d !important;
+      background: #f0fdf4 !important;
+      font-weight: 800 !important;
+    }
+    
     .status-select { padding: 8px; border-radius: 4px; border: 1px solid #cbd5e0; font-family: 'Roboto', sans-serif; font-size: 13px; width: 100%; box-sizing: border-box; margin-bottom: 8px; background: white;}
     .btn-update { background: #0068ff; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s;}
     .btn-update:hover { background: #0055d4; }
@@ -343,6 +498,32 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         padding: 0;
         overflow: hidden;
+      }
+      .orders-table tbody tr {
+        border: 2px solid #cbd5e0 !important;
+        border-radius: 12px !important;
+        margin-bottom: 20px !important;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08) !important;
+      }
+      .orders-table tbody tr.order-row-completed {
+        border: 2px solid #86efac !important;
+        border-left: 7px solid #15803d !important;
+        background: #ecfdf5 !important;
+      }
+      .orders-table tbody tr.order-row-duplicate {
+        border: 2px solid #fbd38d !important;
+        border-left: 7px solid #dd6b20 !important;
+        background: #fffaf0 !important;
+      }
+      .orders-table tbody td {
+        border-top: none !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: 1px dashed #e2e8f0 !important;
+        border-radius: 0 !important;
+      }
+      .orders-table tbody td:last-child {
+        border-bottom: none !important;
       }
       td {
         display: block;
@@ -1385,7 +1566,7 @@
         </div>
       </div>
 
-      <table>
+      <table id="orders-table" class="orders-table">
         <thead>
           <tr>
             <th style="width: 44px; text-align: center;">
@@ -3283,6 +3464,14 @@
 
       let rowEl = selectEl.closest('tr');
       if (rowEl) {
+        if (val === "Hoàn thành") {
+          rowEl.classList.add('order-row-completed');
+          selectEl.classList.add('completed');
+        } else {
+          rowEl.classList.remove('order-row-completed');
+          selectEl.classList.remove('completed');
+        }
+
         if (pendingOrderChanges.has(rowIdx)) {
           rowEl.classList.add('row-pending-change');
           selectEl.classList.add('select-unsaved');
@@ -3325,19 +3514,34 @@
         let normalizedStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
         let currentEffectiveStatus = hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus;
 
-        let selectHtml = `<select id="status-${order.row}" class="status-select ${hasPending ? 'select-unsaved' : ''}" onchange="onOrderStatusDropdownChange(${order.row}, this)">`;
+        let isCompleted = currentEffectiveStatus === "Hoàn thành";
+        let isDupCopy = !!order.isDuplicateCopy;
+        
+        let rowClasses = [];
+        if (hasPending) rowClasses.push("row-pending-change");
+        if (isCompleted) rowClasses.push("order-row-completed");
+        else if (isDupCopy) rowClasses.push("order-row-duplicate");
+        let rowClass = rowClasses.join(" ");
+
+        let selectHtml = `<select id="status-${order.row}" class="status-select ${hasPending ? 'select-unsaved' : ''} ${isCompleted ? 'completed' : ''}" onchange="onOrderStatusDropdownChange(${order.row}, this)">`;
         STATUS_OPTIONS.forEach(opt => {
           selectHtml += `<option value="${opt}" ${currentEffectiveStatus === opt ? "selected" : ""}>${opt}</option>`;
         });
         selectHtml += `</select>`;
+
+        let statusBadgeHtml = '';
+        if (isCompleted) {
+          statusBadgeHtml = `<span class="status-badge-completed">✅ Hoàn thành</span>`;
+        } else if (currentEffectiveStatus === "Đã giao cho đơn vị vận chuyển") {
+          statusBadgeHtml = `<span class="status-badge-shipping">🚚 Đã giao ĐVVC</span>`;
+        } else if (currentEffectiveStatus === "Chưa đặt cọc") {
+          statusBadgeHtml = `<span class="status-badge-pending-deposit">⏳ Chưa đặt cọc</span>`;
+        } else {
+          statusBadgeHtml = `<span class="status-badge-new">🛒 Khách đặt hàng</span>`;
+        }
         
-        let isCompleted = order.status === "Hoàn thành";
-        let isDupCopy = !!order.isDuplicateCopy;
-        let rowStyle = isCompleted ? "background-color: #f0fff4; opacity: 0.85;" : (isDupCopy ? "background-color: #fffaf0; opacity: 0.9; border-left: 4px solid #dd6b20;" : "");
-        let statusColor = isCompleted ? "#38a169" : (isDupCopy ? "#c05621" : "#2b6cb0");
         let phoneClean = escapeHtml(order.phone).replace(/[^0-9]/g, '');
         let isSelected = selectedOrderRows.has(order.row);
-        let rowClass = hasPending ? "row-pending-change" : "";
 
         // Bóc tách để hiển thị cột số lượng căn lề phải cực đẹp và không bị vỡ trên mobile
         let isSub = false;
@@ -3367,12 +3571,12 @@
           }
         }).join('');
 
-        tbody.innerHTML += `<tr style="${rowStyle}" class="${rowClass}">
+        tbody.innerHTML += `<tr class="${rowClass}">
             <td data-label="Chọn" style="text-align: center;">
               <input type="checkbox" class="order-item-cb" value="${order.row}" onchange="toggleOrderSelect(${order.row}, this.checked)" ${isSelected ? 'checked' : ''}>
             </td>
             <td data-label="Mã ĐH">
-              <b style="font-family:'Montserrat',sans-serif; color:${isDupCopy ? '#c05621' : '#1a2935'};">${escapeHtml(order.orderId)}</b>
+              <b style="font-family:'Montserrat',sans-serif; color:${isDupCopy ? '#c05621' : (isCompleted ? '#15803d' : '#1a2935')};">${escapeHtml(order.orderId)}</b>
               ${order.isDuplicateGroupLeader && order.duplicateCount > 0 ? `
                 <div class="badge-duplicate-tag" onclick="showDuplicateDetailsModal(${order.row})" title="Khách bấm đặt nhiều lần - Bấm để xem chi tiết ${order.duplicateCount} đơn trùng lặp">
                   ⚠️ Đã lọc ${order.duplicateCount} đơn trùng
@@ -3398,8 +3602,8 @@
             <td data-label="Chi tiết Đơn hàng" style="line-height: 1.5;">${detailsHtml}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold; font-size:15px;">${escapeHtml(order.total)}</td>
             <td data-label="Trạng thái">
-              <span style="font-weight: bold; color: ${statusColor};">${escapeHtml(currentEffectiveStatus)}</span>
-              ${order.isDeducted ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:11px; color:#22543d; background:#c6f6d5; border:1px solid #9ae6b4; padding:2px 6px; border-radius:4px; font-weight:600;">📦 Đã trừ kho</span></div>' : ''}
+              ${statusBadgeHtml}
+              ${order.isDeducted ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:11px; color:#14532d; background:#dcfce7; border:1px solid #86efac; padding:2px 6px; border-radius:4px; font-weight:700;">📦 Đã trừ kho</span></div>' : ''}
               ${hasPending ? '<div class="badge-unsaved">⚠️ Chưa lưu</div>' : ''}
             </td>
             <td data-label="Thao tác">

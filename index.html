@@ -1293,15 +1293,22 @@
       let drops = [];
       for (let i = 0; i < columns; i++) drops[i] = Math.floor(Math.random() * -40);
 
+      let lastTime = 0;
+      const dropInterval = 55; // Điều chỉnh tốc độ chạy chữ chậm lại vừa vặn, êm mắt (~18 bước/giây thay vì 60 bước/giây)
+
       return function render() {
-        ctx.fillStyle = "rgba(10, 15, 12, 0.08)";
+        let now = performance.now();
+        if (now - lastTime < dropInterval) return;
+        lastTime = now;
+
+        ctx.fillStyle = "rgba(10, 15, 12, 0.10)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = fontSize + "px monospace";
         for (let i = 0; i < drops.length; i++) {
           let text = charArr[Math.floor(Math.random() * charArr.length)];
           let x = i * fontSize;
           let y = drops[i] * fontSize;
-          ctx.fillStyle = (Math.random() > 0.82) ? "#bbf7d0" : "#22c55e";
+          ctx.fillStyle = (Math.random() > 0.85) ? "#bbf7d0" : "#22c55e";
           ctx.fillText(text, x, y);
           if (y > canvas.height && Math.random() > 0.975) {
             drops[i] = 0;
