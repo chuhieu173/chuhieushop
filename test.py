@@ -1594,6 +1594,7 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn("SPX_EXCEL_HEADERS_NEW", admin, "LỖI: Thiếu mảng SPX_EXCEL_HEADERS_NEW trong admin.html!")
         self.assertIn("SPX_PROVINCES", admin, "LỖI: Thiếu danh sách SPX_PROVINCES trong admin.html!")
         self.assertIn("SPX_PROVINCES_NEW", admin, "LỖI: Thiếu danh sách SPX_PROVINCES_NEW trong admin.html!")
+        self.assertIn("function cleanDetailForSPX", admin, "LỖI: Thiếu hàm cleanDetailForSPX trong admin.html!")
         self.assertIn("function parseAddressForSPX", admin, "LỖI: Thiếu hàm parseAddressForSPX trong admin.html!")
         self.assertIn("function openSpxExportModal", admin, "LỖI: Thiếu hàm openSpxExportModal trong admin.html!")
         self.assertIn("function saveSpxSettings", admin, "LỖI: Thiếu hàm saveSpxSettings trong admin.html!")
@@ -1636,6 +1637,11 @@ class TestBusinessLogic(unittest.TestCase):
         console.assert(t4.provinceNew === "Thành phố Hồ Chí Minh", "Lỗi t4 provinceNew");
         console.assert(t4.ward === "Phường Hạnh Thông", "Lỗi t4 ward");
         console.assert(t4.detail === "187/8 Đường số 6", "Lỗi t4 detail");
+
+        let t5 = parseAddressForSPX("187/8 Đường số 6, Phường Hạnh Thông, Phường Hạnh Thông, Thành phố Hồ Chí Minh");
+        console.assert(t5.provinceNew === "Thành phố Hồ Chí Minh", "Lỗi t5 provinceNew");
+        console.assert(t5.ward === "Phường Hạnh Thông", "Lỗi t5 ward");
+        console.assert(t5.detail === "187/8 Đường số 6", "Lỗi t5 detail: " + t5.detail);
         """
 
         with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:

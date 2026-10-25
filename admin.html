@@ -7059,6 +7059,91 @@
       'Đơn chỉ hoàn thành nếu ở dưới hiện "Đủ điều kiện"'
     ];
 
+    function cleanDetailForSPX(detail, ward, district, province, provinceNew) {
+      if (!detail) return "";
+      let s = detail.trim();
+      
+      let stripTokens = [];
+      if (province) stripTokens.push(province);
+      if (provinceNew) stripTokens.push(provinceNew);
+      let provBase = (provinceNew || province || "").replace(/^(tỉnh|thành phố|tp\.?)\s+/i, "").trim();
+      if (provBase) stripTokens.push(provBase);
+      
+      let pNorm = removeDiacritics(provBase).toLowerCase();
+      if (pNorm.includes("ho chi minh")) {
+        stripTokens.push("tp.hcm", "tphcm", "tp hcm", "hcm", "sai gon", "saigon", "hồ chí minh", "thành phố hồ chí minh", "tp. hồ chí minh");
+      } else if (pNorm.includes("ha noi")) {
+        stripTokens.push("tp.hn", "tphn", "tp hn", "hn", "hà nội", "thành phố hà nội", "tp. hà nội");
+      } else if (pNorm.includes("da nang")) {
+        stripTokens.push("đà nẵng", "thành phố đà nẵng", "tp đà nẵng");
+      }
+
+      if (district) {
+        stripTokens.push(district);
+        let distClean = district.replace(/^(quận|huyện|thị xã|thành phố|q\.|h\.|tx\.|tp\.)\s+/i, "").trim();
+        if (distClean) stripTokens.push(distClean);
+      }
+
+      if (ward) {
+        stripTokens.push(ward);
+        let wardClean = ward.replace(/^(phường|xã|thị trấn|p\.|x\.|tt\.)\s+/i, "").trim();
+        if (wardClean) {
+          stripTokens.push(wardClean);
+          stripTokens.push("phường " + wardClean, "p. " + wardClean, "p." + wardClean, "xã " + wardClean, "x. " + wardClean);
+        }
+      }
+
+      if (s.includes(",") || s.includes(";")) {
+        let parts = s.split(/[,;]/).map(p => p.trim()).filter(Boolean);
+        let filteredParts = parts.filter(part => {
+          let partNorm = removeDiacritics(part).toLowerCase().trim();
+          if (/^(đường|phố|ngõ|ngách|hẻm|kiệt|số|nhà|chung cư|tòa|toà|căn hộ|khu phố|kp|ấp|thôn|tổ|đội|xóm)\s/i.test(partNorm)) {
+            return true;
+          }
+          for (let token of stripTokens) {
+            let tNorm = removeDiacritics(token).toLowerCase().trim();
+            if (partNorm === tNorm || partNorm === ("tp " + tNorm) || partNorm === ("tinh " + tNorm)) {
+              return false;
+            }
+          }
+          if (/^(phường|xã|thị trấn|p\.|x\.|tt\.)\s+/i.test(part)) {
+            if (ward) {
+              let wClean = removeDiacritics(ward.replace(/^(phường|xã|thị trấn|p\.|x\.|tt\.)\s+/i, "")).toLowerCase().trim();
+              let pClean = removeDiacritics(part.replace(/^(phường|xã|thị trấn|p\.|x\.|tt\.)\s+/i, "")).toLowerCase().trim();
+              if (wClean === pClean) return false;
+            }
+          }
+          if (/^(quận|huyện|thị xã|thành phố|q\.|h\.|tx\.|tp\.)\s+/i.test(part)) {
+            if (district) {
+              let dClean = removeDiacritics(district.replace(/^(quận|huyện|thị xã|thành phố|q\.|h\.|tx\.|tp\.)\s+/i, "")).toLowerCase().trim();
+              let pClean = removeDiacritics(part.replace(/^(quận|huyện|thị xã|thành phố|q\.|h\.|tx\.|tp\.)\s+/i, "")).toLowerCase().trim();
+              if (dClean === pClean) return false;
+            }
+          }
+          return true;
+        });
+        s = filteredParts.join(", ").trim();
+      } else {
+        let changed = true;
+        while (changed) {
+          changed = false;
+          s = s.replace(/[\s,;.-]+$/, "").trim();
+          if (!s) break;
+          for (let token of stripTokens) {
+            let escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            let regex = new RegExp("(?<!(?:đường|phố|ngõ|ngách|hẻm|chung cư|tòa|toà)\\s+)(?:[,;\\s]+)(?:thành phố|tỉnh|tp\\.?|t\\.?)?\\s*" + escaped + "\\s*$", "i");
+            if (regex.test(s)) {
+              let testS = s.replace(regex, "").trim();
+              if (testS.length >= 3) { s = testS; changed = true; break; }
+            }
+          }
+        }
+      }
+
+      s = s.replace(/[\s,;.-]+$/, "").trim();
+      return s || detail;
+    }
+
     function parseAddressForSPX(fullAddr) {
       if (!fullAddr) return { province: '', provinceNew: '', district: '', ward: '', detail: '', fullAddress: '' };
       let parts = fullAddr.split(',').map(p => p.trim()).filter(Boolean);
@@ -7154,7 +7239,10 @@
       }
 
       let detail = remaining.join(', ');
-      if (!detail && parts.length > 0) detail = parts[0];
+      detail = cleanDetailForSPX(detail, ward, district, provinceOld, provinceNew);
+      if (!detail && parts.length > 0) {
+        detail = cleanDetailForSPX(parts[0], ward, district, provinceOld, provinceNew);
+      }
 
       return {
         province: provinceOld || (provinceNew ? provinceNew.toUpperCase().replace(/^(TỈNH|THÀNH PHỐ)\s+/i, '') : ''),
@@ -7385,7 +7473,10 @@
           let unitPrice = Math.round(rawTotal / (totalQty || 1));
           let orderId = order.orderId ? String(order.orderId) : ('DH-' + (index + 1));
           let shipNote = order.note ? (order.note + '; Cho xem hàng') : 'Cho xem hàng, gọi trước khi giao';
-          let fullDetailAddress = order.address || parsedAddr.detail || '';
+          let spxDetailAddress = parsedAddr.detail || '';
+          if (!spxDetailAddress && order.address) {
+            spxDetailAddress = cleanDetailForSPX(order.address, parsedAddr.ward, parsedAddr.district, parsedAddr.province, parsedAddr.provinceNew);
+          }
 
           // ROW CHO MẪU MỚI (29 CỘT - Chuẩn theo web shop Tỉnh/TP ➔ Phường/Xã)
           let rowDataNew = [
@@ -7394,7 +7485,7 @@
             phoneClean,                                       // 3: *Số điện thoại
             parsedAddr.provinceNew || parsedAddr.province,    // 4: *Tỉnh/Thành Phố (34 tỉnh danh mục mới)
             parsedAddr.ward || '',                            // 5: *Xã/Phường
-            fullDetailAddress,                                // 6: *Địa chỉ chi tiết (đầy đủ cho shipper)
+            spxDetailAddress,                                 // 6: *Địa chỉ chi tiết (Chỉ số nhà, tên đường - không lặp lại Phường, Tỉnh/TP)
             '',                                               // 7: Lưu ý về địa chỉ
             '',                                               // 8: Mã bưu chính
             itemNames,                                        // 9: *Tên sản phẩm
@@ -7434,7 +7525,7 @@
             parsedAddr.province || 'TP. HỒ CHÍ MINH',         // 4: *Tỉnh/Thành Phố (63 tỉnh)
             districtVal,                                      // 5: *Quận/Huyện (Bắt buộc không rỗng)
             wardVal,                                          // 6: *Xã/Phường
-            fullDetailAddress,                                // 7: *Địa chỉ chi tiết
+            spxDetailAddress,                                 // 7: *Địa chỉ chi tiết (Chỉ số nhà, tên đường - không lặp lại Phường, Quận, Tỉnh/TP)
             '',                                               // 8: Lưu ý về địa chỉ
             '',                                               // 9: Mã bưu chính
             itemNames,                                        // 10: *Tên sản phẩm
