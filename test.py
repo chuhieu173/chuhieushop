@@ -1665,6 +1665,15 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('action === "updateSpxConfig"', codegs, "LỖI: Thiếu định tuyến action updateSpxConfig trong Code.gs")
         self.assertIn('spxConfig: getSpxConfig(doc)', codegs, "LỖI: doGet hoặc handleGetProductsAdmin chưa trả về spxConfig")
 
+    def test_copy_customer_info_format_and_spx_empty_customer_code(self):
+        """Kiểm tra: Nút Copy thông tin đơn hàng bỏ tiền tố 'Người nhận:', và Mã khách hàng trong file Excel SPX được để trống"""
+        admin = read_file('admin.html')
+        self.assertIn("function copyCustomerInfo", admin, "LỖI: Thiếu hàm copyCustomerInfo trong admin.html!")
+        self.assertNotIn("Người nhận: ${order.name}", admin, "LỖI: Nút copy đơn hàng vẫn còn chứa tiền tố 'Người nhận:'!")
+        self.assertIn("${order.name}\\nSđt: ${order.phone}\\nĐịa chỉ: ${cleanAddr}", admin, "LỖI: Sai định dạng copy thông tin đơn hàng!")
+        self.assertIn("// 16: Mã khách hàng (Để trống)", admin, "LỖI: Mã khách hàng mẫu mới chưa được để trống!")
+        self.assertIn("// 17: Mã khách hàng (Để trống)", admin, "LỖI: Mã khách hàng mẫu cũ chưa được để trống!")
+
 
 
 if __name__ == '__main__':

@@ -3160,7 +3160,7 @@
         let order = globalOrdersData.find(o => o.row === row);
         if (!order) return;
         let cleanAddr = cleanFullAddress(order.address);
-        let copyText = `Người nhận: ${order.name}\nSđt: ${order.phone}\nĐịa chỉ: ${cleanAddr}`;
+        let copyText = `${order.name}\nSđt: ${order.phone}\nĐịa chỉ: ${cleanAddr}`;
         if (order.note) copyText += `\nGhi chú: ${order.note}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           try {
@@ -7495,7 +7495,7 @@
             options.length || 15,                             // 13: Chiều dài (CM)
             options.width || 10,                              // 14: Chiều rộng (CM)
             options.height || 5,                              // 15: Chiều cao (CM)
-            phoneClean,                                       // 16: Mã khách hàng
+            '',                                               // 16: Mã khách hàng (Để trống)
             rawTotal,                                         // 17: *Giá trị đơn hàng
             'N',                                              // 18: *Giao hàng một phần (Y/N)
             options.allowTrial || 'N',                        // 19: *Cho phép thử hàng (Y/N)
@@ -7535,7 +7535,7 @@
             options.length || 15,                             // 14: Chiều dài (CM)
             options.width || 10,                              // 15: Chiều rộng (CM)
             options.height || 5,                              // 16: Chiều cao (CM)
-            phoneClean,                                       // 17: Mã khách hàng
+            '',                                               // 17: Mã khách hàng (Để trống)
             rawTotal,                                         // 18: *Giá trị đơn hàng
             'N',                                              // 19: *Giao hàng một phần (Y/N)
             options.allowTrial || 'N',                        // 20: *Cho phép thử hàng (Y/N)
