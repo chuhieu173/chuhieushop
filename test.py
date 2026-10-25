@@ -308,6 +308,41 @@ class TestDOMIntegrity(unittest.TestCase):
         for tid in essential_theme_ids_admin:
             self.assertIn(tid, adm_collector.ids, f"LỖI: Thiếu phần tử theme id='{tid}' trong admin.html!")
 
+    def test_spx_elements_exist_in_admin(self):
+        """Kiểm tra: Các phần tử hệ thống Vận đơn SPX Express (Modal cấu hình, Modal xuất đơn, các input) phải tồn tại đầy đủ"""
+        content = read_file('admin.html')
+        collector = IDCollector()
+        collector.feed(content)
+
+        spx_ids = [
+            'spx-settings-modal',
+            'spx-cfg-weight',
+            'spx-cfg-length',
+            'spx-cfg-width',
+            'spx-cfg-height',
+            'spx-cfg-allow-check',
+            'spx-cfg-allow-trial',
+            'spx-cfg-payer',
+            'spx-cfg-allow-cod',
+            'spx-cfg-auto-status',
+            'spx-export-modal',
+            'spx-export-count',
+            'spx-export-total-cod',
+            'spx-export-template',
+            'spx-export-weight',
+            'spx-export-payer',
+            'spx-export-allow-cod',
+            'spx-export-allow-check',
+            'spx-export-auto-status',
+            'btn-export-spx-toolbar',
+            'btn-open-spx-settings',
+            'btn-bulk-spx',
+            'bulk-spx-count'
+        ]
+        for sid in spx_ids:
+            self.assertIn(sid, collector.ids, f"LỖI: Thiếu phần tử SPX id='{sid}' trong admin.html!")
+        self.assertIn('xlsx.full.min.js', content, "LỖI: Thiếu thư viện SheetJS xlsx.full.min.js trong admin.html!")
+
 
 class TestSyntaxAndParsing(unittest.TestCase):
     """Kiểm tra cú pháp JavaScript & HTML của toàn bộ dự án"""
@@ -1551,6 +1586,78 @@ class TestBusinessLogic(unittest.TestCase):
 
         # 5. Mobile Canvas Optimization
         self.assertIn("isMobile", index, "LỖI: Các hàm Canvas phải có cờ isMobile để giảm số lượng hạt và bước tính toán trên điện thoại!")
+
+    def test_spx_address_parsing_and_excel_headers(self):
+        """Kiểm tra: Thuật toán tách địa chỉ chuẩn SPX và tiêu đề cột Excel (mẫu mới 29 cột, mẫu cũ 30 cột) đạt chuẩn 100% bằng Node.js"""
+        admin = read_file('admin.html')
+        self.assertIn("SPX_EXCEL_HEADERS", admin, "LỖI: Thiếu mảng SPX_EXCEL_HEADERS trong admin.html!")
+        self.assertIn("SPX_EXCEL_HEADERS_NEW", admin, "LỖI: Thiếu mảng SPX_EXCEL_HEADERS_NEW trong admin.html!")
+        self.assertIn("SPX_PROVINCES", admin, "LỖI: Thiếu danh sách SPX_PROVINCES trong admin.html!")
+        self.assertIn("SPX_PROVINCES_NEW", admin, "LỖI: Thiếu danh sách SPX_PROVINCES_NEW trong admin.html!")
+        self.assertIn("function parseAddressForSPX", admin, "LỖI: Thiếu hàm parseAddressForSPX trong admin.html!")
+        self.assertIn("function openSpxExportModal", admin, "LỖI: Thiếu hàm openSpxExportModal trong admin.html!")
+        self.assertIn("function saveSpxSettings", admin, "LỖI: Thiếu hàm saveSpxSettings trong admin.html!")
+        self.assertIn("function generateAndDownloadSpxExcel", admin, "LỖI: Thiếu hàm generateAndDownloadSpxExcel trong admin.html!")
+
+        # Trích xuất thuật toán parseAddressForSPX và chạy kiểm thử bằng Node.js
+        rem_match = re.search(r'(function removeDiacritics\(str\)[\s\S]*?\n    \})', admin)
+        rem_code = rem_match.group(1) if rem_match else "function removeDiacritics(str) { return (str || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D'); }"
+
+        match = re.search(r'(const SPX_PROVINCES =[\s\S]*?function parseAddressForSPX\(fullAddr\)[\s\S]*?\n    \})', admin)
+        self.assertIsNotNone(match, "LỖI: Không trích xuất được khối hàm parseAddressForSPX từ admin.html")
+        js_code = match.group(1)
+
+        test_script = f"""
+        {rem_code}
+        {js_code}
+
+        let t1 = parseAddressForSPX("106 Nguyễn Du, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh");
+        console.assert(t1.province === "TP. HỒ CHÍ MINH", "Lỗi t1 province");
+        console.assert(t1.provinceNew === "Thành phố Hồ Chí Minh", "Lỗi t1 provinceNew");
+        console.assert(t1.district === "QUẬN 1", "Lỗi t1 district");
+        console.assert(t1.ward === "Phường Bến Nghé", "Lỗi t1 ward");
+        console.assert(t1.detail === "106 Nguyễn Du", "Lỗi t1 detail");
+
+        let t2 = parseAddressForSPX("Số 15 ngõ 42 Trương Định, Phường Tương Mai, Quận Hoàng Mai, Hà Nội");
+        console.assert(t2.province === "HÀ NỘI", "Lỗi t2 province");
+        console.assert(t2.provinceNew === "Thành phố Hà Nội", "Lỗi t2 provinceNew");
+        console.assert(t2.district === "QUẬN HOÀNG MAI", "Lỗi t2 district");
+        console.assert(t2.ward === "Phường Tương Mai", "Lỗi t2 ward");
+        console.assert(t2.detail === "Số 15 ngõ 42 Trương Định", "Lỗi t2 detail");
+
+        let t3 = parseAddressForSPX("Thôn 3, Xã Tân Thạnh, Huyện Thanh Bình, Tỉnh Đồng Tháp");
+        console.assert(t3.province === "ĐỒNG THÁP", "Lỗi t3 province");
+        console.assert(t3.provinceNew === "Tỉnh Đồng Tháp", "Lỗi t3 provinceNew");
+        console.assert(t3.district === "HUYỆN THANH BÌNH", "Lỗi t3 district");
+        console.assert(t3.ward === "Xã Tân Thạnh", "Lỗi t3 ward");
+        console.assert(t3.detail === "Thôn 3", "Lỗi t3 detail");
+
+        let t4 = parseAddressForSPX("187/8 Đường số 6, Phường Hạnh Thông, Thành phố Hồ Chí Minh");
+        console.assert(t4.provinceNew === "Thành phố Hồ Chí Minh", "Lỗi t4 provinceNew");
+        console.assert(t4.ward === "Phường Hạnh Thông", "Lỗi t4 ward");
+        console.assert(t4.detail === "187/8 Đường số 6", "Lỗi t4 detail");
+        """
+
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_script)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, f"LỖI Kiểm thử parseAddressForSPX Node.js thất bại: {res.stderr}")
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_spx_backend_api_and_config_consistency(self):
+        """Kiểm tra: Backend Code.gs xử lý lưu và trả về cấu hình SPX spxConfig đầy đủ với allowCod mặc định N"""
+        codegs = read_file('Code.gs')
+        self.assertIn("DEFAULT_SPX_CONFIG", codegs, "LỖI: Thiếu DEFAULT_SPX_CONFIG trong Code.gs")
+        self.assertIn('allowCod: "N"', codegs, "LỖI: allowCod phải có giá trị mặc định là 'N' (không thu COD)!")
+        self.assertIn("function getSpxConfig", codegs, "LỖI: Thiếu hàm getSpxConfig trong Code.gs")
+        self.assertIn("function handleUpdateSpxConfig", codegs, "LỖI: Thiếu hàm handleUpdateSpxConfig trong Code.gs")
+        self.assertIn('action === "updateSpxConfig"', codegs, "LỖI: Thiếu định tuyến action updateSpxConfig trong Code.gs")
+        self.assertIn('spxConfig: getSpxConfig(doc)', codegs, "LỖI: doGet hoặc handleGetProductsAdmin chưa trả về spxConfig")
 
 
 

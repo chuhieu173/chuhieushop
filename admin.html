@@ -7,6 +7,7 @@
   <title>Admin - Quản Lý Cửa Hàng</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f9; color: #333; -webkit-font-smoothing: antialiased; }
@@ -1505,6 +1506,14 @@
             <div class="order-pill" onclick="filterOrdersByStatus('Đã giao cho đơn vị vận chuyển', this)">Đã giao ĐVVC</div>
             <div class="order-pill" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành</div>
           </div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+            <button type="button" id="btn-export-spx-toolbar" class="btn-update" onclick="openSpxExportModal(false)" style="background: #ea580c; color: #fff; font-weight: 700; padding: 7px 13px; border-radius: 6px; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25);" title="Xuất danh sách đơn hàng đang hiển thị sang file Excel SPX">
+              <span>📦</span> Xuất Đơn SPX
+            </button>
+            <button type="button" id="btn-open-spx-settings" class="btn-update" onclick="openSpxSettingsModal()" style="background: #4a5568; color: #fff; font-weight: 600; padding: 7px 11px; border-radius: 6px; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;" title="Cài đặt thông số mặc định gửi hàng SPX Express">
+              <span>⚙️</span> Cấu Hình SPX
+            </button>
+          </div>
         </div>
 
         <!-- Thanh Thông Báo Lọc Đơn Hàng Trùng Lặp -->
@@ -1543,6 +1552,9 @@
             </select>
             <button id="btn-bulk-apply" class="btn-bulk-apply" onclick="applyBulkStatusUpdate()">
               ⚡ Áp Dụng Cho <span id="bulk-btn-count">0</span> Đơn
+            </button>
+            <button id="btn-bulk-spx" class="btn-update" onclick="openSpxExportModal(true)" style="background: #ea580c; color: #fff; font-weight: 700; padding: 8px 14px; border-radius: 6px; border: none; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13.5px; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3);">
+              <span>📦</span> Xuất Excel SPX (<span id="bulk-spx-count">0</span>)
             </button>
             <button id="btn-bulk-delete" class="btn-bulk-delete" onclick="deleteSelectedOrders()">
               🗑️ Xóa <span id="bulk-delete-btn-count">0</span> Đơn
@@ -2306,6 +2318,160 @@
     </div>
   </div>
 
+  <!-- MODAL CẤU HÌNH MẶC ĐỊNH SPX EXPRESS -->
+  <div id="spx-settings-modal" class="edit-modal">
+    <div class="edit-content" style="max-width: 540px; text-align: left;">
+      <h2 style="margin-top: 0; color: #ea580c; font-size: 19px; border-bottom: 2px solid #ffedd5; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <span>⚙️</span> Cấu Hình Mặc Định Gửi Hàng SPX Express
+      </h2>
+      <p style="font-size: 13.5px; color: #4a5568; line-height: 1.5; margin-bottom: 16px;">
+        Các thông số này sẽ được <b>lưu trên Google Sheets</b> và tự động điền vào file Excel mỗi khi bạn xuất đơn hàng loạt lên <b>spx.vn</b>.
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">⚖️ Cân nặng mặc định (KG):</label>
+          <input type="number" id="spx-cfg-weight" step="0.05" min="0.05" max="50" placeholder="0.5" style="width: 100%; padding: 9px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 14px; font-weight: 600;">
+          <span style="font-size: 11px; color: #718096;">VD: 0.3 hoặc 0.5 (kg)</span>
+        </div>
+        <div>
+          <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">💳 Người trả phí vận chuyển:</label>
+          <select id="spx-cfg-payer" style="width: 100%; padding: 9px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 13.5px; font-weight: 600; background: #fff;">
+            <option value="Người gửi trả">Người gửi trả (Shop đối soát)</option>
+            <option value="Người nhận trả">Người nhận trả (Khách trả ship)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">📏 Kích thước kiện hàng (Dài x Rộng x Cao cm):</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <input type="number" id="spx-cfg-length" placeholder="Dài (15)" min="1" max="200" style="padding: 8px 10px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; text-align: center;">
+          <input type="number" id="spx-cfg-width" placeholder="Rộng (10)" min="1" max="200" style="padding: 8px 10px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; text-align: center;">
+          <input type="number" id="spx-cfg-height" placeholder="Cao (5)" min="1" max="200" style="padding: 8px 10px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; text-align: center;">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+        <div>
+          <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">👀 Xem hàng (không thử):</label>
+          <select id="spx-cfg-allow-check" style="width: 100%; padding: 9px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; font-weight: 600; background: #fff;">
+            <option value="Y">Y - Cho xem hàng (Khuyên dùng)</option>
+            <option value="N">N - Không cho xem hàng</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">👕 Cho phép thử hàng:</label>
+          <select id="spx-cfg-allow-trial" style="width: 100%; padding: 9px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; font-weight: 600; background: #fff;">
+            <option value="N">N - Không cho thử tại chỗ (Mặc định)</option>
+            <option value="Y">Y - Cho thử hàng</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">💰 Thu COD mặc định:</label>
+        <select id="spx-cfg-allow-cod" style="width: 100%; padding: 9px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; font-weight: 600; background: #fff;">
+          <option value="N">N - Không thu COD (Mặc định: Đã chuyển khoản / Khách không nợ)</option>
+          <option value="Y">Y - Thu COD (Thu theo tổng tiền đơn hàng)</option>
+        </select>
+        <span style="font-size: 11.5px; color: #718096; display: block; margin-top: 3px;">
+          Khi chọn "N", file Excel sẽ đặt *Thu COD = "N" và để trống ô số tiền theo chuẩn SPX.
+        </span>
+      </div>
+
+      <div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 18px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13.5px; color: #2d3748; font-weight: 600;">
+          <input type="checkbox" id="spx-cfg-auto-status" style="width: 17px; height: 17px; accent-color: #ea580c;">
+          <span>Tự động chuyển các đơn đã xuất sang "Đã giao cho đơn vị vận chuyển"</span>
+        </label>
+        <div style="font-size: 12px; color: #718096; margin-left: 27px; margin-top: 3px;">
+          Giúp bạn không phải đổi trạng thái thủ công sau khi tải file Excel lên SPX.
+        </div>
+      </div>
+
+      <div class="edit-actions" style="justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn-cancel" onclick="closeSpxSettingsModal()" style="padding: 9px 18px;">Hủy</button>
+        <button type="button" class="btn-save" onclick="saveSpxSettings()" style="background: #ea580c; padding: 9px 20px; font-weight: bold;">💾 Lưu Cấu Hình Vào Google Sheet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN XUẤT ĐƠN HÀNG SANG EXCEL SPX -->
+  <div id="spx-export-modal" class="edit-modal">
+    <div class="edit-content" style="max-width: 540px; text-align: left;">
+      <h2 style="margin-top: 0; color: #ea580c; font-size: 19px; border-bottom: 2px solid #ffedd5; padding-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="display: flex; align-items: center; gap: 8px;">📦 Xuất File Excel Chuẩn SPX Express</span>
+        <button type="button" onclick="openSpxSettingsModal()" style="background: #f7fafc; border: 1px solid #cbd5e0; border-radius: 6px; padding: 4px 8px; font-size: 12px; color: #4a5568; cursor: pointer;" title="Chỉnh sửa cấu hình mặc định">⚙️ Cài đặt</button>
+      </h2>
+
+      <div style="background: #fffaf0; border: 1.5px solid #feebc8; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
+        <div style="font-size: 14px; color: #7b341e; font-weight: bold; margin-bottom: 4px;">
+          📋 Danh sách đơn hàng chuẩn bị xuất:
+        </div>
+        <div style="font-size: 13.5px; color: #9c4221; line-height: 1.6;">
+          • Số lượng đơn: <b id="spx-export-count" style="color: #c05621; font-size: 15px;">0</b> đơn hàng<br>
+          • Tổng tiền thu hộ COD: <b id="spx-export-total-cod" style="color: #e53e3e; font-size: 15px;">0đ</b>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">📋 Mẫu biểu Excel SPX:</label>
+        <select id="spx-export-template" style="width: 100%; padding: 8px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13px; font-weight: 600; background: #fff;">
+          <option value="new">⭐ Mẫu địa chỉ mới (Tỉnh/TP ➔ Phường/Xã) - 29 cột [Khuyên dùng cho Web Shop]</option>
+          <option value="old">Mẫu địa chỉ cũ (Tỉnh/TP ➔ Quận/Huyện ➔ Phường/Xã) - 30 cột</option>
+          <option value="both">📦 File đầy đủ 2 Sheet (Chuẩn file mẫu gốc SPX Express)</option>
+        </select>
+        <span style="font-size: 11.5px; color: #718096; display: block; margin-top: 3px;">
+          💡 Mẫu địa chỉ mới khớp 100% dữ liệu web shop và không yêu cầu cột Quận/Huyện.
+        </span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">⚖️ Cân nặng đợt này (KG):</label>
+          <input type="number" id="spx-export-weight" step="0.05" min="0.05" max="50" style="width: 100%; padding: 8px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 14px; font-weight: 600;">
+        </div>
+        <div>
+          <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">💳 Người trả cước:</label>
+          <select id="spx-export-payer" style="width: 100%; padding: 8px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13px; font-weight: 600; background: #fff;">
+            <option value="Người gửi trả">Người gửi trả</option>
+            <option value="Người nhận trả">Người nhận trả</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">💰 Thu COD đợt này:</label>
+          <select id="spx-export-allow-cod" style="width: 100%; padding: 8px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13px; font-weight: 600; background: #fff;" onchange="updateSpxExportTotalCodPreview()">
+            <option value="N">N - Không thu COD (Mặc định)</option>
+            <option value="Y">Y - Thu COD theo tổng tiền đơn</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">👀 Xem hàng trước khi nhận:</label>
+          <select id="spx-export-allow-check" style="width: 100%; padding: 8px 12px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; font-weight: 600; background: #fff;">
+            <option value="Y">Y - Cho xem hàng (không cho thử)</option>
+            <option value="N">N - Không cho xem hàng</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 18px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13.5px; color: #2d3748; font-weight: 600;">
+          <input type="checkbox" id="spx-export-auto-status" style="width: 17px; height: 17px; accent-color: #ea580c;">
+          <span>Tự động chuyển các đơn này sang "Đã giao cho đơn vị vận chuyển"</span>
+        </label>
+      </div>
+
+      <div class="edit-actions" style="justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn-cancel" onclick="closeSpxExportModal()" style="padding: 9px 18px;">Hủy</button>
+        <button type="button" class="btn-save" onclick="confirmExportSpxExcel()" style="background: #ea580c; padding: 10px 22px; font-size: 14.5px; font-weight: bold; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3);">🚀 Tải File Excel SPX (.xlsx)</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
@@ -2444,6 +2610,10 @@
           globalProductsData = resData.products;
           globalCombosData = resData.combos || [];
           globalPostsData = resData.posts || []; 
+          if (resData.spxConfig) {
+            currentSpxConfig = Object.assign({}, DEFAULT_SPX_CONFIG, resData.spxConfig);
+            try { localStorage.setItem('spx_config_cache', JSON.stringify(currentSpxConfig)); } catch(e) {}
+          }
           document.getElementById("edit-shipping-fee").value = resData.shippingFee;
           document.getElementById("edit-theme").value = resData.theme || "default";
           let themeVideoInput = document.getElementById("edit-theme-video");
@@ -3414,9 +3584,11 @@
           let countEl = document.getElementById('bulk-selected-count');
           let btnCountEl = document.getElementById('bulk-btn-count');
           let delBtnCountEl = document.getElementById('bulk-delete-btn-count');
+          let spxBtnCountEl = document.getElementById('bulk-spx-count');
           if (countEl) countEl.innerText = String(selectedOrderRows.size);
           if (btnCountEl) btnCountEl.innerText = String(selectedOrderRows.size);
           if (delBtnCountEl) delBtnCountEl.innerText = String(selectedOrderRows.size);
+          if (spxBtnCountEl) spxBtnCountEl.innerText = String(selectedOrderRows.size);
         } else {
           bulkBar.style.display = 'none';
         }
@@ -6779,6 +6951,573 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    }
+
+    // =========================================================================
+    // HỆ THỐNG VẬN ĐƠN SPX EXPRESS (SHOPEE EXPRESS)
+    // =========================================================================
+    const DEFAULT_SPX_CONFIG = {
+      weight: 0.5,
+      length: 15,
+      width: 10,
+      height: 5,
+      allowCheck: "Y",
+      allowTrial: "N",
+      payer: "Người gửi trả",
+      allowCod: "N",
+      autoChangeStatus: true
+    };
+    let currentSpxConfig = Object.assign({}, DEFAULT_SPX_CONFIG);
+    try {
+      let cachedSpx = localStorage.getItem('spx_config_cache');
+      if (cachedSpx) currentSpxConfig = Object.assign({}, DEFAULT_SPX_CONFIG, JSON.parse(cachedSpx));
+    } catch(e) {}
+    let spxOrdersPendingExport = [];
+
+    const SPX_PROVINCES = [
+      'AN GIANG', 'BÀ RỊA - VŨNG TÀU', 'BẮC GIANG', 'BẮC KẠN', 'BẠC LIÊU', 'BẮC NINH', 'BẾN TRE',
+      'BÌNH ĐỊNH', 'BÌNH DƯƠNG', 'BÌNH PHƯỚC', 'BÌNH THUẬN', 'CÀ MAU', 'CẦN THƠ', 'CAO BẰNG',
+      'ĐÀ NẴNG', 'ĐẮK LẮK', 'ĐẮK NÔNG', 'ĐIỆN BIÊN', 'ĐỒNG NAI', 'ĐỒNG THÁP', 'GIA LAI',
+      'HÀ GIANG', 'HÀ NAM', 'HÀ NỘI', 'HÀ TĨNH', 'HẢI DƯƠNG', 'HẢI PHÒNG', 'HẬU GIANG',
+      'HÒA BÌNH', 'HƯNG YÊN', 'KHÁNH HÒA', 'KIÊN GIANG', 'KON TUM', 'LAI CHÂU', 'LÂM ĐỒNG',
+      'LẠNG SƠN', 'LÀO CAI', 'LONG AN', 'NAM ĐỊNH', 'NGHỆ AN', 'NINH BÌNH', 'NINH THUẬN',
+      'PHÚ THỌ', 'PHÚ YÊN', 'QUẢNG BÌNH', 'QUẢNG NAM', 'QUẢNG NGÃI', 'QUẢNG NINH', 'QUẢNG TRỊ',
+      'SÓC TRĂNG', 'SƠN LA', 'TÂY NINH', 'THÁI BÌNH', 'THÁI NGUYÊN', 'THANH HÓA', 'THỪA THIÊN HUẾ',
+      'TIỀN GIANG', 'TP. HỒ CHÍ MINH', 'TRÀ VINH', 'TUYÊN QUANG', 'VĨNH LONG', 'VĨNH PHÚC', 'YÊN BÁI'
+    ];
+
+    const SPX_PROVINCES_NEW = [
+      "Thành phố Hồ Chí Minh", "Thành phố Hà Nội", "Thành phố Hải Phòng", "Thành phố Cần Thơ", "Thành phố Đà Nẵng", "Thành phố Huế",
+      "Tỉnh An Giang", "Tỉnh Bắc Ninh", "Tỉnh Cao Bằng", "Tỉnh Cà Mau", "Tỉnh Điện Biên", "Tỉnh Đắk Lắk", "Tỉnh Đồng Nai", "Tỉnh Đồng Tháp",
+      "Tỉnh Gia Lai", "Tỉnh Hà Tĩnh", "Tỉnh Hưng Yên", "Tỉnh Khánh Hòa", "Tỉnh Lai Châu", "Tỉnh Lạng Sơn", "Tỉnh Lào Cai", "Tỉnh Lâm Đồng",
+      "Tỉnh Nghệ An", "Tỉnh Ninh Bình", "Tỉnh Phú Thọ", "Tỉnh Quảng Ngãi", "Tỉnh Quảng Ninh", "Tỉnh Quảng Trị", "Tỉnh Sơn La", "Tỉnh Tây Ninh",
+      "Tỉnh Thái Nguyên", "Tỉnh Thanh Hóa", "Tỉnh Tuyên Quang", "Tỉnh Vĩnh Long"
+    ];
+
+    const SPX_EXCEL_HEADERS = [
+      '*Mã đơn hàng',
+      '*Tên người nhận',
+      '*Số điện thoại',
+      '*Tỉnh/Thành Phố',
+      '*Quận/Huyện',
+      '*Xã/Phường',
+      '*Địa chỉ chi tiết',
+      'Lưu ý về địa chỉ',
+      'Mã bưu chính',
+      '*Tên sản phẩm',
+      'Số lượng (Thông tin bắt buộc khi chọn Giao hàng một phần & Thu COD)',
+      'Giá tiền (Thông tin bắt buộc khi chọn Giao hàng một phần & Thu COD)',
+      '*Tổng cân nặng bưu gửi (KG)',
+      'Chiều dài (CM)',
+      'Chiều rộng (CM)',
+      'Chiều cao (CM)',
+      'Mã khách hàng',
+      '*Giá trị đơn hàng',
+      '*Giao hàng một phần (Y/N)',
+      '*Cho phép thử hàng (Y/N)',
+      '*Cho xem hàng, không cho thử (Y/N)',
+      'Thu phí từ chối nhận hàng (Y/N)',
+      'Phí từ chối nhận hàng cần thu',
+      '*Thu COD (Y/N)',
+      'Số tiền COD',
+      'bưu gửi giá trị cao (Y/N)',
+      '*Hình thức thanh Toán',
+      'Lưu ý giao hàng',
+      'Nhắc nhở điền đúng số tiền COD',
+      'Đơn chỉ hoàn thành nếu ở dưới hiện "Đủ điều kiện"'
+    ];
+
+    const SPX_EXCEL_HEADERS_NEW = [
+      '*Mã đơn hàng',
+      '*Tên người nhận',
+      '*Số điện thoại',
+      '*Tỉnh/Thành Phố',
+      '*Xã/Phường',
+      '*Địa chỉ chi tiết',
+      'Lưu ý về địa chỉ',
+      'Mã bưu chính',
+      '*Tên sản phẩm',
+      'Số lượng (Thông tin bắt buộc khi chọn Giao hàng một phần & Thu COD)',
+      'Giá tiền (Thông tin bắt buộc khi chọn Giao hàng một phần & Thu COD)',
+      '*Tổng cân nặng bưu gửi (KG)',
+      'Chiều dài (CM)',
+      'Chiều rộng (CM)',
+      'Chiều cao (CM)',
+      'Mã khách hàng',
+      '*Giá trị đơn hàng',
+      '*Giao hàng một phần (Y/N)',
+      '*Cho phép thử hàng (Y/N)',
+      '*Cho xem hàng, không cho thử (Y/N)',
+      'Thu phí từ chối nhận hàng (Y/N)',
+      'Phí từ chối nhận hàng cần thu',
+      '*Thu COD (Y/N)',
+      'Số tiền COD',
+      'bưu gửi giá trị cao (Y/N)',
+      '*Hình thức thanh Toán',
+      'Lưu ý giao hàng',
+      'Nhắc nhở điền đúng số tiền COD',
+      'Đơn chỉ hoàn thành nếu ở dưới hiện "Đủ điều kiện"'
+    ];
+
+    function parseAddressForSPX(fullAddr) {
+      if (!fullAddr) return { province: '', provinceNew: '', district: '', ward: '', detail: '', fullAddress: '' };
+      let parts = fullAddr.split(',').map(p => p.trim()).filter(Boolean);
+      
+      let provinceOld = '';
+      let provinceNew = '';
+      let addrNorm = removeDiacritics(fullAddr).toLowerCase();
+
+      // Khớp 63 tỉnh cho mẫu cũ (TP. HỒ CHÍ MINH, HÀ NỘI...)
+      for (let prov of SPX_PROVINCES) {
+        let pNorm = removeDiacritics(prov).toLowerCase();
+        if (prov === 'TP. HỒ CHÍ MINH') {
+          if (addrNorm.includes('ho chi minh') || addrNorm.includes('tp.hcm') || addrNorm.includes('tphcm') || addrNorm.includes('sai gon') || addrNorm.includes('saigon') || addrNorm.includes('tp hcm')) {
+            provinceOld = 'TP. HỒ CHÍ MINH';
+            break;
+          }
+        } else if (prov === 'HÀ NỘI') {
+          if (addrNorm.includes('ha noi') || addrNorm.includes('hn')) {
+            provinceOld = 'HÀ NỘI';
+            break;
+          }
+        } else if (addrNorm.includes(pNorm)) {
+          provinceOld = prov;
+          break;
+        }
+      }
+
+      // Khớp 34 tỉnh cho mẫu mới (Thành phố Hồ Chí Minh, Tỉnh Đồng Tháp...)
+      if (addrNorm.includes('ho chi minh') || addrNorm.includes('tp.hcm') || addrNorm.includes('tphcm') || addrNorm.includes('sai gon') || addrNorm.includes('saigon')) {
+        provinceNew = 'Thành phố Hồ Chí Minh';
+      } else if (addrNorm.includes('ha noi') || addrNorm.includes('hn')) {
+        provinceNew = 'Thành phố Hà Nội';
+      } else if (addrNorm.includes('da nang') || addrNorm.includes('danang')) {
+        provinceNew = 'Thành phố Đà Nẵng';
+      } else if (addrNorm.includes('hai phong') || addrNorm.includes('haiphong')) {
+        provinceNew = 'Thành phố Hải Phòng';
+      } else if (addrNorm.includes('can tho') || addrNorm.includes('cantho')) {
+        provinceNew = 'Thành phố Cần Thơ';
+      } else if (addrNorm.includes('hue') || addrNorm.includes('thua thien')) {
+        provinceNew = 'Thành phố Huế';
+      } else {
+        for (let p of SPX_PROVINCES_NEW) {
+          let base = p.replace(/^(Tỉnh|Thành phố)\s+/i, '');
+          let baseNorm = removeDiacritics(base).toLowerCase();
+          if (addrNorm.includes(baseNorm)) {
+            provinceNew = p;
+            break;
+          }
+        }
+        if (!provinceNew && provinceOld) {
+          let nameLower = provinceOld.toLowerCase();
+          let nameCap = nameLower.charAt(0).toUpperCase() + nameLower.slice(1);
+          provinceNew = 'Tỉnh ' + nameCap;
+        }
+      }
+
+      let district = '';
+      let ward = '';
+      let remaining = [];
+
+      for (let i = 0; i < parts.length; i++) {
+        let part = parts[i];
+        let pLow = removeDiacritics(part).toLowerCase().trim();
+
+        let isProvPart = false;
+        if (pLow.includes('ho chi minh') || pLow === 'tphcm' || pLow === 'tp.hcm' || pLow === 'hn' || pLow === 'sai gon' || pLow.includes('ha noi')) {
+          isProvPart = true;
+        } else if (provinceOld) {
+          let provCleanNorm = removeDiacritics(provinceOld).toLowerCase().replace(/^(tinh|thanh pho|tp\.?)\s+/i, '');
+          if (pLow.includes(provCleanNorm)) isProvPart = true;
+        }
+        if (isProvPart) continue;
+
+        if (!district && /^(quận|huyện|thị xã|thành phố|q\.|h\.|tx\.|tp\.)\s+/i.test(part)) {
+          district = part.toUpperCase();
+          continue;
+        }
+
+        if (!ward && /^(phường|xã|thị trấn|p\.|x\.|tt\.)\s+/i.test(part)) {
+          ward = part;
+          continue;
+        }
+
+        remaining.push(part);
+      }
+
+      // Nếu chưa nhận diện được phường qua tiền tố, xét phần tử kế cuối
+      if (!ward && parts.length >= 2) {
+        let candidate = parts[parts.length - 2];
+        if (candidate !== district) {
+          ward = candidate;
+        }
+      }
+
+      let detail = remaining.join(', ');
+      if (!detail && parts.length > 0) detail = parts[0];
+
+      return {
+        province: provinceOld || (provinceNew ? provinceNew.toUpperCase().replace(/^(TỈNH|THÀNH PHỐ)\s+/i, '') : ''),
+        provinceNew: provinceNew || (provinceOld ? ('Tỉnh ' + provinceOld) : ''),
+        district: district,
+        ward: ward,
+        detail: detail,
+        fullAddress: fullAddr
+      };
+    }
+
+    function openSpxSettingsModal() {
+      let m = document.getElementById('spx-settings-modal');
+      if (!m) return;
+      document.getElementById('spx-cfg-weight').value = currentSpxConfig.weight || 0.5;
+      document.getElementById('spx-cfg-length').value = currentSpxConfig.length || 15;
+      document.getElementById('spx-cfg-width').value = currentSpxConfig.width || 10;
+      document.getElementById('spx-cfg-height').value = currentSpxConfig.height || 5;
+      document.getElementById('spx-cfg-allow-check').value = currentSpxConfig.allowCheck || 'Y';
+      document.getElementById('spx-cfg-allow-trial').value = currentSpxConfig.allowTrial || 'N';
+      document.getElementById('spx-cfg-payer').value = currentSpxConfig.payer || 'Người gửi trả';
+      let allowCodEl = document.getElementById('spx-cfg-allow-cod');
+      if (allowCodEl) allowCodEl.value = currentSpxConfig.allowCod || 'N';
+      document.getElementById('spx-cfg-auto-status').checked = currentSpxConfig.autoChangeStatus !== false;
+      m.style.display = 'flex';
+    }
+
+    function closeSpxSettingsModal() {
+      let m = document.getElementById('spx-settings-modal');
+      if (m) m.style.display = 'none';
+    }
+
+    async function saveSpxSettings() {
+      let weight = parseFloat(document.getElementById('spx-cfg-weight').value);
+      if (isNaN(weight) || weight <= 0) {
+        alert("Cân nặng không hợp lệ! Vui lòng nhập số lớn hơn 0 (VD: 0.5)");
+        return;
+      }
+      let length = parseInt(document.getElementById('spx-cfg-length').value, 10) || 15;
+      let width = parseInt(document.getElementById('spx-cfg-width').value, 10) || 10;
+      let height = parseInt(document.getElementById('spx-cfg-height').value, 10) || 5;
+      let allowCheck = document.getElementById('spx-cfg-allow-check').value || 'Y';
+      let allowTrial = document.getElementById('spx-cfg-allow-trial').value || 'N';
+      let payer = document.getElementById('spx-cfg-payer').value || 'Người gửi trả';
+      let allowCod = document.getElementById('spx-cfg-allow-cod')?.value || 'N';
+      let autoChangeStatus = document.getElementById('spx-cfg-auto-status').checked;
+
+      let newConfig = {
+        weight: Math.round(weight * 100) / 100,
+        length: length,
+        width: width,
+        height: height,
+        allowCheck: allowCheck,
+        allowTrial: allowTrial,
+        payer: payer,
+        allowCod: allowCod,
+        autoChangeStatus: autoChangeStatus
+      };
+
+      showLoading(true);
+      try {
+        let res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "updateSpxConfig",
+            token: getAdminToken(),
+            spxConfig: newConfig
+          })
+        });
+        let data = await res.json();
+        showLoading(false);
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg || "Lỗi lưu cấu hình SPX!");
+          return;
+        }
+
+        currentSpxConfig = Object.assign({}, DEFAULT_SPX_CONFIG, data.spxConfig || newConfig);
+        try { localStorage.setItem('spx_config_cache', JSON.stringify(currentSpxConfig)); } catch(e) {}
+        closeSpxSettingsModal();
+        showToast("Đã lưu cấu hình SPX vào Google Sheet thành công!", "success");
+      } catch (err) {
+        showLoading(false);
+        alert("Lỗi kết nối khi lưu cấu hình SPX!");
+      }
+    }
+
+    function updateSpxExportTotalCodPreview() {
+      let codEl = document.getElementById('spx-export-total-cod');
+      let allowCodEl = document.getElementById('spx-export-allow-cod');
+      if (!codEl) return;
+      let isCod = allowCodEl ? (allowCodEl.value === 'Y') : false;
+      if (!isCod) {
+        codEl.innerText = "0đ (Không thu hộ)";
+      } else {
+        let totalCOD = (spxOrdersPendingExport || []).reduce((sum, o) => sum + (Number(o.rawTotal) || 0), 0);
+        codEl.innerText = formatMoney(totalCOD);
+      }
+    }
+
+    function openSpxExportModal(isBatchOnly) {
+      let ordersToExport = [];
+      if (isBatchOnly) {
+        if (!selectedOrderRows || selectedOrderRows.size === 0) {
+          alert("Vui lòng tích chọn ít nhất 1 đơn hàng để xuất!");
+          return;
+        }
+        ordersToExport = (globalOrdersData || []).filter(o => selectedOrderRows.has(o.row));
+      } else {
+        ordersToExport = getFilteredOrders();
+        if (!ordersToExport || ordersToExport.length === 0) {
+          alert("Không có đơn hàng nào trong danh sách đang xem để xuất!");
+          return;
+        }
+      }
+
+      spxOrdersPendingExport = ordersToExport;
+
+      let countEl = document.getElementById('spx-export-count');
+      let weightEl = document.getElementById('spx-export-weight');
+      let payerEl = document.getElementById('spx-export-payer');
+      let allowCheckEl = document.getElementById('spx-export-allow-check');
+      let allowCodEl = document.getElementById('spx-export-allow-cod');
+      let templateEl = document.getElementById('spx-export-template');
+      let autoStatusEl = document.getElementById('spx-export-auto-status');
+
+      if (countEl) countEl.innerText = String(ordersToExport.length);
+      if (weightEl) weightEl.value = currentSpxConfig.weight || 0.5;
+      if (payerEl) payerEl.value = currentSpxConfig.payer || 'Người gửi trả';
+      if (allowCheckEl) allowCheckEl.value = currentSpxConfig.allowCheck || 'Y';
+      if (allowCodEl) allowCodEl.value = currentSpxConfig.allowCod || 'N';
+      if (templateEl) templateEl.value = 'new';
+      if (autoStatusEl) autoStatusEl.checked = currentSpxConfig.autoChangeStatus !== false;
+
+      updateSpxExportTotalCodPreview();
+
+      let m = document.getElementById('spx-export-modal');
+      if (m) m.style.display = 'flex';
+    }
+
+    function closeSpxExportModal() {
+      let m = document.getElementById('spx-export-modal');
+      if (m) m.style.display = 'none';
+      spxOrdersPendingExport = [];
+    }
+
+    async function confirmExportSpxExcel() {
+      if (!spxOrdersPendingExport || spxOrdersPendingExport.length === 0) {
+        alert("Không có đơn hàng nào để xuất!");
+        closeSpxExportModal();
+        return;
+      }
+
+      let batchTemplate = document.getElementById('spx-export-template')?.value || 'new';
+      let batchWeight = parseFloat(document.getElementById('spx-export-weight')?.value) || currentSpxConfig.weight || 0.5;
+      let batchPayer = document.getElementById('spx-export-payer')?.value || currentSpxConfig.payer || 'Người gửi trả';
+      let batchAllowCheck = document.getElementById('spx-export-allow-check')?.value || currentSpxConfig.allowCheck || 'Y';
+      let batchAllowCod = document.getElementById('spx-export-allow-cod')?.value || currentSpxConfig.allowCod || 'N';
+      let shouldAutoStatus = document.getElementById('spx-export-auto-status')?.checked;
+
+      let exportOptions = {
+        template: batchTemplate,
+        allowCod: batchAllowCod,
+        weight: batchWeight,
+        payer: batchPayer,
+        allowCheck: batchAllowCheck,
+        allowTrial: currentSpxConfig.allowTrial || 'N',
+        length: currentSpxConfig.length || 15,
+        width: currentSpxConfig.width || 10,
+        height: currentSpxConfig.height || 5
+      };
+
+      let success = generateAndDownloadSpxExcel(spxOrdersPendingExport, exportOptions);
+      if (!success) return;
+
+      let exportedOrdersCopy = spxOrdersPendingExport.slice();
+      closeSpxExportModal();
+
+      if (shouldAutoStatus && exportedOrdersCopy.length > 0) {
+        let updates = exportedOrdersCopy
+          .filter(o => o.status !== "Đã giao cho đơn vị vận chuyển" && o.status !== "Hoàn thành")
+          .map(o => ({ row: o.row, newStatus: "Đã giao cho đơn vị vận chuyển" }));
+        
+        if (updates.length > 0) {
+          await executeBatchStatusUpdate(updates, `Đã xuất ${exportedOrdersCopy.length} đơn sang SPX và chuyển trạng thái "Đã giao ĐVVC"!`);
+        } else {
+          showToast(`Đã xuất file Excel cho ${exportedOrdersCopy.length} đơn hàng SPX!`, 'success');
+        }
+      } else {
+        showToast(`Đã xuất file Excel cho ${exportedOrdersCopy.length} đơn hàng SPX!`, 'success');
+      }
+
+      clearSelectedOrders();
+    }
+
+    function generateAndDownloadSpxExcel(orders, options) {
+      if (typeof XLSX === 'undefined') {
+        alert("Thư viện Excel đang tải, vui lòng kiểm tra kết nối mạng và thử lại sau giây lát!");
+        return false;
+      }
+
+      try {
+        let templateType = options.template || 'new'; // 'new', 'old', 'both'
+        let isCodEnabled = options.allowCod === 'Y';
+
+        let wb = XLSX.utils.book_new();
+
+        // 1. Build rows for Mẫu mới (Tạo đơn (địa chỉ mới) - 29 cột)
+        let rowsNew = [SPX_EXCEL_HEADERS_NEW];
+        // 2. Build rows for Mẫu cũ (Tạo đơn (địa chỉ cũ) - 30 cột)
+        let rowsOld = [SPX_EXCEL_HEADERS];
+
+        orders.forEach((order, index) => {
+          let parsedAddr = parseAddressForSPX(order.address);
+          let phoneClean = (order.phone || '').replace(/[^0-9]/g, '');
+
+          let itemNames = '';
+          let totalQty = 1;
+          if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
+            itemNames = order.cart.map(i => `${i.name || ''}${i.variantName ? ' (' + i.variantName + ')' : ''} x${i.qty || 1}`).join(', ');
+            totalQty = order.cart.reduce((sum, i) => sum + (Number(i.qty) || 1), 0);
+          } else {
+            itemNames = (order.details || 'Sản phẩm thời trang').replace(/[\r\n]+/g, ', ');
+          }
+          if (itemNames.length > 150) itemNames = itemNames.substring(0, 147) + '...';
+
+          let rawTotal = Number(order.rawTotal) || 0;
+          let unitPrice = Math.round(rawTotal / (totalQty || 1));
+          let orderId = order.orderId ? String(order.orderId) : ('DH-' + (index + 1));
+          let shipNote = order.note ? (order.note + '; Cho xem hàng') : 'Cho xem hàng, gọi trước khi giao';
+          let fullDetailAddress = order.address || parsedAddr.detail || '';
+
+          // ROW CHO MẪU MỚI (29 CỘT - Chuẩn theo web shop Tỉnh/TP ➔ Phường/Xã)
+          let rowDataNew = [
+            orderId,                                          // 1: *Mã đơn hàng
+            order.name || '',                                 // 2: *Tên người nhận
+            phoneClean,                                       // 3: *Số điện thoại
+            parsedAddr.provinceNew || parsedAddr.province,    // 4: *Tỉnh/Thành Phố (34 tỉnh danh mục mới)
+            parsedAddr.ward || '',                            // 5: *Xã/Phường
+            fullDetailAddress,                                // 6: *Địa chỉ chi tiết (đầy đủ cho shipper)
+            '',                                               // 7: Lưu ý về địa chỉ
+            '',                                               // 8: Mã bưu chính
+            itemNames,                                        // 9: *Tên sản phẩm
+            totalQty,                                         // 10: Số lượng
+            unitPrice,                                        // 11: Giá tiền
+            options.weight || 0.5,                            // 12: *Tổng cân nặng bưu gửi (KG)
+            options.length || 15,                             // 13: Chiều dài (CM)
+            options.width || 10,                              // 14: Chiều rộng (CM)
+            options.height || 5,                              // 15: Chiều cao (CM)
+            phoneClean,                                       // 16: Mã khách hàng
+            rawTotal,                                         // 17: *Giá trị đơn hàng
+            'N',                                              // 18: *Giao hàng một phần (Y/N)
+            options.allowTrial || 'N',                        // 19: *Cho phép thử hàng (Y/N)
+            options.allowCheck || 'Y',                        // 20: *Cho xem hàng, không cho thử (Y/N)
+            'N',                                              // 21: Thu phí từ chối nhận hàng (Y/N)
+            '',                                               // 22: Phí từ chối nhận hàng cần thu
+            isCodEnabled ? 'Y' : 'N',                         // 23: *Thu COD (Y/N)
+            isCodEnabled ? rawTotal : '',                     // 24: Số tiền COD (để trống khi không thu)
+            'N',                                              // 25: bưu gửi giá trị cao (Y/N)
+            options.payer || 'Người gửi trả',                 // 26: *Hình thức thanh Toán
+            shipNote,                                         // 27: Lưu ý giao hàng
+            '',                                               // 28: Nhắc nhở điền đúng số tiền COD
+            'Đủ điều kiện'                                    // 29: Đơn chỉ hoàn thành nếu ở dưới hiện "Đủ điều kiện"
+          ];
+          rowsNew.push(rowDataNew);
+
+          // ROW CHO MẪU CŨ (30 CỘT)
+          // Lưu ý quan trọng: SPX kiểm tra Cột E (*Quận/Huyện) không được rỗng.
+          // Nếu đơn hàng không có Quận (do web theo mô hình 2 cấp), đưa Ward vào Cột E (như dòng ví dụ 6 SPX) để Cột E luôn có dữ liệu.
+          let districtVal = parsedAddr.district || parsedAddr.ward || 'QUẬN 1';
+          let wardVal = parsedAddr.district ? (parsedAddr.ward || '') : '';
+
+          let rowDataOld = [
+            orderId,                                          // 1: *Mã đơn hàng
+            order.name || '',                                 // 2: *Tên người nhận
+            phoneClean,                                       // 3: *Số điện thoại
+            parsedAddr.province || 'TP. HỒ CHÍ MINH',         // 4: *Tỉnh/Thành Phố (63 tỉnh)
+            districtVal,                                      // 5: *Quận/Huyện (Bắt buộc không rỗng)
+            wardVal,                                          // 6: *Xã/Phường
+            fullDetailAddress,                                // 7: *Địa chỉ chi tiết
+            '',                                               // 8: Lưu ý về địa chỉ
+            '',                                               // 9: Mã bưu chính
+            itemNames,                                        // 10: *Tên sản phẩm
+            totalQty,                                         // 11: Số lượng
+            unitPrice,                                        // 12: Giá tiền
+            options.weight || 0.5,                            // 13: *Tổng cân nặng bưu gửi (KG)
+            options.length || 15,                             // 14: Chiều dài (CM)
+            options.width || 10,                              // 15: Chiều rộng (CM)
+            options.height || 5,                              // 16: Chiều cao (CM)
+            phoneClean,                                       // 17: Mã khách hàng
+            rawTotal,                                         // 18: *Giá trị đơn hàng
+            'N',                                              // 19: *Giao hàng một phần (Y/N)
+            options.allowTrial || 'N',                        // 20: *Cho phép thử hàng (Y/N)
+            options.allowCheck || 'Y',                        // 21: *Cho xem hàng, không cho thử (Y/N)
+            'N',                                              // 22: Thu phí từ chối nhận hàng (Y/N)
+            '',                                               // 23: Phí từ chối nhận hàng cần thu
+            isCodEnabled ? 'Y' : 'N',                         // 24: *Thu COD (Y/N)
+            isCodEnabled ? rawTotal : '',                     // 25: Số tiền COD (để trống khi không thu)
+            'N',                                              // 26: bưu gửi giá trị cao (Y/N)
+            options.payer || 'Người gửi trả',                 // 27: *Hình thức thanh Toán
+            shipNote,                                         // 28: Lưu ý giao hàng
+            '',                                               // 29: Nhắc nhở điền đúng số tiền COD
+            'Đủ điều kiện'                                    // 30: Đơn chỉ hoàn thành nếu ở dưới hiện "Đủ điều kiện"
+          ];
+          rowsOld.push(rowDataOld);
+        });
+
+        let wsColsNew = [
+          { wch: 16 }, { wch: 20 }, { wch: 14 }, { wch: 24 }, { wch: 22 },
+          { wch: 38 }, { wch: 14 }, { wch: 12 }, { wch: 32 }, { wch: 10 },
+          { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+          { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+          { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 },
+          { wch: 16 }, { wch: 32 }, { wch: 15 }, { wch: 16 }
+        ];
+
+        let wsColsOld = [
+          { wch: 16 }, { wch: 20 }, { wch: 14 }, { wch: 20 }, { wch: 20 },
+          { wch: 20 }, { wch: 38 }, { wch: 14 }, { wch: 12 }, { wch: 32 },
+          { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 10 },
+          { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 },
+          { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 },
+          { wch: 16 }, { wch: 32 }, { wch: 15 }, { wch: 16 }
+        ];
+
+        if (templateType === 'old') {
+          let wsOld = XLSX.utils.aoa_to_sheet(rowsOld);
+          wsOld['!cols'] = wsColsOld;
+          XLSX.utils.book_append_sheet(wb, wsOld, 'Tạo đơn (địa chỉ cũ)');
+
+          let wsNew = XLSX.utils.aoa_to_sheet([SPX_EXCEL_HEADERS_NEW]);
+          wsNew['!cols'] = wsColsNew;
+          XLSX.utils.book_append_sheet(wb, wsNew, 'Tạo đơn (địa chỉ mới)');
+        } else if (templateType === 'both') {
+          let wsNew = XLSX.utils.aoa_to_sheet(rowsNew);
+          wsNew['!cols'] = wsColsNew;
+          XLSX.utils.book_append_sheet(wb, wsNew, 'Tạo đơn (địa chỉ mới)');
+
+          let wsOld = XLSX.utils.aoa_to_sheet(rowsOld);
+          wsOld['!cols'] = wsColsOld;
+          XLSX.utils.book_append_sheet(wb, wsOld, 'Tạo đơn (địa chỉ cũ)');
+        } else {
+          // Mặc định: 'new' (Mẫu địa chỉ mới - Khuyên dùng)
+          let wsNew = XLSX.utils.aoa_to_sheet(rowsNew);
+          wsNew['!cols'] = wsColsNew;
+          XLSX.utils.book_append_sheet(wb, wsNew, 'Tạo đơn (địa chỉ mới)');
+
+          let wsOld = XLSX.utils.aoa_to_sheet([SPX_EXCEL_HEADERS]);
+          wsOld['!cols'] = wsColsOld;
+          XLSX.utils.book_append_sheet(wb, wsOld, 'Tạo đơn (địa chỉ cũ)');
+        }
+
+        let now = new Date();
+        let pad = n => (n < 10 ? '0' : '') + n;
+        let dateStr = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
+        let templateSuffix = templateType === 'old' ? '_DiaChiCu' : (templateType === 'both' ? '_Full2Sheet' : '_DiaChiMoi');
+        XLSX.writeFile(wb, `SPX_TaoDon_${dateStr}${templateSuffix}.xlsx`);
+        return true;
+      } catch (err) {
+        console.error("Lỗi tạo file Excel SPX:", err);
+        alert("Có lỗi xảy ra khi tạo file Excel SPX: " + err.message);
+        return false;
+      }
     }
   </script>
 </body>
