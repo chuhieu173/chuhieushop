@@ -2441,6 +2441,15 @@
         </div>
       </div>
 
+      <div style="margin-bottom: 14px;">
+        <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">📏 Kích thước kiện hàng đợt này (Dài x Rộng x Cao cm):</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <input type="number" id="spx-export-length" placeholder="Dài (15)" min="1" max="200" style="padding: 8px 10px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; text-align: center;">
+          <input type="number" id="spx-export-width" placeholder="Rộng (10)" min="1" max="200" style="padding: 8px 10px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; text-align: center;">
+          <input type="number" id="spx-export-height" placeholder="Cao (5)" min="1" max="200" style="padding: 8px 10px; border: 1.5px solid #cbd5e0; border-radius: 6px; font-size: 13.5px; text-align: center;">
+        </div>
+      </div>
+
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
         <div>
           <label style="font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px;">💰 Thu COD đợt này:</label>
@@ -3156,11 +3165,25 @@
       return `${cleanedDetail}, ${wardPart}, ${provincePart}`;
     }
 
+    function formatRecipientName(name) {
+      let trimmed = (name || '').trim();
+      if (!trimmed) return '';
+      let words = trimmed.split(/\s+/).filter(Boolean);
+      if (words.length === 1) {
+        let w = words[0];
+        if (!/^a$/i.test(w)) {
+          return 'A ' + w;
+        }
+      }
+      return trimmed;
+    }
+
     async function copyCustomerInfo(row) {
         let order = globalOrdersData.find(o => o.row === row);
         if (!order) return;
         let cleanAddr = cleanFullAddress(order.address);
-        let copyText = `${order.name}\nSđt: ${order.phone}\nĐịa chỉ: ${cleanAddr}`;
+        let formattedName = formatRecipientName(order.name);
+        let copyText = `${formattedName}\nSđt: ${order.phone}\nĐịa chỉ: ${cleanAddr}`;
         if (order.note) copyText += `\nGhi chú: ${order.note}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           try {
@@ -7363,6 +7386,9 @@
 
       let countEl = document.getElementById('spx-export-count');
       let weightEl = document.getElementById('spx-export-weight');
+      let lengthEl = document.getElementById('spx-export-length');
+      let widthEl = document.getElementById('spx-export-width');
+      let heightEl = document.getElementById('spx-export-height');
       let payerEl = document.getElementById('spx-export-payer');
       let allowCheckEl = document.getElementById('spx-export-allow-check');
       let allowCodEl = document.getElementById('spx-export-allow-cod');
@@ -7371,6 +7397,9 @@
 
       if (countEl) countEl.innerText = String(ordersToExport.length);
       if (weightEl) weightEl.value = currentSpxConfig.weight || 0.5;
+      if (lengthEl) lengthEl.value = currentSpxConfig.length || 15;
+      if (widthEl) widthEl.value = currentSpxConfig.width || 10;
+      if (heightEl) heightEl.value = currentSpxConfig.height || 5;
       if (payerEl) payerEl.value = currentSpxConfig.payer || 'Người gửi trả';
       if (allowCheckEl) allowCheckEl.value = currentSpxConfig.allowCheck || 'Y';
       if (allowCodEl) allowCodEl.value = currentSpxConfig.allowCod || 'N';
@@ -7398,6 +7427,9 @@
 
       let batchTemplate = document.getElementById('spx-export-template')?.value || 'new';
       let batchWeight = parseFloat(document.getElementById('spx-export-weight')?.value) || currentSpxConfig.weight || 0.5;
+      let batchLength = parseInt(document.getElementById('spx-export-length')?.value, 10) || currentSpxConfig.length || 15;
+      let batchWidth = parseInt(document.getElementById('spx-export-width')?.value, 10) || currentSpxConfig.width || 10;
+      let batchHeight = parseInt(document.getElementById('spx-export-height')?.value, 10) || currentSpxConfig.height || 5;
       let batchPayer = document.getElementById('spx-export-payer')?.value || currentSpxConfig.payer || 'Người gửi trả';
       let batchAllowCheck = document.getElementById('spx-export-allow-check')?.value || currentSpxConfig.allowCheck || 'Y';
       let batchAllowCod = document.getElementById('spx-export-allow-cod')?.value || currentSpxConfig.allowCod || 'N';
@@ -7410,9 +7442,9 @@
         payer: batchPayer,
         allowCheck: batchAllowCheck,
         allowTrial: currentSpxConfig.allowTrial || 'N',
-        length: currentSpxConfig.length || 15,
-        width: currentSpxConfig.width || 10,
-        height: currentSpxConfig.height || 5
+        length: batchLength,
+        width: batchWidth,
+        height: batchHeight
       };
 
       let success = generateAndDownloadSpxExcel(spxOrdersPendingExport, exportOptions);
@@ -7458,6 +7490,8 @@
         orders.forEach((order, index) => {
           let parsedAddr = parseAddressForSPX(order.address);
           let phoneClean = (order.phone || '').replace(/[^0-9]/g, '');
+          let formattedRecipient = formatRecipientName(order.name);
+          let recipientWithPhone = phoneClean ? `${formattedRecipient} - ${phoneClean}` : formattedRecipient;
 
           let itemNames = '';
           let totalQty = 1;
@@ -7481,7 +7515,7 @@
           // ROW CHO MẪU MỚI (29 CỘT - Chuẩn theo web shop Tỉnh/TP ➔ Phường/Xã)
           let rowDataNew = [
             orderId,                                          // 1: *Mã đơn hàng
-            order.name || '',                                 // 2: *Tên người nhận
+            recipientWithPhone,                               // 2: *Tên người nhận (gắn kèm SĐT)
             phoneClean,                                       // 3: *Số điện thoại
             parsedAddr.provinceNew || parsedAddr.province,    // 4: *Tỉnh/Thành Phố (34 tỉnh danh mục mới)
             parsedAddr.ward || '',                            // 5: *Xã/Phường
@@ -7520,7 +7554,7 @@
 
           let rowDataOld = [
             orderId,                                          // 1: *Mã đơn hàng
-            order.name || '',                                 // 2: *Tên người nhận
+            recipientWithPhone,                               // 2: *Tên người nhận (gắn kèm SĐT)
             phoneClean,                                       // 3: *Số điện thoại
             parsedAddr.province || 'TP. HỒ CHÍ MINH',         // 4: *Tỉnh/Thành Phố (63 tỉnh)
             districtVal,                                      // 5: *Quận/Huyện (Bắt buộc không rỗng)

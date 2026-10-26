@@ -330,6 +330,9 @@ class TestDOMIntegrity(unittest.TestCase):
             'spx-export-total-cod',
             'spx-export-template',
             'spx-export-weight',
+            'spx-export-length',
+            'spx-export-width',
+            'spx-export-height',
             'spx-export-payer',
             'spx-export-allow-cod',
             'spx-export-allow-check',
@@ -1666,15 +1669,71 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('spxConfig: getSpxConfig(doc)', codegs, "LỖI: doGet hoặc handleGetProductsAdmin chưa trả về spxConfig")
 
     def test_copy_customer_info_format_and_spx_empty_customer_code(self):
-        """Kiểm tra: Nút Copy thông tin đơn hàng bỏ tiền tố 'Người nhận:', Mã khách hàng và Lưu ý giao hàng trong file Excel SPX được để trống"""
+        """Kiểm tra: Nút Copy thông tin đơn hàng bỏ tiền tố 'Người nhận:', chuẩn hóa tên 1 chữ thêm A, Mã khách hàng và Lưu ý giao hàng trong file Excel SPX được để trống, tên gắn kèm SĐT"""
         admin = read_file('admin.html')
         self.assertIn("function copyCustomerInfo", admin, "LỖI: Thiếu hàm copyCustomerInfo trong admin.html!")
         self.assertNotIn("Người nhận: ${order.name}", admin, "LỖI: Nút copy đơn hàng vẫn còn chứa tiền tố 'Người nhận:'!")
-        self.assertIn("${order.name}\\nSđt: ${order.phone}\\nĐịa chỉ: ${cleanAddr}", admin, "LỖI: Sai định dạng copy thông tin đơn hàng!")
+        self.assertIn("${formattedName}\\nSđt: ${order.phone}\\nĐịa chỉ: ${cleanAddr}", admin, "LỖI: Sai định dạng copy thông tin đơn hàng!")
+        self.assertIn("function formatRecipientName", admin, "LỖI: Thiếu hàm formatRecipientName trong admin.html!")
         self.assertIn("// 16: Mã khách hàng (Để trống)", admin, "LỖI: Mã khách hàng mẫu mới chưa được để trống!")
         self.assertIn("// 17: Mã khách hàng (Để trống)", admin, "LỖI: Mã khách hàng mẫu cũ chưa được để trống!")
         self.assertIn("// 27: Lưu ý giao hàng (Để trống)", admin, "LỖI: Lưu ý giao hàng mẫu mới chưa được để trống!")
         self.assertIn("// 28: Lưu ý giao hàng (Để trống)", admin, "LỖI: Lưu ý giao hàng mẫu cũ chưa được để trống!")
+        self.assertIn("recipientWithPhone", admin, "LỖI: Chưa gắn SĐT vào tên người nhận trong file Excel SPX!")
+
+    def test_format_recipient_name_and_excel_phone_attachment(self):
+        """Kiểm tra: Thuật toán chuẩn hóa tên 1 chữ (ví dụ: Thành -> A Thành) và gắn kèm SĐT trong file Excel SPX bằng Node.js"""
+        admin = read_file('admin.html')
+        
+        # Trích xuất hàm formatRecipientName
+        self.assertIn("function formatRecipientName(name)", admin)
+        fn_code = admin[admin.find("function formatRecipientName(name)"):admin.find("async function copyCustomerInfo(row)")]
+        
+        test_body = """
+        const assert = require('assert');
+        
+        // Test 1 chữ -> Thêm 'A ' vào đầu
+        assert.strictEqual(formatRecipientName("Thành"), "A Thành");
+        assert.strictEqual(formatRecipientName("Hằng"), "A Hằng");
+        assert.strictEqual(formatRecipientName("  Thành  "), "A Thành");
+        assert.strictEqual(formatRecipientName("Hiếu"), "A Hiếu");
+
+        // Test nhiều chữ -> Giữ nguyên
+        assert.strictEqual(formatRecipientName("A Thành"), "A Thành");
+        assert.strictEqual(formatRecipientName("Nguyễn Văn A"), "Nguyễn Văn A");
+        assert.strictEqual(formatRecipientName("Chú Hiếu"), "Chú Hiếu");
+        assert.strictEqual(formatRecipientName("Trần Thị Mỹ"), "Trần Thị Mỹ");
+        
+        // Test trường hợp đặc biệt
+        assert.strictEqual(formatRecipientName("A"), "A");
+        assert.strictEqual(formatRecipientName(""), "");
+        assert.strictEqual(formatRecipientName(null), "");
+
+        // Test ghép với SĐT cho Excel SPX
+        function getRecipientWithPhone(name, phone) {
+            let phoneClean = (phone || '').replace(/[^0-9]/g, '');
+            let formattedRecipient = formatRecipientName(name);
+            return phoneClean ? `${formattedRecipient} - ${phoneClean}` : formattedRecipient;
+        }
+
+        assert.strictEqual(getRecipientWithPhone("Thành", "0123456789"), "A Thành - 0123456789");
+        assert.strictEqual(getRecipientWithPhone("Thành", "0123.456.789"), "A Thành - 0123456789");
+        assert.strictEqual(getRecipientWithPhone("Nguyễn Văn Bình", "0987654321"), "Nguyễn Văn Bình - 0987654321");
+        assert.strictEqual(getRecipientWithPhone("Thành", ""), "A Thành");
+
+        console.log("SUCCESS");
+        """
+        js_code = fn_code + "\n" + test_body
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(js_code)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("SUCCESS", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
 
 
