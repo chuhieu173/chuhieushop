@@ -1540,7 +1540,7 @@ class TestBusinessLogic(unittest.TestCase):
         for sh in glsl_shaders:
             self.assertIn(sh, index, f"LỖI: index.html phải có shader '{sh}' phục vụ WebGL GPU!")
 
-        theme_options = ['default', 'dark', 'matrix', 'waves', 'cyberpunk', 'aurora', 'snow', 'space', 'particles', 'video']
+        theme_options = ['default', 'dark', 'matrix', 'waves', 'cyberpunk', 'aurora', 'halloween', 'snow', 'space', 'particles', 'video']
         for opt in theme_options:
             self.assertIn(f'value="{opt}"', index, f"LỖI: index.html selector thiếu tùy chọn theme '{opt}'!")
             self.assertIn(f'value="{opt}"', admin, f"LỖI: admin.html selector thiếu tùy chọn theme '{opt}'!")
@@ -1731,6 +1731,86 @@ class TestBusinessLogic(unittest.TestCase):
         try:
             res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
             self.assertIn("SUCCESS", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_halloween_theme_integration(self):
+        """Kiểm tra: Theme Halloween được tích hợp đầy đủ CSS, selector, engine Canvas 2D và render mượt mà bằng Node.js"""
+        index = read_file('index.html')
+        admin = read_file('admin.html')
+
+        # 1. Kiểm tra CSS đặc trưng Halloween
+        self.assertIn('body.theme-halloween', index, "LỖI: index.html thiếu CSS class 'body.theme-halloween'!")
+        self.assertIn('color: #ff7700 !important;', index, "LỖI: Theme Halloween thiếu màu chữ cam bí ngô phát sáng đặc trưng!")
+
+        # 2. Kiểm tra tùy chọn trong Selector
+        self.assertIn('value="halloween"', index, "LỖI: index.html thiếu option 'halloween' trong user-theme-selector!")
+        self.assertIn('value="halloween"', admin, "LỖI: admin.html thiếu option 'halloween' trong edit-theme!")
+
+        # 3. Kiểm tra logic kích hoạt trong applyTheme
+        self.assertIn("themeToApply === 'halloween'", index, "LỖI: index.html thiếu điều kiện áp dụng theme halloween!")
+        self.assertIn("initHalloween", index, "LỖI: index.html thiếu hàm khởi tạo Canvas theme initHalloween!")
+
+        # 4. Kiểm tra render engine Canvas 2D của Halloween bằng Node.js (mock canvas 2D context)
+        test_script = """
+        const assert = require('assert');
+        
+        // Mock Canvas 2D Context
+        const mockCtx = {
+          save: () => {},
+          restore: () => {},
+          translate: () => {},
+          scale: () => {},
+          rotate: () => {},
+          beginPath: () => {},
+          closePath: () => {},
+          arc: () => {},
+          ellipse: () => {},
+          rect: () => {},
+          fillRect: () => {},
+          clearRect: () => {},
+          moveTo: () => {},
+          lineTo: () => {},
+          quadraticCurveTo: () => {},
+          bezierCurveTo: () => {},
+          fill: () => {},
+          stroke: () => {},
+          createRadialGradient: () => ({ addColorStop: () => {} }),
+          createLinearGradient: () => ({ addColorStop: () => {} }),
+          fillStyle: '',
+          strokeStyle: '',
+          lineWidth: 1,
+          globalAlpha: 1,
+          shadowBlur: 0,
+          shadowColor: ''
+        };
+
+        const mockCanvas = {
+          width: 1920,
+          height: 1080
+        };
+
+        global.window = { innerWidth: 1920, innerHeight: 1080 };
+        """ + index[index.find("function initHalloween(canvas, ctx)"):index.find("function startCanvasTheme(themeName)")] + """
+        
+        const renderFunc = initHalloween(mockCanvas, mockCtx);
+        assert.strictEqual(typeof renderFunc, 'function', 'initHalloween phải trả về hàm render');
+        
+        // Chạy thử 5 frames render liên tiếp để kiểm tra không phát sinh ngoại lệ
+        for (let frame = 0; frame < 5; frame++) {
+          renderFunc();
+        }
+
+        console.log("HALLOWEEN_CANVAS_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_script)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("HALLOWEEN_CANVAS_OK", res.stdout)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
