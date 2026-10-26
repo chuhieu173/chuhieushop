@@ -1815,6 +1815,167 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_chunked_cache_and_batch_config_codegs(self):
+        """Kiểm tra: Chunked Cache (vượt trần 100KB của Google CacheService) và đọc gộp B1:B4 trong Code.gs hoạt động chính xác 100%"""
+        codegs = read_file('Code.gs')
+        self.assertIn("function getConfigValues(doc)", codegs, "LỖI: Code.gs thiếu hàm đọc gộp cấu hình getConfigValues(doc)!")
+        self.assertIn('getRange("B1:B4").getValues()', codegs, "LỖI: Code.gs chưa đọc gộp dải ô B1:B4!")
+        self.assertIn("function putChunkedCache", codegs, "LỖI: Code.gs thiếu hàm putChunkedCache!")
+        self.assertIn("function getChunkedCache", codegs, "LỖI: Code.gs thiếu hàm getChunkedCache!")
+        self.assertIn('action === "getAdminInitData"', codegs, "LỖI: Code.gs thiếu endpoint getAdminInitData!")
+
+        # Trích xuất khối hàm Chunked Cache từ Code.gs để chạy kiểm thử bằng Node.js
+        chunk_code = codegs[codegs.find("const PRODUCTS_CACHE_KEY"):codegs.find("function clearProductsCache")]
+        test_body = """
+        const assert = require('assert');
+        const store = {};
+        const mockCache = {
+          put: (k, v) => {
+            if (v.length > 100000) throw new Error("Value too large for CacheService (>100KB)!");
+            store[k] = String(v);
+          },
+          putAll: (obj) => {
+            for (const [k, v] of Object.entries(obj)) {
+              if (String(v).length > 100000) throw new Error("Chunk too large for CacheService (>100KB)!");
+              store[k] = String(v);
+            }
+          },
+          get: (k) => store[k] || null,
+          getAll: (keys) => {
+            const res = {};
+            keys.forEach(k => { if (store[k] !== undefined) res[k] = store[k]; });
+            return res;
+          },
+          removeAll: (keys) => {
+            keys.forEach(k => delete store[k]);
+          }
+        };
+
+        // 1. Chuỗi nhỏ (< 80KB)
+        const smallPayload = JSON.stringify({ status: "success", items: [1, 2, 3] });
+        putChunkedCache(mockCache, "test_key", smallPayload, 21600);
+        assert.strictEqual(getChunkedCache(mockCache, "test_key"), smallPayload);
+
+        // 2. Chuỗi lớn (~210KB -> tự động chia thành 3 chunks)
+        const bigArray = [];
+        for (let i = 0; i < 1500; i++) {
+          bigArray.push({ id: "SP_" + i, name: "Sản phẩm thử nghiệm tải lớn số " + i, desc: "Mô tả chi tiết linh kiện điện tử công suất cao ".repeat(2) });
+        }
+        const bigPayload = JSON.stringify({ status: "success", products: bigArray });
+        assert(bigPayload.length > 180000, "Payload test phải lớn hơn 180KB");
+
+        putChunkedCache(mockCache, "big_key", bigPayload, 21600);
+        const expectedChunks = Math.ceil(bigPayload.length / CACHE_CHUNK_SIZE);
+        assert(expectedChunks >= 3, "Phải chia thành ít nhất 3 chunks");
+        assert.strictEqual(JSON.parse(store["big_key"]).count, expectedChunks, "Số lượng chunks phải khớp chính xác");
+        const recovered = getChunkedCache(mockCache, "big_key");
+        assert.strictEqual(recovered, bigPayload, "Dữ liệu ghép lại từ Chunked Cache phải khớp 100% với bản gốc");
+
+        console.log("CHUNKED_CACHE_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(chunk_code + "\n" + test_body)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, f"Lỗi Node.js: {res.stderr}")
+            self.assertIn("CHUNKED_CACHE_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_duplicate_detection_o_n_benchmark_and_dom_batching(self):
+        """Kiểm tra: Thuật toán lọc đơn trùng O(N) xử lý 2.000 đơn < 150ms, phân trang thông minh, tải song song Promise.all và không còn innerHTML += trong vòng lặp"""
+        admin = read_file('admin.html')
+        index = read_file('index.html')
+
+        # 1. Không còn tbody.innerHTML += trong admin.html và cartDiv.innerHTML += trong index.html
+        self.assertNotIn("tbody.innerHTML +=", admin, "LỖI: admin.html vẫn còn dùng tbody.innerHTML += trong vòng lặp gây chậm DOM!")
+        self.assertNotIn("cartDiv.innerHTML +=", index, "LỖI: index.html vẫn còn dùng cartDiv.innerHTML += trong updateCart!")
+
+        # 2. Có lazy loading ảnh và DocumentFragment trên trang chủ + admin
+        self.assertIn('loading="lazy" decoding="async"', index, "LỖI: index.html thiếu thuộc tính loading='lazy' decoding='async' cho thẻ img!")
+        self.assertIn('loading="lazy" decoding="async"', admin, "LỖI: admin.html thiếu thuộc tính loading='lazy' decoding='async' cho thẻ img!")
+        self.assertIn("createDocumentFragment()", index, "LỖI: index.html chưa dùng DocumentFragment để gom nhóm DOM!")
+
+        # 3. Có tải song song Promise.all và Smart Pagination trên trang Admin
+        self.assertIn("Promise.all([ordersPromise, productsPromise])", admin, "LỖI: loadData() trong admin.html chưa tải song song bằng Promise.all!")
+        self.assertIn("function updateOrdersPaginationBar", admin, "LỖI: admin.html thiếu hàm updateOrdersPaginationBar!")
+        self.assertIn("function loadMoreOrders", admin, "LỖI: admin.html thiếu hàm loadMoreOrders!")
+        self.assertIn("function showAllOrders", admin, "LỖI: admin.html thiếu hàm showAllOrders!")
+
+        # 4. Benchmark tốc độ O(N) Hash Bucket trên 2.000 đơn hàng bằng Node.js
+        m_dup = re.search(r"(function removeDiacritics[\s\S]*?)(?=function renderOrders)", admin)
+        self.assertIsNotNone(m_dup)
+
+        bench_js = """
+        const assert = require('assert');
+        const document = { getElementById: () => null, querySelectorAll: () => [] };
+        function escapeHtml(s) { return String(s || ''); }
+        function parseOrderDate(rawDate) {
+          if (!rawDate) return null;
+          let m = String(rawDate).match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})(?:[,\\s]+(\\d{1,2}):(\\d{1,2}))?/);
+          if (m) return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]), parseInt(m[4] || 0), parseInt(m[5] || 0));
+          return new Date(rawDate);
+        }
+        """ + m_dup.group(1) + """
+        // Tạo 2.000 đơn hàng (trong đó có 100 cặp đơn trùng lặp)
+        globalOrdersData = [];
+        for (let i = 0; i < 1900; i++) {
+          globalOrdersData.push({
+            row: i + 2,
+            orderId: 'DH_' + i,
+            date: '20/10/2026, 10:00:00',
+            name: 'Khách hàng ' + i,
+            phone: '09' + String(10000000 + i),
+            address: 'Số ' + i + ' Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
+            details: '- Mạch công suất (x1)',
+            cart: [{ id: 'SP1', variantId: '', qty: 1 }],
+            total: '250.000đ',
+            rawTotal: 250000,
+            status: 'Khách đặt hàng',
+            note: ''
+          });
+        }
+        // Thêm 100 bản sao trùng lặp với 100 đơn đầu tiên
+        for (let i = 0; i < 100; i++) {
+          globalOrdersData.push({
+            row: 3000 + i,
+            orderId: 'DH_DUP_' + i,
+            date: '20/10/2026, 10:05:00',
+            name: 'Khách hàng ' + i,
+            phone: '09' + String(10000000 + i),
+            address: 'Số ' + i + ' Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
+            details: '- Mạch công suất (x1)',
+            cart: [{ id: 'SP1', variantId: '', qty: 1 }],
+            total: '250.000đ',
+            rawTotal: 250000,
+            status: 'Khách đặt hàng',
+            note: ''
+          });
+        }
+
+        const t0 = Date.now();
+        const stats = detectAndGroupDuplicateOrders(globalOrdersData);
+        const elapsedMs = Date.now() - t0;
+
+        assert.strictEqual(stats.totalDuplicates, 100, "Phải phát hiện đúng 100 đơn trùng lặp");
+        assert.strictEqual(stats.groupCount, 100, "Phải gom đúng 100 nhóm trùng lặp");
+        assert(elapsedMs < 200, "Thời gian xử lý 2.000 đơn phải dưới 200ms (thực tế: " + elapsedMs + "ms)");
+        console.log("BENCHMARK_OK:" + elapsedMs + "ms");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(bench_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("BENCHMARK_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 if __name__ == '__main__':

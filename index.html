@@ -2413,6 +2413,7 @@
         return;
       }
       
+      const postsFrag = document.createDocumentFragment();
       postsData.forEach(post => {
         let totalImgs = (post.images && Array.isArray(post.images)) ? post.images.length : 0;
         let imagesHtml = ''; 
@@ -2420,13 +2421,13 @@
         
         if (totalImgs > 0) {
           if (totalImgs > 1) {
-            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[totalImgs-1])}" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
+            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[totalImgs-1])}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
           }
           post.images.forEach((img, idx) => { 
-            imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(img)}" onclick="openModal('${post.id}', ${idx})"></div>`; 
+            imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(img)}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${idx})"></div>`; 
           });
           if (totalImgs > 1) {
-            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[0])}" onclick="openModal('${post.id}', 0)"></div>`; 
+            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[0])}" loading="lazy" decoding="async" onclick="openModal('${post.id}', 0)"></div>`; 
           }
 
           let arrowsHtml = totalImgs > 1 ? `<button class="carousel-btn prev" onclick="scrollCarousel('${post.id}', -1)">&#10094;</button><button class="carousel-btn next" onclick="scrollCarousel('${post.id}', 1)">&#10095;</button>` : '';
@@ -2451,8 +2452,9 @@
           <h3>${escapeHtml(post.title)}</h3>
           <p>${escapeHtml(post.desc)}</p>
         `;
-        pList.appendChild(card);
+        postsFrag.appendChild(card);
       });
+      pList.appendChild(postsFrag);
     }
 
     function getComboFlashDealStatus(c) {
@@ -2558,6 +2560,9 @@
       let visibleFlashDealsCount = 0;
       let visibleCombosCount = 0;
 
+      const fdFrag = document.createDocumentFragment();
+      const comboFrag = document.createDocumentFragment();
+
       if(combosData && combosData.length > 0) {
         combosData.forEach(c => {
           let flashStatus = getComboFlashDealStatus(c);
@@ -2582,7 +2587,7 @@
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
             imagesHtml += `
               <div class="carousel-item-wrap" data-clone="true">
-                <img src="${escapeHtml(c.images[totalImgs-1])}" onclick="openModal('${c.id}', ${totalImgs-1})">
+                <img src="${escapeHtml(c.images[totalImgs-1])}" loading="lazy" decoding="async" onclick="openModal('${c.id}', ${totalImgs-1})">
                 ${capHtml}
               </div>`; 
           }
@@ -2592,7 +2597,7 @@
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
             imagesHtml += `
               <div class="carousel-item-wrap">
-                <img src="${escapeHtml(img)}" onclick="openModal('${c.id}', ${idx})">
+                <img src="${escapeHtml(img)}" loading="lazy" decoding="async" onclick="openModal('${c.id}', ${idx})">
                 ${capHtml}
               </div>`; 
           });
@@ -2602,7 +2607,7 @@
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
             imagesHtml += `
               <div class="carousel-item-wrap" data-clone="true">
-                <img src="${escapeHtml(c.images[0])}" onclick="openModal('${c.id}', 0)">
+                <img src="${escapeHtml(c.images[0])}" loading="lazy" decoding="async" onclick="openModal('${c.id}', 0)">
                 ${capHtml}
               </div>`; 
           }
@@ -2630,7 +2635,7 @@
             if (flashStatus.activeGifts && flashStatus.activeGifts.length > 0) {
               let giftItemsHtml = flashStatus.activeGifts.map(g => {
                 let gThumb = g.image
-                  ? `<img src="${escapeHtml(g.image)}" class="gift-thumb">`
+                  ? `<img src="${escapeHtml(g.image)}" loading="lazy" decoding="async" class="gift-thumb">`
                   : `<div class="gift-thumb" style="display:flex;align-items:center;justify-content:center;font-size:22px;">🎁</div>`;
                 
                 let origValHtml = '';
@@ -2685,7 +2690,7 @@
               </div>
               <button class="btn-primary btn-flash-deal" onclick="addToCart('${c.id}', true)">🎁 Nhận Combo & Quà Tặng</button>
             `;
-            if (fdList) fdList.appendChild(card);
+            fdFrag.appendChild(card);
             visibleFlashDealsCount++;
 
           } else {
@@ -2705,11 +2710,14 @@
               </div>
               <button class="btn-primary" style="background:#e53e3e;" onclick="addToCart('${c.id}', true)">🛒 Chọn Combo</button>
             `;
-            if (comboList) comboList.appendChild(card);
+            comboFrag.appendChild(card);
             visibleCombosCount++;
           }
         });
       }
+
+      if (fdList && visibleFlashDealsCount > 0) fdList.appendChild(fdFrag);
+      if (comboList && visibleCombosCount > 0) comboList.appendChild(comboFrag);
 
       if (fdSection) fdSection.style.display = visibleFlashDealsCount > 0 ? 'block' : 'none';
       if (comboSection) comboSection.style.display = visibleCombosCount > 0 ? 'block' : 'none';
@@ -2719,6 +2727,7 @@
       updateAllCountdowns();
 
       const pList = document.getElementById('product-list'); pList.innerHTML = '';
+      const prodFrag = document.createDocumentFragment();
       productsData.forEach(p => {
         let st = (p.status || "").toLowerCase();
         if (st === "ẩn" || st === "an" || st === "hết hàng" || st === "" || p.stock <= 0) return;
@@ -2775,21 +2784,21 @@
         if (totalImgs > 1) {
           imagesHtml += `
             <div class="carousel-item-wrap" data-clone="true">
-              <img src="${escapeHtml(p.images[totalImgs-1])}" onclick="openModal('${p.id}', ${totalImgs-1})">
+              <img src="${escapeHtml(p.images[totalImgs-1])}" loading="lazy" decoding="async" onclick="openModal('${p.id}', ${totalImgs-1})">
             </div>`; 
         }
 
         p.images.forEach((img, idx) => { 
           imagesHtml += `
             <div class="carousel-item-wrap">
-              <img src="${escapeHtml(img)}" onclick="openModal('${p.id}', ${idx})">
+              <img src="${escapeHtml(img)}" loading="lazy" decoding="async" onclick="openModal('${p.id}', ${idx})">
             </div>`; 
         });
 
         if (totalImgs > 1) {
           imagesHtml += `
             <div class="carousel-item-wrap" data-clone="true">
-              <img src="${escapeHtml(p.images[0])}" onclick="openModal('${p.id}', 0)">
+              <img src="${escapeHtml(p.images[0])}" loading="lazy" decoding="async" onclick="openModal('${p.id}', 0)">
             </div>`; 
         }
 
@@ -2814,8 +2823,9 @@
           </div>
           <button class="btn-primary" id="add-btn-${p.id}" style="${addBtnStyle}" ${addBtnDisabled} onclick="addToCart('${p.id}', false)">${addBtnText}</button>
         `;
-        pList.appendChild(card);
+        prodFrag.appendChild(card);
       });
+      pList.appendChild(prodFrag);
 
       renderPosts(); // Gọi hàm vẽ bài viết Sơ đồ
 
@@ -3010,49 +3020,53 @@
       const totalPriceDiv = document.getElementById('total-price');
       
       cart.forEach(i => { if (i.qty > 99) i.qty = 99; }); 
-      cartDiv.innerHTML = '';
       let total = 0; let totalQty = 0; 
       const shippingFee = globalShippingFee; 
 
-      if (cart.length > 0) { totalPriceDiv.style.display = 'block'; } 
-      else { totalPriceDiv.style.display = 'none'; cartDiv.innerHTML = '<div style="text-align:center; padding: 20px; color:#888; font-size: 15px; font-weight: 500;">Hãy thêm sản phẩm vào giỏ hàng</div>'; }
-
-      cart.forEach((item, index) => {
-        let itemTotal = item.price * item.qty; total += itemTotal; totalQty += item.qty;
-        let prefix = item.isCombo ? `<span style="color:#e53e3e; font-weight:bold;">[COMBO]</span> ` : '';
-        let variantTag = item.variantName ? `<div class="cart-variant-tag">Phân loại: ${escapeHtml(item.variantName)}</div>` : '';
-        
-        let comboGiftTag = "";
-        if (item.isCombo && typeof combosData !== 'undefined' && combosData) {
-          let cDetail = combosData.find(c => c.id === item.id);
-          if (cDetail && cDetail.hasGift) {
-            let fs = getComboFlashDealStatus(cDetail);
-            if (fs.isActive && fs.activeGifts && fs.activeGifts.length > 0) {
-              let gList = fs.activeGifts.map(g => `🎁 Tặng: ${escapeHtml(g.name)} (x${g.qty * item.qty})`).join('<br>');
-              comboGiftTag = `<div style="font-size: 11.5px; color: #c05621; margin-top: 3px; font-weight: 600;">${gList}</div>`;
+      if (cart.length > 0) {
+        totalPriceDiv.style.display = 'block';
+        let cartItemsHtml = [];
+        cart.forEach((item, index) => {
+          let itemTotal = item.price * item.qty; total += itemTotal; totalQty += item.qty;
+          let prefix = item.isCombo ? `<span style="color:#e53e3e; font-weight:bold;">[COMBO]</span> ` : '';
+          let variantTag = item.variantName ? `<div class="cart-variant-tag">Phân loại: ${escapeHtml(item.variantName)}</div>` : '';
+          
+          let comboGiftTag = "";
+          if (item.isCombo && typeof combosData !== 'undefined' && combosData) {
+            let cDetail = combosData.find(c => c.id === item.id);
+            if (cDetail && cDetail.hasGift) {
+              let fs = getComboFlashDealStatus(cDetail);
+              if (fs.isActive && fs.activeGifts && fs.activeGifts.length > 0) {
+                let gList = fs.activeGifts.map(g => `🎁 Tặng: ${escapeHtml(g.name)} (x${g.qty * item.qty})`).join('<br>');
+                comboGiftTag = `<div style="font-size: 11.5px; color: #c05621; margin-top: 3px; font-weight: 600;">${gList}</div>`;
+              }
             }
           }
-        }
 
-        cartDiv.innerHTML += `
-          <div class="cart-item">
-            <div style="flex: 1; padding-right: 10px;">
-              <b style="font-size: 14px; line-height: 1.4;">${prefix}${escapeHtml(item.name)}</b>
-              ${variantTag}
-              ${comboGiftTag}
-              <div class="cart-qty-wrapper">
-                <button class="qty-btn small" onclick="changeCartQty(${index}, -1)">-</button>
-                <input type="number" class="qty-input small" value="${item.qty}" min="1" onchange="setCartQty(${index}, this.value)">
-                <button class="qty-btn small" onclick="changeCartQty(${index}, 1)">+</button>
+          cartItemsHtml.push(`
+            <div class="cart-item">
+              <div style="flex: 1; padding-right: 10px;">
+                <b style="font-size: 14px; line-height: 1.4;">${prefix}${escapeHtml(item.name)}</b>
+                ${variantTag}
+                ${comboGiftTag}
+                <div class="cart-qty-wrapper">
+                  <button class="qty-btn small" onclick="changeCartQty(${index}, -1)">-</button>
+                  <input type="number" class="qty-input small" value="${item.qty}" min="1" onchange="setCartQty(${index}, this.value)">
+                  <button class="qty-btn small" onclick="changeCartQty(${index}, 1)">+</button>
+                </div>
+              </div>
+              <div style="white-space: nowrap; display: flex; flex-direction: column; align-items: flex-end;">
+                <span style="font-weight: 500;">${formatMoney(itemTotal)}</span>
+                <span style="color:red; cursor:pointer; margin-top:8px; font-weight:bold; font-size:0.9em;" onclick="removeItem(${index})">Xóa</span>
               </div>
             </div>
-            <div style="white-space: nowrap; display: flex; flex-direction: column; align-items: flex-end;">
-              <span style="font-weight: 500;">${formatMoney(itemTotal)}</span>
-              <span style="color:red; cursor:pointer; margin-top:8px; font-weight:bold; font-size:0.9em;" onclick="removeItem(${index})">Xóa</span>
-            </div>
-          </div>
-        `;
-      });
+          `);
+        });
+        cartDiv.innerHTML = cartItemsHtml.join('');
+      } else {
+        totalPriceDiv.style.display = 'none';
+        cartDiv.innerHTML = '<div style="text-align:center; padding: 20px; color:#888; font-size: 15px; font-weight: 500;">Hãy thêm sản phẩm vào giỏ hàng</div>';
+      }
       
       if (total > 0) {
         let finalTotal = total + shippingFee;

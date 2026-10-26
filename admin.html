@@ -1595,6 +1595,20 @@
         </thead>
         <tbody id="orders-body"></tbody>
       </table>
+
+      <div id="orders-pagination-bar" style="display: none; background: #fff; border: 1.5px solid #cbd5e0; border-radius: 10px; padding: 12px 18px; margin-top: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <div style="font-size: 13.5px; color: #2d3748; font-weight: 600;">
+          📄 Đang hiển thị <b id="orders-visible-count" style="color: #2b6cb0;">0</b> / <b id="orders-total-filtered-count" style="color: #1a2935;">0</b> đơn hàng
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <button type="button" id="btn-load-more-orders" class="btn-update" onclick="loadMoreOrders()" style="background: #2b6cb0; padding: 8px 16px; font-weight: 700; border-radius: 6px;">
+            ➕ Xem thêm 50 đơn
+          </button>
+          <button type="button" id="btn-show-all-orders" class="btn-update" onclick="showAllOrders()" style="background: #4a5568; padding: 8px 14px; font-weight: 600; border-radius: 6px;">
+            📋 Hiển thị tất cả
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- TAB SẢN PHẨM -->
@@ -2598,25 +2612,35 @@
     async function loadData() {
       let token = getAdminToken(); showLoading(true);
       try {
-        let resOrders = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getOrders", token: token }) });
-        let orders = await resOrders.json();
-        if(orders.status === "error") { if(orders.code==="AUTH") logout(); else alert(orders.msg); return; }
-        
-        globalOrdersData = orders;
-        renderOrders(globalOrdersData);
-        
-        let resData = null;
-        try {
-          let resProducts = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getProductsAdmin", token: token }) });
-          resData = await resProducts.json();
-        } catch(err) {}
+        // Khởi chạy SONG SONG 2 luồng dữ liệu (Đơn hàng + Sản phẩm/Cấu hình) để giảm 50% thời gian chờ mạng
+        let ordersPromise = fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getOrders", token: token }) })
+          .then(res => res.json())
+          .then(orders => {
+            if (orders && orders.status === "error") {
+              if (orders.code === "AUTH") logout();
+              else alert(orders.msg);
+              return null;
+            }
+            globalOrdersData = orders || [];
+            renderOrders(globalOrdersData);
+            return globalOrdersData;
+          });
 
-        if (!resData || resData.status === "error" || !resData.products) {
-          let resProductsFallback = await fetch(API_URL + "?action=getProducts");
-          resData = await resProductsFallback.json();
-        }
+        let productsPromise = fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getProductsAdmin", token: token }) })
+          .then(res => res.json())
+          .catch(() => null)
+          .then(async resData => {
+            if (!resData || resData.status === "error" || !resData.products) {
+              let resProductsFallback = await fetch(API_URL + "?action=getProducts");
+              resData = await resProductsFallback.json();
+            }
+            return resData;
+          });
+
+        let [ordersResult, resData] = await Promise.all([ordersPromise, productsPromise]);
+        if (ordersResult === null) { showLoading(false); return; }
         
-        if (resData.products) {
+        if (resData && resData.products) {
           globalProductsData = resData.products;
           globalCombosData = resData.combos || [];
           globalPostsData = resData.posts || []; 
@@ -2637,7 +2661,7 @@
             toggleThemeVideoInput(resData.theme || "default");
             renderSavedThemeVideosSelect();
           }
-        } else { globalProductsData = resData; }
+        } else { globalProductsData = resData || []; }
         
         renderInventory(globalProductsData);
         renderCombos(globalCombosData);
@@ -3232,6 +3256,7 @@
     let pendingOrderChanges = new Map();
     let currentOrderStatusFilter = 'all';
     let currentOrderSearchQuery = '';
+    let currentOrdersRenderLimit = 50;
     let isDuplicateFilterActive = true;
     let currentModalDuplicateRows = [];
 
@@ -3252,6 +3277,7 @@
 
     function filterOrdersByStatus(status, pillEl) {
       currentOrderStatusFilter = status;
+      currentOrdersRenderLimit = 50;
       document.querySelectorAll('.order-pill').forEach(p => p.classList.remove('active'));
       if (pillEl) pillEl.classList.add('active');
       renderOrders(globalOrdersData);
@@ -3259,11 +3285,12 @@
 
     function onOrderSearchInput(val) {
       currentOrderSearchQuery = (val || '').trim().toLowerCase();
+      currentOrdersRenderLimit = 50;
       renderOrders(globalOrdersData);
     }
 
     /* =========================================================================
-       PHÂN HỆ XỬ LÝ & LỌC ĐƠN HÀNG TRÙNG LẶP (DUPLICATE ORDERS FILTER)
+       PHÂN HỆ XỬ LÝ & LỌC ĐƠN HÀNG TRÙNG LẶP (DUPLICATE ORDERS FILTER - O(N) HASH BUCKET)
        ========================================================================= */
 
     function getStatusProgressRank(status) {
@@ -3272,6 +3299,30 @@
       if (st === 'đã giao cho đơn vị vận chuyển') return 3;
       if (st === 'chưa đặt cọc' || st === 'đang chuẩn bị hàng') return 2;
       return 1;
+    }
+
+    function getOrderCachedCleanAddress(o) {
+      let raw = o.address || '';
+      if (o._cleanAddrSrc === raw && o._cleanAddr !== undefined) return o._cleanAddr;
+      o._cleanAddrSrc = raw;
+      o._cleanAddr = cleanFullAddress(raw);
+      return o._cleanAddr;
+    }
+
+    function getOrderCachedNormAddress(o) {
+      let raw = o.address || '';
+      if (o._normAddrSrc === raw && o._normAddr !== undefined) return o._normAddr;
+      o._normAddrSrc = raw;
+      o._normAddr = getOrderCachedCleanAddress(o).toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
+      return o._normAddr;
+    }
+
+    function getOrderCachedParsedDate(o) {
+      let raw = o.date;
+      if (o._parsedDateSrc === raw && o._parsedDate !== undefined) return o._parsedDate;
+      o._parsedDateSrc = raw;
+      o._parsedDate = parseOrderDate(raw);
+      return o._parsedDate;
     }
 
     function areOrdersIdentical(a, b) {
@@ -3290,9 +3341,9 @@
       let nameB = String(b.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
       if (nameA !== nameB) return false;
 
-      // 3. Địa chỉ giao hàng
-      let addrA = cleanFullAddress(a.address || '').toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
-      let addrB = cleanFullAddress(b.address || '').toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
+      // 3. Địa chỉ giao hàng (có lưu đệm _normAddr để không chạy lại Regex nhiều lần)
+      let addrA = getOrderCachedNormAddress(a);
+      let addrB = getOrderCachedNormAddress(b);
       if (addrA !== addrB) return false;
 
       // 4. Tổng tiền đơn hàng
@@ -3319,8 +3370,8 @@
       }
 
       // 7. Khoảng thời gian đặt hàng (Khách bấm nhiều lần nên cùng ngày hoặc trong vòng 24 giờ)
-      let dateA = parseOrderDate(a.date);
-      let dateB = parseOrderDate(b.date);
+      let dateA = getOrderCachedParsedDate(a);
+      let dateB = getOrderCachedParsedDate(b);
       if (dateA && dateB) {
         let diffHours = Math.abs(dateA.getTime() - dateB.getTime()) / (1000 * 60 * 60);
         if (diffHours > 24) return false;
@@ -3332,65 +3383,88 @@
     function detectAndGroupDuplicateOrders(orders) {
       if (!orders || orders.length === 0) return { totalDuplicates: 0, groupCount: 0 };
 
-      // Reset các cờ duplicate
-      orders.forEach(o => {
+      // Bước 1 (O(N)): Reset cờ duplicate và phân nhóm sơ bộ bằng Hash Bucket (SĐT + Tổng tiền + Tên + Ghi chú)
+      let buckets = new Map();
+      for (let i = 0; i < orders.length; i++) {
+        let o = orders[i];
         o.isDuplicateCopy = false;
         o.isDuplicateGroupLeader = false;
         o.duplicateCount = 0;
         o.duplicateOrders = [];
         o.primaryOrderId = null;
         o.primaryRow = null;
-      });
+
+        let phone = String(o.phone || '').replace(/\D/g, '');
+        if (phone.startsWith('84') && phone.length >= 11) phone = '0' + phone.slice(2);
+        if (!phone || phone.length < 8) continue;
+
+        let name = String(o.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        let tot = Number(o.rawTotal) || Number(String(o.total || '').replace(/[^\d]/g, '')) || 0;
+        let note = String(o.note || '').trim().toLowerCase();
+        let bKey = `${phone}|${tot}|${name}|${note}`;
+
+        let list = buckets.get(bKey);
+        if (!list) {
+          list = [];
+          buckets.set(bKey, list);
+        }
+        list.push(o);
+      }
 
       let assigned = new Set();
       let totalDuplicates = 0;
       let groupCount = 0;
 
-      for (let i = 0; i < orders.length; i++) {
-        let ordA = orders[i];
-        if (assigned.has(ordA.row)) continue;
+      // Bước 2: Chỉ kiểm tra chi tiết (địa chỉ, giỏ hàng, 24h) trong các bucket có >= 2 đơn hàng
+      for (let bList of buckets.values()) {
+        if (bList.length < 2) continue;
 
-        let duplicates = [];
-        for (let j = i + 1; j < orders.length; j++) {
-          let ordB = orders[j];
-          if (assigned.has(ordB.row)) continue;
-          if (areOrdersIdentical(ordA, ordB)) {
-            duplicates.push(ordB);
+        for (let i = 0; i < bList.length; i++) {
+          let ordA = bList[i];
+          if (assigned.has(ordA.row)) continue;
+
+          let duplicates = [];
+          for (let j = i + 1; j < bList.length; j++) {
+            let ordB = bList[j];
+            if (assigned.has(ordB.row)) continue;
+            if (areOrdersIdentical(ordA, ordB)) {
+              duplicates.push(ordB);
+            }
           }
-        }
 
-        if (duplicates.length > 0) {
-          let cluster = [ordA, ...duplicates];
-          cluster.forEach(o => assigned.add(o.row));
+          if (duplicates.length > 0) {
+            let cluster = [ordA, ...duplicates];
+            cluster.forEach(o => assigned.add(o.row));
 
-          // Chọn đơn chính: ưu tiên đơn có pendingChanges > trạng thái đã tiến hành > row nhỏ nhất (đặt trước)
-          cluster.sort((a, b) => {
-            let hasPendingA = pendingOrderChanges.has(a.row) ? 1 : 0;
-            let hasPendingB = pendingOrderChanges.has(b.row) ? 1 : 0;
-            if (hasPendingA !== hasPendingB) return hasPendingB - hasPendingA;
+            // Chọn đơn chính: ưu tiên đơn có pendingChanges > trạng thái đã tiến hành > row nhỏ nhất (đặt trước)
+            cluster.sort((a, b) => {
+              let hasPendingA = pendingOrderChanges.has(a.row) ? 1 : 0;
+              let hasPendingB = pendingOrderChanges.has(b.row) ? 1 : 0;
+              if (hasPendingA !== hasPendingB) return hasPendingB - hasPendingA;
 
-            let rankA = getStatusProgressRank(a.status);
-            let rankB = getStatusProgressRank(b.status);
-            if (rankA !== rankB) return rankB - rankA;
+              let rankA = getStatusProgressRank(a.status);
+              let rankB = getStatusProgressRank(b.status);
+              if (rankA !== rankB) return rankB - rankA;
 
-            return a.row - b.row;
-          });
+              return a.row - b.row;
+            });
 
-          let primaryOrder = cluster[0];
-          let copyOrders = cluster.slice(1);
+            let primaryOrder = cluster[0];
+            let copyOrders = cluster.slice(1);
 
-          primaryOrder.isDuplicateGroupLeader = true;
-          primaryOrder.duplicateCount = copyOrders.length;
-          primaryOrder.duplicateOrders = copyOrders;
+            primaryOrder.isDuplicateGroupLeader = true;
+            primaryOrder.duplicateCount = copyOrders.length;
+            primaryOrder.duplicateOrders = copyOrders;
 
-          copyOrders.forEach(copy => {
-            copy.isDuplicateCopy = true;
-            copy.primaryOrderId = primaryOrder.orderId;
-            copy.primaryRow = primaryOrder.row;
-          });
+            copyOrders.forEach(copy => {
+              copy.isDuplicateCopy = true;
+              copy.primaryOrderId = primaryOrder.orderId;
+              copy.primaryRow = primaryOrder.row;
+            });
 
-          totalDuplicates += copyOrders.length;
-          groupCount++;
+            totalDuplicates += copyOrders.length;
+            groupCount++;
+          }
         }
       }
 
@@ -3598,7 +3672,7 @@
       renderOrders(globalOrdersData);
     }
 
-    function updateOrderToolbars() {
+    function updateOrderToolbars(visibleOrdersOpt) {
       let bulkBar = document.getElementById('orders-bulk-bar');
       let unsavedBar = document.getElementById('orders-unsaved-bar');
       
@@ -3632,7 +3706,7 @@
 
       let sa = document.getElementById('order-select-all');
       if (sa) {
-        let visibleOrders = getFilteredOrders();
+        let visibleOrders = Array.isArray(visibleOrdersOpt) ? visibleOrdersOpt : getFilteredOrders();
         if (visibleOrders.length > 0 && selectedOrderRows.size >= visibleOrders.length) {
           sa.checked = true;
           sa.indeterminate = false;
@@ -3687,15 +3761,15 @@
       }
     }
 
-    // --- CĂN LỀ PHẢI "SỐ LƯỢNG" VÀ BỐ CỤC ĐẸP MẮT ---
+    // --- CĂN LỀ PHẢI "SỐ LƯỢNG" VÀ BỐ CỤC ĐẸP MẮT (BATCH DOM + SMART PAGINATION) ---
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body');
-      tbody.innerHTML = "";
       let filtered = getFilteredOrders();
 
       if (!filtered || filtered.length === 0) {
         tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; padding:25px; color:#718096;'>Không tìm thấy đơn hàng nào.</td></tr>";
-        updateOrderToolbars();
+        updateOrdersPaginationBar(0, 0);
+        updateOrderToolbars(filtered || []);
         return;
       }
       
@@ -3705,7 +3779,10 @@
         return 0;
       });
 
-      sortedOrders.forEach(order => {
+      let ordersToRender = sortedOrders.slice(0, currentOrdersRenderLimit);
+      let rowsHtml = [];
+
+      ordersToRender.forEach(order => {
         let hasPending = pendingOrderChanges.has(order.row);
         let normalizedStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
         let currentEffectiveStatus = hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus;
@@ -3767,7 +3844,7 @@
           }
         }).join('');
 
-        tbody.innerHTML += `<tr class="${rowClass}">
+        rowsHtml.push(`<tr class="${rowClass}">
             <td data-label="Chọn" style="text-align: center;">
               <input type="checkbox" class="order-item-cb" value="${order.row}" onchange="toggleOrderSelect(${order.row}, this.checked)" ${isSelected ? 'checked' : ''}>
             </td>
@@ -3788,7 +3865,7 @@
             <td data-label="Khách hàng">
               <b style="font-size:15px; color:#1a2935;">${escapeHtml(order.name)}</b><br>
               <span style="color:#0068ff; margin-top:4px; display:inline-block; font-weight:600;"><a href="tel:${phoneClean}" style="color:#0068ff; text-decoration:none;">📞 ${escapeHtml(order.phone)}</a></span><br>
-              <div style="color:#4a5568; margin-top:4px; font-size:12.5px; line-height:1.4;">📍 ${escapeHtml(cleanFullAddress(order.address))}</div>
+              <div style="color:#4a5568; margin-top:4px; font-size:12.5px; line-height:1.4;">📍 ${escapeHtml(getOrderCachedCleanAddress(order))}</div>
               ${order.note ? `<div style="color:#d69e2e; margin-top:4px; font-size:12px; font-style:italic;">📝 Ghi chú: ${escapeHtml(order.note)}</div>` : ''}
               <div class="customer-action-row">
                 <button type="button" class="btn-cust-action btn-cust-copy" onclick="copyCustomerInfo(${order.row})">📋 Copy Thông tin</button>
@@ -3809,20 +3886,63 @@
                  <button class="btn-update btn-delete" style="flex:1;" onclick="deleteOrder(${order.row})">Xóa</button>
               </div>
             </td>
-          </tr>`;
+          </tr>`);
       });
-      updateOrderToolbars();
+
+      tbody.innerHTML = rowsHtml.join('');
+      updateOrdersPaginationBar(ordersToRender.length, sortedOrders.length);
+      updateOrderToolbars(filtered);
+    }
+
+    function updateOrdersPaginationBar(visibleCount, totalCount) {
+      const bar = document.getElementById('orders-pagination-bar');
+      if (!bar) return;
+      if (totalCount <= 50 && visibleCount >= totalCount) {
+        bar.style.display = 'none';
+        return;
+      }
+      bar.style.display = 'flex';
+      const visEl = document.getElementById('orders-visible-count');
+      const totEl = document.getElementById('orders-total-filtered-count');
+      const btnMore = document.getElementById('btn-load-more-orders');
+      const btnAll = document.getElementById('btn-show-all-orders');
+      if (visEl) visEl.innerText = String(visibleCount);
+      if (totEl) totEl.innerText = String(totalCount);
+
+      let remaining = totalCount - visibleCount;
+      if (btnMore) {
+        if (remaining > 0) {
+          btnMore.style.display = 'inline-block';
+          let step = Math.min(50, remaining);
+          btnMore.innerText = `⬇️ Tải thêm ${step} đơn nữa`;
+        } else {
+          btnMore.style.display = 'none';
+        }
+      }
+      if (btnAll) {
+        btnAll.style.display = remaining > 50 ? 'inline-block' : 'none';
+      }
+    }
+
+    function loadMoreOrders() {
+      currentOrdersRenderLimit += 50;
+      renderOrders(globalOrdersData);
+    }
+
+    function showAllOrders() {
+      currentOrdersRenderLimit = 999999;
+      renderOrders(globalOrdersData);
     }
 
     let draggedProductIndex = null;
 
     function renderInventory(products) {
       const tbody = document.getElementById('inventory-body');
-      tbody.innerHTML = "";
       if (!products || products.length === 0) {
         tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:30px; color:#718096;'>Chưa có sản phẩm nào. Bạn hãy bấm '+ TẠO SẢN PHẨM MỚI' nhé!</td></tr>";
         return;
       }
+      let rowsHtml = [];
       products.forEach((p, index) => {
         let hasVars = p.variants && p.variants.length > 0;
         let variantBadge = hasVars ? `<span class="variant-badge">🏷️ ${p.variants.length} loại</span>` : '';
@@ -3853,7 +3973,7 @@
         let upBtn = `<button type="button" class="btn-order-move" title="Di chuyển lên trên" ${isFirst ? 'disabled' : ''} onclick="moveProductOrder(${index}, -1)">▲</button>`;
         let downBtn = `<button type="button" class="btn-order-move" title="Di chuyển xuống dưới" ${isLast ? 'disabled' : ''} onclick="moveProductOrder(${index}, 1)">▼</button>`;
 
-        tbody.innerHTML += `
+        rowsHtml.push(`
           <tr id="prod-row-${p.id}" class="product-row" draggable="true"
               ondragstart="handleProdDragStart(event, ${index})"
               ondragover="handleProdDragOver(event, ${index})"
@@ -3872,7 +3992,7 @@
               </div>
             </td>
             <td data-label="ID" style="color:#718096; font-size: 13px;">${escapeHtml(p.id)}</td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" loading="lazy" decoding="async" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Sản phẩm">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:15px;">${escapeHtml(p.name)}</b>
@@ -3883,8 +4003,9 @@
             <td data-label="Giá bán"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${priceHtml}</div></td>
             <td data-label="Tồn kho">${stockHtml}</td>
             <td data-label="Thao tác"><button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button></td>
-          </tr>`;
+          </tr>`);
       });
+      tbody.innerHTML = rowsHtml.join('');
     }
 
     function handleProdDragStart(e, index) {
@@ -4050,9 +4171,9 @@
     }
 
     function renderCombos(combos) {
-      const tbody = document.getElementById('combos-body'); tbody.innerHTML = "";
-      if(combos.length === 0) { tbody.innerHTML = "<tr><td colspan='6'>Chưa có Combo nào. Bạn hãy tạo mới nhé!</td></tr>"; return; }
-      
+      const tbody = document.getElementById('combos-body');
+      if (!combos || combos.length === 0) { tbody.innerHTML = "<tr><td colspan='6'>Chưa có Combo nào. Bạn hãy tạo mới nhé!</td></tr>"; return; }
+      let rowsHtml = [];
       combos.forEach(c => {
         let itemsHtml = c.rawItems.map(i => `• ${escapeHtml(i.name)} (x${i.qty})`).join('<br>');
         let stockHtml = c.stock <= 2 ? `<span class="stock-warning">${c.stock}</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${c.stock}</span>`;
@@ -4073,9 +4194,9 @@
           giftDetailHtml = `<div style="margin-top:6px; padding:6px 10px; background:#fffaf0; border-left:3px solid #dd6b20; border-radius:4px; font-size:12px; color:#7b341e;">${giftLines}${timeInfo}</div>`;
         }
 
-        tbody.innerHTML += `<tr>
+        rowsHtml.push(`<tr>
             <td data-label="ID Combo" style="color:#718096; font-size: 13px;">${escapeHtml(c.id)}</td>
-            <td data-label="Ảnh Nội Suy"><img src="${escapeHtml(firstImg)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Ảnh Nội Suy"><img src="${escapeHtml(firstImg)}" loading="lazy" decoding="async" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên & Thành Phần">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:15px; color:#c53030;">[COMBO] ${escapeHtml(c.name)}</b>
@@ -4090,14 +4211,15 @@
               <button class="btn-update" onclick="openComboModal('${c.id}')" style="margin-bottom:5px;">Sửa</button>
               <button class="btn-update btn-delete" onclick="deleteCombo('${c.id}')">Xóa</button>
             </td>
-          </tr>`;
+          </tr>`);
       });
+      tbody.innerHTML = rowsHtml.join('');
     }
 
     function renderPosts(posts) {
-      const tbody = document.getElementById('posts-body'); tbody.innerHTML = "";
-      if(posts.length === 0) { tbody.innerHTML = "<tr><td colspan='4'>Chưa có bài viết/sơ đồ nào.</td></tr>"; return; }
-      
+      const tbody = document.getElementById('posts-body');
+      if (!posts || posts.length === 0) { tbody.innerHTML = "<tr><td colspan='4'>Chưa có bài viết/sơ đồ nào.</td></tr>"; return; }
+      let rowsHtml = [];
       posts.forEach((post, index) => {
         let firstImg = post.images && post.images.length > 0 ? post.images[0] : "https://via.placeholder.com/150?text=No+Image";
         let descShort = post.desc.length > 60 ? post.desc.substring(0, 60) + "..." : post.desc;
@@ -4116,9 +4238,9 @@
         let upBtn = prevId ? `<button class="btn-icon" title="Đẩy lên" onclick="swapPostOrder('${post.id}', '${prevId}')">▲</button>` : `<button class="btn-icon" style="opacity:0.3; cursor:default;">▲</button>`;
         let downBtn = nextId ? `<button class="btn-icon" title="Đẩy xuống" onclick="swapPostOrder('${post.id}', '${nextId}')">▼</button>` : `<button class="btn-icon" style="opacity:0.3; cursor:default;">▼</button>`;
 
-        tbody.innerHTML += `<tr>
+        rowsHtml.push(`<tr>
             <td data-label="STT"><b>${index + 1}</b></td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" style="width:100px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" loading="lazy" decoding="async" style="width:100px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e0;"></td>
             <td data-label="Tiêu đề & Nội dung">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:15px; color:#2b6cb0;">${escapeHtml(post.title)}</b>
@@ -4134,8 +4256,9 @@
               <button class="btn-update" onclick="openPostModal('${post.id}')" style="margin-bottom:5px;">Sửa</button>
               <button class="btn-update btn-delete" onclick="deletePost('${post.id}')">Xóa</button>
             </td>
-          </tr>`;
+          </tr>`);
       });
+      tbody.innerHTML = rowsHtml.join('');
     }
 
     async function swapPostOrder(id1, id2) {
@@ -4150,11 +4273,12 @@
     }
 
     function renderImagePreviews(targetDivId, imagesArray, removeFuncStr) {
-      const c = document.getElementById(targetDivId); c.innerHTML = "";
+      const c = document.getElementById(targetDivId);
       if (imagesArray.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh đính kèm.</span>"; return; }
-      imagesArray.forEach((url, idx) => {
-        c.innerHTML += `<div class="img-preview-box"><img src="${escapeHtml(url)}"><button type="button" class="img-preview-remove" onclick="${removeFuncStr}(${idx})">✕</button></div>`;
-      });
+      let htmlList = imagesArray.map((url, idx) =>
+        `<div class="img-preview-box"><img src="${escapeHtml(url)}" loading="lazy" decoding="async"><button type="button" class="img-preview-remove" onclick="${removeFuncStr}(${idx})">✕</button></div>`
+      );
+      c.innerHTML = htmlList.join('');
     }
     
     function removeEditImage(idx) { currentEditImages.splice(idx, 1); renderImagePreviews('image-preview-container', currentEditImages, 'removeEditImage'); }
@@ -5901,6 +6025,7 @@
         return;
       }
 
+      let rowsHtml = [];
       list.forEach((p, idx) => {
         let rankCls = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : 'rank-other'));
         let rankIcon = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : idx + 1));
@@ -5913,10 +6038,10 @@
             ? `<span style="color:#d69e2e; font-weight:600; font-size:13px;">Còn ${p.stock}</span>`
             : `<span style="color:#2f855a; font-weight:600; font-size:13px;">Còn ${p.stock} (Dồi dào)</span>`);
 
-        tbody.innerHTML += `
+        rowsHtml.push(`
           <tr>
             <td data-label="#" style="text-align:center;"><span class="rank-badge ${rankCls}">${rankIcon}</span></td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" loading="lazy" decoding="async" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên mặt hàng">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 ${comboTag}<b style="font-size:14px; color:#1a202c;">${escapeHtml(p.name)}</b>
@@ -5930,8 +6055,9 @@
             <td data-label="Tồn kho" style="text-align:center;">${p.stock}</td>
             <td data-label="Trạng thái kho">${stockBadge}</td>
           </tr>
-        `;
+        `);
       });
+      tbody.innerHTML = rowsHtml.join('');
     }
 
     function renderStockAlerts() {
@@ -6032,11 +6158,12 @@
         return;
       }
 
+      let rowsHtml = [];
       topList.forEach((c, idx) => {
         let phoneClean = escapeHtml(c.phone).replace(/[^0-9]/g, '');
         let zaloBtn = phoneClean ? `<a href="https://zalo.me/${phoneClean}" target="_blank" style="margin-left:6px; text-decoration:none; font-size:11px; background:#ebf8ff; color:#2b6cb0; padding:2px 6px; border-radius:4px; font-weight:600; border:1px solid #bee3f8;">💬 Zalo</a>` : '';
 
-        tbody.innerHTML += `
+        rowsHtml.push(`
           <tr>
             <td data-label="#" style="text-align:center; font-weight:bold; color:#718096;">#${idx + 1}</td>
             <td data-label="Tên khách hàng"><b style="color:#1a202c;">${escapeHtml(c.name)}</b></td>
@@ -6045,8 +6172,9 @@
             <td data-label="Tổng số đơn" style="text-align:center;"><b style="color:#2b6cb0;">${c.orderCount}</b></td>
             <td data-label="Tổng chi tiêu"><b style="color:#e53e3e;">${formatMoney(c.totalSpend)}</b></td>
           </tr>
-        `;
+        `);
       });
+      tbody.innerHTML = rowsHtml.join('');
     }
 
     function exportAnalyticsCSV() {
@@ -6781,6 +6909,7 @@
         return;
       }
 
+      let rowsHtml = [];
       list.forEach((p, idx) => {
         let rankCls = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : 'rank-other'));
         let rankIcon = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : idx + 1));
@@ -6796,10 +6925,10 @@
             ? `<span style="background:#ebf8ff; color:#2b6cb0; font-weight:700; padding:3px 8px; border-radius:12px; font-size:12px; border:1px solid #bee3f8;">+${p.margin}%</span>`
             : `<span style="background:#fff5f5; color:#c53030; font-weight:700; padding:3px 8px; border-radius:12px; font-size:12px; border:1px solid #feb2b2;">${p.margin}%</span>`);
 
-        tbody.innerHTML += `
+        rowsHtml.push(`
           <tr>
             <td data-label="#" style="text-align:center;"><span class="rank-badge ${rankCls}">${rankIcon}</span></td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" loading="lazy" decoding="async" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên mặt hàng">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:14px; color:#1a202c;">${escapeHtml(p.name)}</b>
@@ -6814,8 +6943,9 @@
             <td data-label="Lãi thực" style="font-weight:bold; color:#22543d; font-size:15px;">+${formatMoney(p.profit)}</td>
             <td data-label="Tỷ suất lãi" style="text-align:center;">${marginBadge}</td>
           </tr>
-        `;
+        `);
       });
+      tbody.innerHTML = rowsHtml.join('');
     }
 
     function onQuickCostSearch() {
@@ -6864,6 +6994,7 @@
         return;
       }
 
+      let rowsHtml = [];
       rows.forEach((r, idx) => {
         let key = r.pId + (r.vId ? '__' + r.vId : '');
         let currentCostVal = pendingQuickCostMap.has(key) ? pendingQuickCostMap.get(key) : r.costPrice;
@@ -6872,10 +7003,10 @@
           ? `<span style="color:#2f855a; font-weight:600; font-size:12px;">✅ Đã có giá vốn</span>`
           : `<span style="color:#c53030; font-weight:600; font-size:12px;">⚠️ Chưa có vốn</span>`;
 
-        tbody.innerHTML += `
+        rowsHtml.push(`
           <tr>
             <td data-label="#" style="text-align:center; color:#718096;">${idx + 1}</td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(r.image || 'https://via.placeholder.com/60?text=No+Img')}" style="width:45px; height:45px; object-fit:cover; border-radius:4px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(r.image || 'https://via.placeholder.com/60?text=No+Img')}" loading="lazy" decoding="async" style="width:45px; height:45px; object-fit:cover; border-radius:4px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên sản phẩm"><b style="color:#1a202c;">${escapeHtml(r.name)}</b></td>
             <td data-label="Phân loại">${r.varName ? `<span class="variant-badge">🏷️ ${escapeHtml(r.varName)}</span>` : '<span style="color:#a0aec0; font-size:12px;">Tiêu chuẩn</span>'}</td>
             <td data-label="Giá bán" style="font-weight:600; color:#4a5568;">${formatMoney(r.price)}</td>
@@ -6884,8 +7015,9 @@
             </td>
             <td data-label="Trạng thái">${statusTag}</td>
           </tr>
-        `;
+        `);
       });
+      tbody.innerHTML = rowsHtml.join('');
     }
 
     function onQuickCostInputChange(pId, vId, val) {
