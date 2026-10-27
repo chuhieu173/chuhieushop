@@ -118,6 +118,79 @@
       border-bottom-right-radius: 10px;
     }
 
+    /* TRẠNG THÁI CHƯA ĐẶT CỌC: MÀU VÀNG NHẠT */
+    .orders-table tbody tr.order-row-pending-deposit {
+      background-color: #fefce8 !important;
+    }
+    .orders-table tbody tr.order-row-pending-deposit td {
+      border-top: 1.5px solid #fde047 !important;
+      border-bottom: 1.5px solid #fde047 !important;
+    }
+    .orders-table tbody tr.order-row-pending-deposit td:first-child {
+      border-left: 6px solid #eab308 !important;
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+    .orders-table tbody tr.order-row-pending-deposit td:last-child {
+      border-right: 2px solid #fde047 !important;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+
+    /* TRẠNG THÁI ĐÃ GIAO CHO ĐƠN VỊ VẬN CHUYỂN: MÀU XANH DA TRỜI NHẠT */
+    .orders-table tbody tr.order-row-shipping {
+      background-color: #e0f2fe !important;
+    }
+    .orders-table tbody tr.order-row-shipping td {
+      border-top: 1.5px solid #7dd3fc !important;
+      border-bottom: 1.5px solid #7dd3fc !important;
+    }
+    .orders-table tbody tr.order-row-shipping td:first-child {
+      border-left: 6px solid #0284c7 !important;
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+    .orders-table tbody tr.order-row-shipping td:last-child {
+      border-right: 2px solid #7dd3fc !important;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+
+    /* Ô GHI CHÚ RIÊNG CỦA ADMIN TRÊN ĐƠN HÀNG */
+    .admin-order-note-input {
+      width: 100%;
+      min-height: 58px;
+      padding: 6px 8px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 6px;
+      font-family: 'Roboto', sans-serif;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: #1a202c;
+      background: rgba(255, 255, 255, 0.92);
+      box-sizing: border-box;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .admin-order-note-input:focus {
+      border-color: #3182ce;
+      background: #ffffff;
+      box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.18);
+    }
+    .admin-order-note-input.has-note {
+      border-color: #90cdf4;
+      background: #ffffff;
+      font-weight: 500;
+    }
+    .admin-note-save-status {
+      font-size: 11px;
+      margin-top: 3px;
+      min-height: 15px;
+      font-weight: 600;
+      color: #718096;
+    }
+
     /* ĐƠN HÀNG BẢN SAO TRÙNG LẶP */
     .orders-table tbody tr.order-row-duplicate {
       background-color: #fffaf0 !important;
@@ -1586,11 +1659,12 @@
             </th>
             <th>Mã ĐH</th>
             <th>Thời gian</th>
-            <th style="width: 24%;">Khách hàng</th>
-            <th style="width: 24%;">Chi tiết Đơn hàng</th>
+            <th style="width: 22%;">Khách hàng</th>
+            <th style="width: 22%;">Chi tiết Đơn hàng</th>
             <th>Tổng tiền</th>
             <th>Trạng thái</th>
-            <th style="width: 13%;">Thao tác</th>
+            <th style="width: 14%;">Ghi chú Admin</th>
+            <th style="width: 12%;">Thao tác</th>
           </tr>
         </thead>
         <tbody id="orders-body"></tbody>
@@ -3637,10 +3711,103 @@
           let matchPhone = (order.phone || '').toLowerCase().includes(q);
           let matchAddress = (order.address || '').toLowerCase().includes(q);
           let matchDetails = (order.details || '').toLowerCase().includes(q);
-          if (!matchId && !matchName && !matchPhone && !matchAddress && !matchDetails) return false;
+          let matchAdminNote = (getOrderAdminNote(order) || '').toLowerCase().includes(q);
+          if (!matchId && !matchName && !matchPhone && !matchAddress && !matchDetails && !matchAdminNote) return false;
         }
         return true;
       });
+    }
+
+    const ADMIN_ORDER_NOTES_STORAGE_KEY = 'chuhieu_admin_order_notes';
+    let adminNoteSaveTimers = new Map();
+
+    function getLocalAdminNotesMap() {
+      try {
+        if (typeof localStorage === 'undefined') return {};
+        let raw = localStorage.getItem(ADMIN_ORDER_NOTES_STORAGE_KEY);
+        return raw ? (JSON.parse(raw) || {}) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function setLocalAdminNote(order, noteText) {
+      if (!order) return;
+      order.adminNote = noteText;
+      try {
+        if (typeof localStorage === 'undefined') return;
+        let map = getLocalAdminNotesMap();
+        let key = order.orderId ? String(order.orderId) : ('row_' + order.row);
+        if (noteText && noteText.trim()) {
+          map[key] = noteText;
+        } else {
+          delete map[key];
+        }
+        localStorage.setItem(ADMIN_ORDER_NOTES_STORAGE_KEY, JSON.stringify(map));
+      } catch (e) {}
+    }
+
+    function getOrderAdminNote(order) {
+      if (!order) return '';
+      if (order.adminNote !== undefined && order.adminNote !== null && String(order.adminNote) !== '') {
+        return String(order.adminNote);
+      }
+      let map = getLocalAdminNotesMap();
+      let key = order.orderId ? String(order.orderId) : ('row_' + order.row);
+      if (map[key] !== undefined) {
+        order.adminNote = String(map[key]);
+        return order.adminNote;
+      }
+      return '';
+    }
+
+    function onAdminOrderNoteInput(rowIdx, textareaEl) {
+      let order = (globalOrdersData || []).find(o => o.row === rowIdx);
+      if (!order || !textareaEl) return;
+      let val = textareaEl.value;
+      setLocalAdminNote(order, val);
+      textareaEl.classList.toggle('has-note', val.trim().length > 0);
+
+      let statusEl = document.getElementById(`admin-note-status-${rowIdx}`);
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color:#d69e2e;">⏳ Đang lưu...</span>';
+      }
+
+      if (adminNoteSaveTimers.has(rowIdx)) {
+        clearTimeout(adminNoteSaveTimers.get(rowIdx));
+      }
+      let timer = setTimeout(() => {
+        saveOrderAdminNoteToServer(rowIdx, val);
+      }, 650);
+      adminNoteSaveTimers.set(rowIdx, timer);
+    }
+
+    async function saveOrderAdminNoteToServer(rowIdx, val) {
+      if (adminNoteSaveTimers.has(rowIdx)) {
+        clearTimeout(adminNoteSaveTimers.get(rowIdx));
+        adminNoteSaveTimers.delete(rowIdx);
+      }
+      let order = (globalOrdersData || []).find(o => o.row === rowIdx);
+      if (order) setLocalAdminNote(order, val);
+
+      let statusEl = document.getElementById(`admin-note-status-${rowIdx}`);
+      try {
+        let payload = {
+          action: "updateOrderAdminNote",
+          token: getAdminToken(),
+          row: rowIdx,
+          adminNote: val
+        };
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        let data = await res.json();
+        if (data && data.status === "success") {
+          if (statusEl) statusEl.innerHTML = '<span style="color:#2f855a;">✓ Đã lưu</span>';
+        } else {
+          if (statusEl) statusEl.innerHTML = '<span style="color:#2f855a;">✓ Đã lưu trên máy</span>';
+        }
+      } catch (e) {
+        if (statusEl) statusEl.innerHTML = '<span style="color:#2f855a;">✓ Đã lưu trên máy</span>';
+      }
     }
 
     function toggleOrderSelect(rowIdx, checked) {
@@ -3734,12 +3901,15 @@
 
       let rowEl = selectEl.closest('tr');
       if (rowEl) {
+        rowEl.classList.remove('order-row-completed', 'order-row-pending-deposit', 'order-row-shipping');
+        selectEl.classList.remove('completed');
         if (val === "Hoàn thành") {
           rowEl.classList.add('order-row-completed');
           selectEl.classList.add('completed');
-        } else {
-          rowEl.classList.remove('order-row-completed');
-          selectEl.classList.remove('completed');
+        } else if (val === "Chưa đặt cọc" || val === "Đang chuẩn bị hàng") {
+          rowEl.classList.add('order-row-pending-deposit');
+        } else if (val === "Đã giao cho đơn vị vận chuyển") {
+          rowEl.classList.add('order-row-shipping');
         }
 
         if (pendingOrderChanges.has(rowIdx)) {
@@ -3767,7 +3937,7 @@
       let filtered = getFilteredOrders();
 
       if (!filtered || filtered.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; padding:25px; color:#718096;'>Không tìm thấy đơn hàng nào.</td></tr>";
+        tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding:25px; color:#718096;'>Không tìm thấy đơn hàng nào.</td></tr>";
         updateOrdersPaginationBar(0, 0);
         updateOrderToolbars(filtered || []);
         return;
@@ -3788,13 +3958,19 @@
         let currentEffectiveStatus = hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus;
 
         let isCompleted = currentEffectiveStatus === "Hoàn thành";
+        let isShipping = currentEffectiveStatus === "Đã giao cho đơn vị vận chuyển";
+        let isPendingDeposit = currentEffectiveStatus === "Chưa đặt cọc";
         let isDupCopy = !!order.isDuplicateCopy;
         
         let rowClasses = [];
         if (hasPending) rowClasses.push("row-pending-change");
         if (isCompleted) rowClasses.push("order-row-completed");
+        else if (isShipping) rowClasses.push("order-row-shipping");
+        else if (isPendingDeposit) rowClasses.push("order-row-pending-deposit");
         else if (isDupCopy) rowClasses.push("order-row-duplicate");
         let rowClass = rowClasses.join(" ");
+
+        let adminNoteVal = getOrderAdminNote(order);
 
         let selectHtml = `<select id="status-${order.row}" class="status-select ${hasPending ? 'select-unsaved' : ''} ${isCompleted ? 'completed' : ''}" onchange="onOrderStatusDropdownChange(${order.row}, this)">`;
         STATUS_OPTIONS.forEach(opt => {
@@ -3878,6 +4054,10 @@
               ${statusBadgeHtml}
               ${order.isDeducted ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:11px; color:#14532d; background:#dcfce7; border:1px solid #86efac; padding:2px 6px; border-radius:4px; font-weight:700;">📦 Đã trừ kho</span></div>' : ''}
               ${hasPending ? '<div class="badge-unsaved">⚠️ Chưa lưu</div>' : ''}
+            </td>
+            <td data-label="Ghi chú Admin">
+              <textarea id="admin-note-${order.row}" class="admin-order-note-input${adminNoteVal.trim() ? ' has-note' : ''}" placeholder="✍️ Ghi chú riêng..." oninput="onAdminOrderNoteInput(${order.row}, this)" onblur="saveOrderAdminNoteToServer(${order.row}, this.value)">${escapeHtml(adminNoteVal)}</textarea>
+              <div id="admin-note-status-${order.row}" class="admin-note-save-status"></div>
             </td>
             <td data-label="Thao tác">
               ${selectHtml}
@@ -4503,13 +4683,23 @@
       let selectEl = document.getElementById(`status-${rowIdx}`);
       if (!selectEl) return;
       let newStatus = selectEl.value;
+      let noteEl = document.getElementById(`admin-note-${rowIdx}`);
+      let adminNoteVal = noteEl ? noteEl.value : undefined;
       let order = (globalOrdersData || []).find(o => o.row === rowIdx);
+      if (order && adminNoteVal !== undefined) {
+        setLocalAdminNote(order, adminNoteVal);
+      }
       if (order && order.status === newStatus && !pendingOrderChanges.has(rowIdx)) {
+        if (adminNoteVal !== undefined) {
+          await saveOrderAdminNoteToServer(rowIdx, adminNoteVal);
+          showToast("📝 Đã lưu ghi chú Admin!", "success");
+          return;
+        }
         showToast("Trạng thái đơn hàng không có thay đổi", "info");
         return;
       }
       let ordName = order ? `đơn ${order.orderId}` : `dòng ${rowIdx}`;
-      await executeBatchStatusUpdate([{ row: rowIdx, newStatus: newStatus }], `✅ Đã cập nhật ${ordName} thành "${newStatus}"!`);
+      await executeBatchStatusUpdate([{ row: rowIdx, newStatus: newStatus, adminNote: adminNoteVal }], `✅ Đã cập nhật ${ordName} thành "${newStatus}"!`);
     }
 
     async function updateShippingFee() {

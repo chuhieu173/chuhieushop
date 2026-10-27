@@ -1976,6 +1976,60 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_admin_order_note_status_row_colors_and_carousel_swipe_hint(self):
+        """Kiểm tra: Cột Ghi chú Admin riêng biệt, màu nền dòng đơn hàng theo trạng thái (Vàng nhạt / Xanh da trời nhạt / Xanh lá) và Huy hiệu 'Kéo sang để xem thêm' trên index.html"""
+        admin = read_file('admin.html')
+        index = read_file('index.html')
+        codegs = read_file('Code.gs')
+
+        # 1. Cột Ghi chú Admin sau cột Trạng thái và không xuất ra Copy / SPX Excel
+        self.assertIn('<th style="width: 14%;">Ghi chú Admin</th>', admin, "LỖI: Bảng đơn hàng thiếu cột 'Ghi chú Admin'!")
+        self.assertIn('data-label="Ghi chú Admin"', admin, "LỖI: Dòng đơn hàng thiếu ô dữ liệu 'Ghi chú Admin'!")
+        self.assertIn("function onAdminOrderNoteInput", admin, "LỖI: Thiếu hàm onAdminOrderNoteInput trong admin.html!")
+        self.assertIn("function saveOrderAdminNoteToServer", admin, "LỖI: Thiếu hàm saveOrderAdminNoteToServer trong admin.html!")
+        self.assertIn('action === "updateOrderAdminNote"', codegs, "LỖI: Code.gs thiếu action updateOrderAdminNote!")
+
+        # Đảm bảo copyCustomerInfo không xuất adminNote
+        copy_fn = admin[admin.find("async function copyCustomerInfo(row)"):admin.find("async function deleteOrder(rowIdx)")]
+        self.assertNotIn("adminNote", copy_fn, "LỖI: copyCustomerInfo không được phép chứa adminNote!")
+
+        # 2. Màu nền dòng đơn hàng theo trạng thái
+        self.assertIn(".orders-table tbody tr.order-row-pending-deposit", admin, "LỖI: Thiếu class màu vàng nhạt cho đơn 'Chưa đặt cọc'!")
+        self.assertIn("background-color: #fefce8 !important;", admin, "LỖI: Đơn 'Chưa đặt cọc' phải có nền màu vàng nhạt (#fefce8)!")
+        self.assertIn(".orders-table tbody tr.order-row-shipping", admin, "LỖI: Thiếu class màu xanh da trời nhạt cho đơn 'Đã giao cho đơn vị vận chuyển'!")
+        self.assertIn("background-color: #e0f2fe !important;", admin, "LỖI: Đơn 'Đã giao ĐVVC' phải có nền màu xanh da trời nhạt (#e0f2fe)!")
+        self.assertIn("else if (isShipping) rowClasses.push(\"order-row-shipping\");", admin)
+        self.assertIn("else if (isPendingDeposit) rowClasses.push(\"order-row-pending-deposit\");", admin)
+
+        # 3. Huy hiệu 'Kéo sang để xem thêm' + bộ đếm ảnh + chấm tròn trên trang chủ index.html
+        self.assertIn("function buildCarouselOverlayHtml", index, "LỖI: index.html thiếu hàm buildCarouselOverlayHtml!")
+        self.assertIn("function updateCarouselActiveIndicator", index, "LỖI: index.html thiếu hàm updateCarouselActiveIndicator!")
+        self.assertIn("Kéo sang để xem thêm", index, "LỖI: index.html thiếu dòng chữ chỉ dẫn 'Kéo sang để xem thêm'!")
+        self.assertIn(".carousel-swipe-badge", index, "LỖI: index.html thiếu CSS .carousel-swipe-badge!")
+        self.assertIn(".carousel-dots", index, "LỖI: index.html thiếu CSS .carousel-dots!")
+
+        # Kiểm thử hàm buildCarouselOverlayHtml và updateCarouselActiveIndicator bằng Node.js
+        carousel_code = index[index.find("function buildCarouselOverlayHtml"):index.find("function openModal(")]
+        test_js = carousel_code + """
+        const assert = require('assert');
+        assert.strictEqual(buildCarouselOverlayHtml('P1', 1, false), '', '1 ảnh thì không hiện huy hiệu kéo xem thêm');
+        const htmlMulti = buildCarouselOverlayHtml('CMB1', 6, true);
+        assert(htmlMulti.includes('Kéo sang để xem thêm'), 'Nhiều ảnh phải hiện Kéo sang để xem thêm');
+        assert(htmlMulti.includes('1/6'), 'Phải hiện bộ đếm 1/6');
+        assert(htmlMulti.includes('carousel-dots with-caption'), 'Combo có caption phải có class with-caption');
+        console.log('CAROUSEL_SWIPE_OK');
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("CAROUSEL_SWIPE_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 if __name__ == '__main__':
