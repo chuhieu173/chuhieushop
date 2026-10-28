@@ -746,6 +746,165 @@
     .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-family: 'Roboto', sans-serif; font-size: 15px; background: white; outline: none; transition: 0.3s;}
     .form-group input:focus, .form-group select:focus { border-color: #ee4d2d; }
     .form-group select { appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;}
+
+    /* Cảnh báo bắt buộc nhắn Zalo & Trạng thái đã ghi nhận đơn chống tạo đơn trùng */
+    .zalo-mandatory-warning {
+      margin-top: 14px;
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #fffbeb 0%, #fef2f2 100%);
+      border: 2px solid #f59e0b;
+      border-left: 6px solid #dc2626;
+      border-radius: 8px;
+      color: #7f1d1d;
+      line-height: 1.45;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
+    }
+    .zalo-warning-title {
+      font-size: 12.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #b91c1c;
+      letter-spacing: 0.3px;
+      margin-bottom: 4px;
+    }
+    .zalo-warning-highlight {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #dc2626;
+      background: #fee2e2;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin: 5px 0;
+      border: 1px dashed #ef4444;
+    }
+    .zalo-warning-desc {
+      font-size: 12.5px;
+      color: #92400e;
+      margin-top: 4px;
+    }
+    .order-submitted-banner {
+      margin-top: 10px;
+      margin-bottom: 10px;
+      padding: 12px 14px;
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      border-radius: 8px;
+      color: #065f46;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.12);
+    }
+
+    /* Modal xác nhận đặt hàng & hướng dẫn dán Zalo (Chống bấm lặp tạo đơn trùng) */
+    .order-success-modal {
+      display: none;
+      position: fixed;
+      z-index: 100001;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    .order-success-card {
+      background: #ffffff;
+      color: #1e293b;
+      width: 100%;
+      max-width: 480px;
+      border-radius: 14px;
+      padding: 20px 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      border-top: 6px solid #10b981;
+      position: relative;
+      animation: modalFadeUp 0.25s ease-out;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    @keyframes modalFadeUp {
+      from { opacity: 0; transform: translateY(16px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .order-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+    .order-step-done {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+    .order-step-next {
+      background: #eff6ff;
+      border: 1.5px solid #60a5fa;
+      color: #1e3a8a;
+    }
+    .order-zalo-alert {
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 10px 0;
+      color: #b91c1c;
+      font-size: 13.5px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .order-preview-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #334155;
+      max-height: 120px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 12px;
+    }
+    .btn-zalo-cta {
+      background: linear-gradient(135deg, #0068ff 0%, #0052cc 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 16px;
+      width: 100%;
+      font-size: 15.5px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 104, 255, 0.35);
+      margin-bottom: 8px;
+      font-family: 'Roboto', sans-serif;
+    }
+    .btn-zalo-cta:hover { background: #0047b3; }
+    .btn-copy-again-cta {
+      background: #f1f5f9;
+      color: #1e293b;
+      border: 1.5px solid #94a3b8;
+      border-radius: 8px;
+      padding: 10px 14px;
+      width: 100%;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 8px;
+      font-family: 'Roboto', sans-serif;
+    }
+    .btn-copy-again-cta:hover { background: #e2e8f0; }
     
     .loader { background: #f4f4f9; bottom: 0; left: 0; overflow: hidden; position: fixed; right: 0; top: 0; z-index: 99999; transition: opacity 0.5s ease, visibility 0.5s ease; }
     .loader.hidden { opacity: 0; visibility: hidden; }
@@ -992,12 +1151,12 @@
 
     <div id="checkout-form" style="margin-top: 30px;">
       <h3>Thông tin nhận hàng</h3>
-      <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" required></div>
-      <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" required></div>
-      <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value); updateAddressPreview();" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
-      <div class="form-group"><select id="phuong" onchange="updateAddressPreview()" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
+      <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" oninput="onCustomerFormInput()" required></div>
+      <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" oninput="onCustomerFormInput()" required></div>
+      <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value); updateAddressPreview(); onCustomerFormInput();" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
+      <div class="form-group"><select id="phuong" onchange="updateAddressPreview(); onCustomerFormInput();" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
       <div class="form-group">
-        <input type="text" id="customer-address-detail" placeholder="Số nhà, tên đường, thôn/xóm (Không cần gõ Phường, Tỉnh/TP) *" oninput="updateAddressPreview()" required>
+        <input type="text" id="customer-address-detail" placeholder="Số nhà, tên đường, thôn/xóm (Không cần gõ Phường, Tỉnh/TP) *" oninput="updateAddressPreview(); onCustomerFormInput();" required>
         <div style="font-size: 12px; color: #718096; margin-top: 4px; padding-left: 2px;">
           💡 Chỉ cần nhập số nhà, tên đường (hệ thống sẽ tự động ghép với Phường & Tỉnh/TP đã chọn ở trên).
         </div>
@@ -1007,10 +1166,63 @@
         <div id="address-preview-text" style="font-weight: bold; color: #1a202c; word-break: break-word;"></div>
       </div>
       <!-- Tạm thời ẩn phần ghi chú đặt hàng -->
-      <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)"></div>
+      <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)" oninput="onCustomerFormInput()"></div>
+
+      <!-- Cảnh báo bắt buộc nhắn Zalo để đơn hàng được thực hiện -->
+      <div id="zalo-mandatory-warning-box" class="zalo-mandatory-warning">
+        <div class="zalo-warning-title">⚠️ LƯU Ý BẮT BUỘC KHI ĐẶT HÀNG:</div>
+        <div class="zalo-warning-highlight">Nếu không nhắn Zalo thì đơn hàng của bạn sẽ chưa được thực hiện!</div>
+        <div class="zalo-warning-desc">Sau khi bấm nút bên dưới, hệ thống sẽ <b>tự động ghi nhận đơn &amp; copy nội dung</b>. Bạn chỉ cần vào Zalo của Shop rồi bấm <b>DÁN (Paste) &amp; GỬI</b> là xong (không cần bấm tạo đơn lại nhiều lần).</div>
+      </div>
+
+      <!-- Banner trạng thái hiển thị khi đơn hiện tại đã được gửi lên hệ thống -->
+      <div id="order-submitted-banner" class="order-submitted-banner" style="display: none;">
+        <div style="font-weight: 800; font-size: 14px; color: #065f46; margin-bottom: 3px;">✅ ĐƠN HÀNG NÀY ĐÃ ĐƯỢC GHI NHẬN TRÊN HỆ THỐNG!</div>
+        <div style="font-size: 12.5px; color: #047857; line-height: 1.45;">Bạn <b>không cần tạo lại đơn</b>. Nếu chưa kịp gửi tin nhắn cho Shop, hãy bấm nút bên dưới để mở lại Zalo hoặc copy lại nội dung đơn (hệ thống sẽ không tạo đơn trùng).</div>
+      </div>
       
-      <button class="btn-primary" onclick="checkout(true)" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
-      <button class="btn-primary" onclick="checkout(false)" style="background: #4a5568; margin-top: 10px;">Copy nội dung đơn hàng</button>
+      <button id="btn-checkout-zalo" class="btn-primary" onclick="checkout(true)" style="background: #ee4d2d; margin-top: 10px;">Gửi tin nhắn đặt mua</button>
+      <button id="btn-checkout-copy" class="btn-primary" onclick="checkout(false)" style="background: #4a5568; margin-top: 10px;">Copy nội dung đơn hàng</button>
+    </div>
+  </div>
+
+  <!-- Modal xác nhận đã lưu đơn & hướng dẫn dán gửi Zalo (chống khách bấm tạo đơn trùng) -->
+  <div id="order-success-modal" class="order-success-modal" onclick="if(event.target===this) closeOrderSuccessModal()">
+    <div class="order-success-card">
+      <div id="order-success-badge" style="background: #dcfce7; color: #166534; font-weight: 800; font-size: 13px; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 10px;">
+        ✅ ĐÃ GHI NHẬN &amp; COPY ĐƠN HÀNG
+      </div>
+      <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #0f172a;">Chỉ còn 1 bước cuối để hoàn tất!</h3>
+
+      <div class="order-step-item order-step-done">
+        <span style="font-size: 18px;">✅</span>
+        <div><b>Bước 1 (Đã xong):</b> Đơn hàng đã được lưu lên hệ thống và <b>đã tự động COPY</b> vào bộ nhớ điện thoại/máy tính của bạn.</div>
+      </div>
+
+      <div class="order-step-item order-step-next">
+        <span style="font-size: 18px;">👉</span>
+        <div><b>Bước 2 (Cần làm ngay):</b> Mở Zalo của Shop, <b>chạm giữ vào ô nhập tin nhắn &rarr; chọn DÁN (Paste) &rarr; bấm GỬI</b>.</div>
+      </div>
+
+      <div class="order-zalo-alert">
+        ⚠️ LƯU Ý QUAN TRỌNG:<br>
+        Nếu không nhắn Zalo thì đơn hàng của bạn sẽ chưa được thực hiện!
+      </div>
+
+      <div id="order-success-copy-status" style="font-size: 12px; color: #15803d; font-weight: 700; margin-bottom: 4px;">
+        📋 Nội dung đơn hàng đã được copy sẵn:
+      </div>
+      <div id="order-success-preview-text" class="order-preview-box"></div>
+
+      <button type="button" class="btn-zalo-cta" onclick="openZaloFromSuccessModal()">
+        💬 MỞ ZALO &amp; DÁN GỬI SHOP NGAY
+      </button>
+      <button type="button" class="btn-copy-again-cta" onclick="reCopyOrderFromSuccessModal()">
+        📋 Copy lại nội dung đơn hàng (Không tạo đơn trùng)
+      </button>
+      <button type="button" onclick="closeOrderSuccessModal()" style="background: transparent; border: none; color: #64748b; width: 100%; padding: 6px; font-size: 13px; cursor: pointer; font-weight: 600;">
+        Đóng cửa sổ này
+      </button>
     </div>
   </div>
 
@@ -3199,7 +3411,8 @@
       } else {
         document.getElementById('floating-total-price').innerText = "0đ";
       }
-      document.getElementById('cart-count').innerText = totalQty; 
+      document.getElementById('cart-count').innerText = totalQty;
+      updateCheckoutSubmittedUI();
     }
 
     function removeItem(index) { cart.splice(index, 1); updateCart(); }
@@ -3209,13 +3422,152 @@
       if (cart.length > 0) setTimeout(() => { document.getElementById('customer-name').focus(); }, 500);
     }
 
+    // === GIẢI PHÁP CHỐNG TẠO ĐƠN TRÙNG LẶP (IDEMPOTENCY FINGERPRINT + MODAL HƯỚNG DẪN ZALO) ===
+    const ORDER_DEDUP_WINDOW_MS = 15 * 60 * 1000; // 15 phút
+    const ORDER_DEDUP_STORAGE_KEY = 'chuhieu_last_submitted_order_v1';
     let isSubmittingOrder = false;
+    let lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: '' };
+
+    try {
+      const savedOrderState = sessionStorage.getItem(ORDER_DEDUP_STORAGE_KEY);
+      if (savedOrderState) {
+        const parsed = JSON.parse(savedOrderState);
+        if (parsed && parsed.fingerprint && (Date.now() - Number(parsed.timestamp || 0)) < ORDER_DEDUP_WINDOW_MS) {
+          lastSubmittedOrderState = parsed;
+        }
+      }
+    } catch (e) {}
+
+    function computeOrderFingerprint(name, phone, fullAddress, note, cartItems) {
+      const normPhone = String(phone || '').replace(/\D+/g, '');
+      const normName = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const normAddr = String(fullAddress || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const normNote = String(note || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const normCart = (Array.isArray(cartItems) ? cartItems : [])
+        .map(it => `${it.id || ''}_${it.variantId || ''}_${Number(it.qty || 0)}`)
+        .sort()
+        .join('|');
+      return `${normPhone}::${normName}::${normAddr}::${normNote}::${normCart}`;
+    }
+
+    function getCurrentFormFullAddress() {
+      const detailAddress = (document.getElementById('customer-address-detail')?.value || '').trim();
+      const tinhSelect = document.getElementById('tinh');
+      const phuongSelect = document.getElementById('phuong');
+      const tinhValue = tinhSelect ? tinhSelect.value : '';
+      const phuongValue = phuongSelect ? phuongSelect.value : '';
+      if (!detailAddress || !tinhValue || !phuongValue) return '';
+      const tinhName = (tinhSelect && tinhSelect.selectedIndex >= 0) ? (tinhSelect.options[tinhSelect.selectedIndex]?.text || '') : '';
+      const phuongName = (phuongSelect && phuongSelect.selectedIndex >= 0) ? (phuongSelect.options[phuongSelect.selectedIndex]?.text || '') : '';
+      let cleanDetail = cleanDetailAddress(detailAddress, phuongName, tinhName);
+      return cleanDetail ? `${cleanDetail}, ${phuongName}, ${tinhName}` : `${detailAddress}, ${phuongName}, ${tinhName}`;
+    }
+
+    function isCurrentOrderAlreadySubmitted() {
+      if (!lastSubmittedOrderState || !lastSubmittedOrderState.fingerprint) return false;
+      if ((Date.now() - Number(lastSubmittedOrderState.timestamp || 0)) >= ORDER_DEDUP_WINDOW_MS) return false;
+      if (!cart || cart.length === 0) return false;
+      const name = (document.getElementById('customer-name')?.value || '').trim();
+      const phone = (document.getElementById('customer-phone')?.value || '').trim();
+      const fullAddress = getCurrentFormFullAddress();
+      const note = (document.getElementById('customer-note')?.value || '').trim();
+      if (!name || !phone || !fullAddress) return false;
+      const currentFp = computeOrderFingerprint(name, phone, fullAddress, note, cart);
+      return currentFp === lastSubmittedOrderState.fingerprint;
+    }
+
+    function updateCheckoutSubmittedUI() {
+      const bannerEl = document.getElementById('order-submitted-banner');
+      const btnZalo = document.getElementById('btn-checkout-zalo');
+      const btnCopy = document.getElementById('btn-checkout-copy');
+      const alreadySubmitted = isCurrentOrderAlreadySubmitted();
+      if (bannerEl) {
+        bannerEl.style.display = alreadySubmitted ? 'block' : 'none';
+      }
+      if (btnZalo) {
+        btnZalo.innerText = alreadySubmitted
+          ? '💬 Mở lại Zalo gửi đơn (Đơn đã được lưu)'
+          : 'Gửi tin nhắn đặt mua';
+      }
+      if (btnCopy) {
+        btnCopy.innerText = alreadySubmitted
+          ? '📋 Copy lại nội dung đơn hàng (Không tạo đơn trùng)'
+          : 'Copy nội dung đơn hàng';
+      }
+    }
+
+    function onCustomerFormInput() {
+      updateCheckoutSubmittedUI();
+    }
+
+    function copyTextToClipboard(text) {
+      let copied = false;
+      try {
+        const temp = document.createElement("textarea");
+        temp.value = text;
+        temp.setAttribute("readonly", "");
+        temp.style.position = "fixed";
+        temp.style.opacity = "0";
+        temp.style.left = "-9999px";
+        document.body.appendChild(temp);
+        temp.select();
+        temp.setSelectionRange(0, temp.value.length);
+        copied = document.execCommand("copy");
+        document.body.removeChild(temp);
+      } catch (err) {}
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(text).catch(() => {});
+        copied = true;
+      }
+      return copied;
+    }
+
+    function openOrderSuccessModal(orderText, isRepeatClick) {
+      const modal = document.getElementById('order-success-modal');
+      const badge = document.getElementById('order-success-badge');
+      const copyStatus = document.getElementById('order-success-copy-status');
+      const preview = document.getElementById('order-success-preview-text');
+      if (badge) {
+        badge.innerHTML = isRepeatClick
+          ? '✅ ĐÃ COPY LẠI ĐƠN HÀNG (KHÔNG TẠO ĐƠN TRÙNG)'
+          : '✅ ĐÃ GHI NHẬN &amp; COPY ĐƠN HÀNG';
+      }
+      if (copyStatus) {
+        copyStatus.innerText = isRepeatClick
+          ? '✅ Đã copy lại nội dung đơn hàng vào bộ nhớ tạm (Đơn đã lưu trước đó):'
+          : '📋 Nội dung đơn hàng đã được copy sẵn:';
+      }
+      if (preview) {
+        preview.innerText = orderText || lastSubmittedOrderState.orderText || '';
+      }
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closeOrderSuccessModal() {
+      const modal = document.getElementById('order-success-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function openZaloFromSuccessModal() {
+      const textToCopy = lastSubmittedOrderState.orderText || (document.getElementById('order-success-preview-text')?.innerText || '');
+      if (textToCopy) copyTextToClipboard(textToCopy);
+      window.open("https://zalo.me/" + zaloPhone, "_blank");
+    }
+
+    function reCopyOrderFromSuccessModal() {
+      const textToCopy = lastSubmittedOrderState.orderText || (document.getElementById('order-success-preview-text')?.innerText || '');
+      if (textToCopy) {
+        copyTextToClipboard(textToCopy);
+        const copyStatus = document.getElementById('order-success-copy-status');
+        if (copyStatus) {
+          copyStatus.innerText = '✅ ĐÃ COPY LẠI THÀNH CÔNG! Hãy mở Zalo và bấm Dán (Paste) gửi cho Shop nhé!';
+        }
+      }
+    }
 
     function checkout(openZalo) {
-      if (isSubmittingOrder) {
-        alert("Thông tin đơn hàng đã được copy, vui lòng không nhấn Copy liên tục!");
-        return;
-      }
       if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
       if (typeof combosData !== 'undefined' && combosData) {
@@ -3288,26 +3640,47 @@
       let finalTotal = total + globalShippingFee;
       orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + formatMoney(globalShippingFee) + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
 
+      const currentFp = computeOrderFingerprint(name, phone, fullAddress, note, cart);
+      const isDuplicateSubmission = (
+        lastSubmittedOrderState.fingerprint === currentFp &&
+        (Date.now() - Number(lastSubmittedOrderState.timestamp || 0)) < ORDER_DEDUP_WINDOW_MS
+      );
+
+      // Copy nội dung đơn hàng vào bộ nhớ tạm
+      copyTextToClipboard(orderText);
+
+      // Nếu đơn hàng này vừa được gửi rồi (khách bấm lại nút Copy hoặc bấm lại nút Gửi Zalo):
+      // TUYỆT ĐỐI KHÔNG gọi fetch(createOrder) lần 2 để tránh tạo đơn trùng lặp trên Google Sheet!
+      if (isDuplicateSubmission) {
+        lastSubmittedOrderState.orderText = orderText;
+        updateCheckoutSubmittedUI();
+        openOrderSuccessModal(orderText, true);
+        if (openZalo === true) {
+          window.open("https://zalo.me/" + zaloPhone, "_blank");
+        }
+        return;
+      }
+
+      // Đơn hàng mới -> Ghi nhận trạng thái & gửi API lên Google Sheets
       let orderData = { action: "createOrder", name: name, phone: phone, address: fullAddress, note: note, itemsText: itemsForSheet.join('\n'), total: formatMoney(finalTotal), cartJSON: JSON.stringify(cart) };
       isSubmittingOrder = true;
       setTimeout(() => { isSubmittingOrder = false; }, 3500);
+      lastSubmittedOrderState = {
+        fingerprint: currentFp,
+        timestamp: Date.now(),
+        orderText: orderText
+      };
+      try {
+        sessionStorage.setItem(ORDER_DEDUP_STORAGE_KEY, JSON.stringify(lastSubmittedOrderState));
+      } catch (e) {}
+
       fetch(API_URL, { method: 'POST', body: JSON.stringify(orderData) }).catch(err => console.error(err));
 
-      const temp = document.createElement("textarea"); temp.value = orderText; document.body.appendChild(temp); temp.select();
-      try { 
-        document.execCommand("copy"); 
-        
-        if (openZalo === true) {
-            alert("ĐÃ LƯU ĐƠN HÀNG!\n\nHệ thống sẽ mở Zalo. Hãy bấm DÁN (Paste) để gửi đơn cho Shop nhé!"); 
-        } else {
-            alert("Đã copy thông tin đơn hàng, hãy chủ động nhắn thông tin đơn hàng đã copy cho shop nhé!");
-        }
-      } 
-      catch (err) { alert("Trình duyệt không hỗ trợ copy tự động. Vui lòng nhắn tin trực tiếp cho Shop!"); }
-      document.body.removeChild(temp);
-      
+      updateCheckoutSubmittedUI();
+      openOrderSuccessModal(orderText, false);
+
       if (openZalo === true) {
-          window.open("https://zalo.me/" + zaloPhone, "_blank");
+        window.open("https://zalo.me/" + zaloPhone, "_blank");
       }
     }
   </script>

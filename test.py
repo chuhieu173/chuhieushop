@@ -2030,6 +2030,129 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_anti_duplicate_checkout_ux_and_zalo_mandatory_warning(self):
+        """Kiểm tra: Bộ 3 giải pháp chống tạo đơn trùng lặp trên index.html + Code.gs và cảnh báo bắt buộc nhắn Zalo"""
+        index = read_file('index.html')
+        codegs = read_file('Code.gs')
+
+        # 1. Cảnh báo bắt buộc: "Nếu không nhắn Zalo thì đơn hàng của bạn sẽ chưa được thực hiện"
+        mandatory_msg = "Nếu không nhắn Zalo thì đơn hàng của bạn sẽ chưa được thực hiện"
+        self.assertGreaterEqual(
+            index.count(mandatory_msg), 2,
+            "LỖI: Câu cảnh báo 'Nếu không nhắn Zalo thì đơn hàng của bạn sẽ chưa được thực hiện' phải xuất hiện ở cả khung đặt hàng và trong Modal xác nhận!"
+        )
+        self.assertIn('id="zalo-mandatory-warning-box"', index)
+        self.assertIn('id="order-submitted-banner"', index)
+        self.assertIn('id="order-success-modal"', index)
+        self.assertIn('id="btn-checkout-zalo"', index)
+        self.assertIn('id="btn-checkout-copy"', index)
+
+        # 2. Server-side Idempotency trong Code.gs (chống ghi trùng đơn trong 180 giây)
+        self.assertIn('ord_dedup_', codegs, "LỖI: Code.gs thiếu khóa chống trùng đơn ord_dedup_ trong handleCreateOrder!")
+        self.assertIn('deduplicated: true', codegs, "LỖI: Code.gs chưa trả về trạng thái deduplicated: true khi phát hiện đơn trùng!")
+
+        # 3. Kiểm thử thực thi logic Fingerprint & chặn gọi API lần 2 trong checkout(openZalo) bằng Node.js
+        dedup_js_slice = index[index.find("const ORDER_DEDUP_WINDOW_MS"):index.find("</script>", index.find("const ORDER_DEDUP_WINDOW_MS"))]
+        test_js = """
+        const assert = require('assert');
+        let apiCallCount = 0;
+        let openedUrls = [];
+        let copiedTexts = [];
+        let sessionStore = {};
+        const API_URL = "https://example.com/api";
+        const zaloPhone = "84355967766";
+        const globalShippingFee = 22000;
+        let cart = [{ id: "SP01", name: "Mạch ESP32", price: 100000, qty: 2, isCombo: false, variantId: "v1", variantName: "Bản Hàn Sẵn" }];
+        let combosData = [];
+
+        const domElements = {
+          'customer-name': { value: 'Nguyễn Văn A' },
+          'customer-phone': { value: '0912 345 678' },
+          'customer-address-detail': { value: '123 Lê Lợi' },
+          'customer-note': { value: '' },
+          'tinh': { value: '79', selectedIndex: 0, options: [{ text: 'Thành phố Hồ Chí Minh' }] },
+          'phuong': { value: '26734', selectedIndex: 0, options: [{ text: 'Phường Bến Nghé' }] },
+          'order-submitted-banner': { style: { display: 'none' } },
+          'btn-checkout-zalo': { innerText: 'Gửi tin nhắn đặt mua' },
+          'btn-checkout-copy': { innerText: 'Copy nội dung đơn hàng' },
+          'order-success-modal': { style: { display: 'none' } },
+          'order-success-badge': { innerHTML: '' },
+          'order-success-copy-status': { innerText: '' },
+          'order-success-preview-text': { innerText: '' }
+        };
+
+        const document = {
+          getElementById: (id) => domElements[id] || null,
+          createElement: () => ({
+            value: '',
+            setAttribute: () => {},
+            style: {},
+            select: () => {},
+            setSelectionRange: () => {}
+          }),
+          body: { appendChild: () => {}, removeChild: () => {} },
+          execCommand: () => true
+        };
+        const navigator = {
+          clipboard: {
+            writeText: (txt) => { copiedTexts.push(txt); return Promise.resolve(); }
+          }
+        };
+        const sessionStorage = {
+          getItem: (k) => sessionStore[k] || null,
+          setItem: (k, v) => { sessionStore[k] = v; }
+        };
+        const window = {
+          open: (url) => { openedUrls.push(url); }
+        };
+        function fetch() {
+          apiCallCount++;
+          return Promise.resolve({ json: () => Promise.resolve({ status: 'success' }) });
+        }
+        function alert(msg) { throw new Error("Unexpected alert: " + msg); }
+        function cleanDetailAddress(d) { return d; }
+        function formatMoney(n) { return n + 'đ'; }
+        """ + dedup_js_slice + """
+
+        // Lần bấm 1: Khách bấm "Copy nội dung đơn hàng" -> Phải gọi API đúng 1 lần, mở Modal hướng dẫn
+        checkout(false);
+        assert.strictEqual(apiCallCount, 1, "Lần bấm 1 phải gửi API tạo đơn đúng 1 lần");
+        assert.strictEqual(domElements['order-success-modal'].style.display, 'flex', "Phải mở Modal hướng dẫn sau khi đặt hàng");
+        assert.strictEqual(domElements['order-submitted-banner'].style.display, 'block', "Phải hiện banner xanh xác nhận đơn đã ghi nhận");
+        assert(domElements['btn-checkout-zalo'].innerText.includes('Đơn đã được lưu'), "Nút Zalo phải đổi sang trạng thái Đơn đã được lưu");
+
+        // Lần bấm 2: Khách bấm tiếp "Gửi tin nhắn đặt mua" ngay sau đó -> KHÔNG ĐƯỢC gọi API lần 2, chỉ mở Zalo và copy lại!
+        checkout(true);
+        assert.strictEqual(apiCallCount, 1, "Lần bấm 2 với cùng giỏ hàng & SĐT tuyệt đối KHÔNG được gọi API tạo đơn trùng!");
+        assert.strictEqual(openedUrls.length, 1, "Phải mở Zalo cho khách");
+
+        // Lần bấm 3: Khách bấm nút "MỞ ZALO & DÁN GỬI SHOP NGAY" trong Modal -> KHÔNG gọi API
+        openZaloFromSuccessModal();
+        assert.strictEqual(apiCallCount, 1, "Bấm nút trong Modal không bao giờ gọi API tạo đơn");
+        assert.strictEqual(openedUrls.length, 2, "Mở Zalo từ Modal thành công");
+
+        // Lần bấm 4: Khách đổi số lượng sản phẩm trong giỏ hàng từ 2 lên 3 -> Phải reset trạng thái và cho phép tạo đơn mới
+        cart[0].qty = 3;
+        updateCheckoutSubmittedUI();
+        assert.strictEqual(domElements['order-submitted-banner'].style.display, 'none', "Khi đổi giỏ hàng, banner Đã lưu đơn phải ẩn đi");
+        assert.strictEqual(domElements['btn-checkout-zalo'].innerText, 'Gửi tin nhắn đặt mua', "Nút đặt hàng trở về mặc định");
+
+        checkout(false);
+        assert.strictEqual(apiCallCount, 2, "Sau khi thay đổi giỏ hàng, bấm đặt hàng phải tạo đơn mới (apiCallCount = 2)");
+        console.log("ANTI_DUP_CHECKOUT_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, f"Lỗi Node.js:\n{res.stderr}")
+            self.assertIn("ANTI_DUP_CHECKOUT_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 if __name__ == '__main__':
