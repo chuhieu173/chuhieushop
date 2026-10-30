@@ -2203,6 +2203,33 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_advanced_loading_optimizations_swr_defer_and_lazy_iframes(self):
+        """Kiểm tra: 5 kỹ thuật tăng tốc tải trang (SWR LocalStorage Cache, defer script nặng, Preconnect, Lazy Render tab Sơ đồ và Cache Tỉnh/Phường)"""
+        index = read_file('index.html')
+        admin = read_file('admin.html')
+        codegs = read_file('Code.gs')
+
+        # 1. Preconnect & defer non-critical scripts
+        self.assertIn('<link rel="preconnect" href="https://script.google.com">', index)
+        self.assertIn('<link rel="preconnect" href="https://script.google.com">', admin)
+        self.assertIn('<script defer src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>', index)
+        self.assertIn('<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>', admin)
+        self.assertIn('<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>', admin)
+
+        # 2. Early fetch & SWR Cache trên index.html + admin.html + Code.gs
+        self.assertIn("earlyProductsPromise", index, "LỖI: index.html thiếu earlyProductsPromise khởi chạy sớm!")
+        self.assertIn("STOREFRONT_SWR_CACHE_KEY", index, "LỖI: index.html thiếu khóa SWR cache STOREFRONT_SWR_CACHE_KEY!")
+        self.assertIn("PROVINCES_CACHE_KEY", index, "LỖI: index.html thiếu cache Tỉnh/Thành PROVINCES_CACHE_KEY!")
+        self.assertIn("WARDS_CACHE_PREFIX", index, "LỖI: index.html thiếu cache Phường/Xã WARDS_CACHE_PREFIX!")
+        self.assertIn("ADMIN_SWR_ORDERS_KEY", admin, "LỖI: admin.html thiếu ADMIN_SWR_ORDERS_KEY!")
+        self.assertIn("ADMIN_SWR_PRODUCTS_KEY", admin, "LỖI: admin.html thiếu ADMIN_SWR_PRODUCTS_KEY!")
+        self.assertIn("PRODUCTS_ADMIN_CACHE_KEY", codegs, "LỖI: Code.gs thiếu PRODUCTS_ADMIN_CACHE_KEY cho getProductsAdmin!")
+
+        # 3. Ưu tiên băng thông ảnh đầu tiên (fetchpriority="high") và trì hoãn renderPosts() khi tab Sơ đồ đang ẩn
+        self.assertIn('fetchpriority="high" decoding="async"', index, "LỖI: index.html thiếu fetchpriority='high' cho ảnh đầu tiên!")
+        self.assertIn("postsNeedsRender", index, "LỖI: index.html thiếu cờ postsNeedsRender để hoãn tải iframe YouTube/TikTok ở tab ẩn!")
+        self.assertIn("function initCarouselInfiniteScroll", index, "LỖI: index.html thiếu hàm initCarouselInfiniteScroll!")
+
 
 
 if __name__ == '__main__':

@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Cửa Hàng Của Minh Hiếu</title>
-  
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <link rel="preconnect" href="https://provinces.open-api.vn">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   
   <style>
@@ -1050,7 +1054,7 @@
     }
   </style>
   
-  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
 </head>
 <body>
 
@@ -1260,6 +1264,12 @@
     let themeResizeHandler = null;
     let activeWebGlRenderer = null;
     let current2dRenderFunc = null;
+    let postsNeedsRender = true;
+
+    // Khởi chạy sớm kết nối API ngay khi trình duyệt đọc tới script (không chờ DOMContentLoaded)
+    let earlyProductsPromise = (typeof fetch === 'function')
+      ? fetch(API_URL).then(r => r.json()).catch(() => null)
+      : null;
 
     document.addEventListener("DOMContentLoaded", function() {
       let savedTheme = localStorage.getItem('userSelectedTheme');
@@ -1268,13 +1278,19 @@
       loadProducts(); fetchTinh(); setupModalSwipe();
     });
     
-    // Hàm chuyển đổi Tab
+    // Hàm chuyển đổi Tab (Chỉ render iframe YouTube/TikTok/Drive của Sơ đồ khi người dùng thực sự bấm sang tab)
     function switchView(viewName) {
       document.getElementById('view-products').style.display = (viewName === 'products') ? 'block' : 'none';
       document.getElementById('view-diagrams').style.display = (viewName === 'diagrams') ? 'block' : 'none';
       
       document.getElementById('tab-btn-products').classList.toggle('active', viewName === 'products');
       document.getElementById('tab-btn-diagrams').classList.toggle('active', viewName === 'diagrams');
+
+      if (viewName === 'diagrams' && postsNeedsRender) {
+        postsNeedsRender = false;
+        renderPosts();
+        setTimeout(() => { initCarouselInfiniteScroll(document.getElementById('view-diagrams')); }, 60);
+      }
     }
 
     function userChangeTheme(themeValue) {
@@ -2306,90 +2322,187 @@
       setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
-    async function loadProducts() {
-      try {
-        let response = await fetch(API_URL);
-        let resData = await response.json(); 
+    const STOREFRONT_SWR_CACHE_KEY = 'chuhieu_storefront_swr_cache_v1';
+    const PROVINCES_CACHE_KEY = 'chuhieu_provinces_cache_v1';
+    const WARDS_CACHE_PREFIX = 'chuhieu_wards_cache_v1_';
+    const GEO_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 ngày
+
+    function applyStorefrontPayload(resData) {
+      if (!resData) return false;
+      if (resData.products) {
+        productsData = resData.products.slice();
+        // Sắp xếp sản phẩm theo thứ tự hiển thị tùy chỉnh (từ Google Sheets Column 10)
+        productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+        combosData = (resData.combos || []).slice();
+        postsData = (resData.posts || []).slice(); // Load thêm dữ liệu bài viết
+        globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
         
-        if (resData.products) {
-          productsData = resData.products;
-          // Sắp xếp sản phẩm theo thứ tự hiển thị tùy chỉnh (từ Google Sheets Column 10)
-          productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-          combosData = resData.combos || [];
-          postsData = resData.posts || []; // Load thêm dữ liệu bài viết
-          globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
-          
-          combosData.forEach(c => {
-             let newCaptions = [];
-             
-             c.images.forEach(img => {
-                let foundProd = null;
-                for(let i=0; i<c.rawItems.length; i++) {
-                   let p = productsData.find(x => x.id === c.rawItems[i].id);
-                   if (p && p.images && p.images.length > 0 && p.images[0] === img) {
-                      foundProd = p;
-                      break;
-                   }
-                }
-                
-                if (foundProd) {
-                   let desc = foundProd.desc ? foundProd.desc.trim() : "";
-                   let capText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
-                   newCaptions.push(capText);
-                } else {
-                   let desc = c.desc ? c.desc.trim() : "";
-                   let capText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
-                   newCaptions.push(capText);
-                }
-             });
-             
-             c.imageCaptions = newCaptions;
-          });
+        // Tạo Map tra cứu O(1) thay vì find() lồng nhau
+        const prodById = {};
+        productsData.forEach(p => { prodById[p.id] = p; });
 
-          currentServerTheme = resData.theme || 'default';
-          if (resData.themeVideo) {
-            currentServerThemeVideo = resData.themeVideo;
-            localStorage.setItem('chuhieushop_last_theme_video', resData.themeVideo);
-          } else {
-            currentServerThemeVideo = localStorage.getItem('chuhieushop_last_theme_video') || '';
-          }
-          let activeTheme = localStorage.getItem('userSelectedTheme') || 'shop-default';
-          applyTheme(activeTheme);
+        combosData.forEach(c => {
+           let newCaptions = [];
+           c.images.forEach(img => {
+              let foundProd = null;
+              for (let i = 0; i < c.rawItems.length; i++) {
+                 let p = prodById[c.rawItems[i].id];
+                 if (p && p.images && p.images.length > 0 && p.images[0] === img) {
+                    foundProd = p;
+                    break;
+                 }
+              }
+              if (foundProd) {
+                 let desc = foundProd.desc ? foundProd.desc.trim() : "";
+                 let capText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
+                 newCaptions.push(capText);
+              } else {
+                 let desc = c.desc ? c.desc.trim() : "";
+                 let capText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
+                 newCaptions.push(capText);
+              }
+           });
+           c.imageCaptions = newCaptions;
+        });
 
+        currentServerTheme = resData.theme || 'default';
+        if (resData.themeVideo) {
+          currentServerThemeVideo = resData.themeVideo;
+          try { localStorage.setItem('chuhieushop_last_theme_video', resData.themeVideo); } catch (e) {}
         } else {
-          productsData = resData; 
-          if (Array.isArray(productsData)) {
-            productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-          }
-          currentServerTheme = 'default';
-          currentServerThemeVideo = '';
-          applyTheme('shop-default');
+          try { currentServerThemeVideo = localStorage.getItem('chuhieushop_last_theme_video') || ''; } catch (e) {}
         }
-        renderData();
+        let activeTheme = 'shop-default';
+        try { activeTheme = localStorage.getItem('userSelectedTheme') || 'shop-default'; } catch (e) {}
+        applyTheme(activeTheme);
+        return true;
+      } else if (Array.isArray(resData)) {
+        productsData = resData.slice();
+        productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+        currentServerTheme = 'default';
+        currentServerThemeVideo = '';
+        applyTheme('shop-default');
+        return true;
+      }
+      return false;
+    }
+
+    async function loadProducts() {
+      let renderedFromCache = false;
+      let rawCachedStr = null;
+
+      // 1. Stale-While-Revalidate (SWR): Nếu trình duyệt có sẵn cache từ lần vào trước, hiển thị TỨC THÌ (0ms)
+      try {
+        rawCachedStr = localStorage.getItem(STOREFRONT_SWR_CACHE_KEY);
+        if (rawCachedStr) {
+          let cachedPayload = JSON.parse(rawCachedStr);
+          if (applyStorefrontPayload(cachedPayload)) {
+            postsNeedsRender = true;
+            renderData();
+            renderedFromCache = true;
+          }
+        }
+      } catch (e) {}
+
+      // 2. Đồng bộ ngầm dữ liệu mới nhất từ Google Sheet (hoặc dùng promise đã khởi chạy sớm trên đầu script)
+      try {
+        let resData = null;
+        if (earlyProductsPromise) {
+          resData = await earlyProductsPromise;
+          earlyProductsPromise = null;
+        }
+        if (!resData) {
+          let response = await fetch(API_URL);
+          resData = await response.json();
+        }
+
+        let freshStr = JSON.stringify(resData);
+        if (!renderedFromCache || freshStr !== rawCachedStr) {
+          try { localStorage.setItem(STOREFRONT_SWR_CACHE_KEY, freshStr); } catch (e) {}
+          if (applyStorefrontPayload(resData)) {
+            postsNeedsRender = true;
+            renderData();
+            if (cart.length > 0) updateCart();
+          }
+        }
       } catch (error) {
-        document.getElementById('loading-text').innerHTML = "<span style='color:#ff4d4d;'>Không tải được dữ liệu!</span>";
+        if (!renderedFromCache) {
+          let lt = document.getElementById('loading-text');
+          if (lt) lt.innerHTML = "<span style='color:#ff4d4d;'>Không tải được dữ liệu!</span>";
+        }
       }
     }
 
-    async function fetchTinh() {
-      try {
-        let res = await fetch('https://provinces.open-api.vn/api/v2/p/'); let data = await res.json();
-        let html = '<option value="">Chọn Tỉnh / Thành phố *</option>';
+    function renderProvincesSelect(data) {
+      let html = '<option value="">Chọn Tỉnh / Thành phố *</option>';
+      if (Array.isArray(data)) {
         data.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
-        document.getElementById('tinh').innerHTML = html;
+      }
+      let tinhEl = document.getElementById('tinh');
+      if (tinhEl) tinhEl.innerHTML = html;
+    }
+
+    async function fetchTinh() {
+      // Kiểm tra cache danh mục Tỉnh/Thành phố (30 ngày) để hiển thị ngay 0ms
+      try {
+        let raw = localStorage.getItem(PROVINCES_CACHE_KEY);
+        if (raw) {
+          let parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.data) && parsed.data.length > 0 && (Date.now() - Number(parsed.ts || 0)) < GEO_CACHE_TTL_MS) {
+            renderProvincesSelect(parsed.data);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        let res = await fetch('https://provinces.open-api.vn/api/v2/p/');
+        let data = await res.json();
+        renderProvincesSelect(data);
+        try { localStorage.setItem(PROVINCES_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: data })); } catch (e) {}
       } catch (error) {}
     }
 
+    function renderWardsSelect(wards) {
+      let phuongSelect = document.getElementById('phuong');
+      if (!phuongSelect) return;
+      let html = '<option value="">Chọn Phường / Xã *</option>';
+      if (Array.isArray(wards)) {
+        wards.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
+      }
+      phuongSelect.innerHTML = html;
+      updateAddressPreview();
+    }
+
     async function fetchPhuong(idTinh) {
-      let phuongSelect = document.getElementById('phuong'); phuongSelect.innerHTML = '<option value="">Chọn Phường / Xã *</option>';
-      if(!idTinh) { phuongSelect.disabled = true; updateAddressPreview(); return; }
-      phuongSelect.disabled = false;
-      try {
-        let res = await fetch(`https://provinces.open-api.vn/api/v2/p/${idTinh}?depth=2`); let data = await res.json();
-        let html = '<option value="">Chọn Phường / Xã *</option>';
-        if (data.wards) data.wards.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
-        phuongSelect.innerHTML = html;
+      let phuongSelect = document.getElementById('phuong');
+      if (phuongSelect) phuongSelect.innerHTML = '<option value="">Chọn Phường / Xã *</option>';
+      if (!idTinh) {
+        if (phuongSelect) phuongSelect.disabled = true;
         updateAddressPreview();
+        return;
+      }
+      if (phuongSelect) phuongSelect.disabled = false;
+
+      // Kiểm tra cache Phường/Xã theo mã Tỉnh (0ms)
+      const cacheKey = WARDS_CACHE_PREFIX + idTinh;
+      try {
+        let raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          let parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.wards) && parsed.wards.length > 0 && (Date.now() - Number(parsed.ts || 0)) < GEO_CACHE_TTL_MS) {
+            renderWardsSelect(parsed.wards);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        let res = await fetch(`https://provinces.open-api.vn/api/v2/p/${idTinh}?depth=2`);
+        let data = await res.json();
+        let wards = (data && Array.isArray(data.wards)) ? data.wards : [];
+        renderWardsSelect(wards);
+        try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), wards: wards })); } catch (e) {}
       } catch (error) { updateAddressPreview(); }
     }
 
@@ -2890,6 +3003,7 @@
 
       let visibleFlashDealsCount = 0;
       let visibleCombosCount = 0;
+      let priorityCardCount = 0;
 
       const fdFrag = document.createDocumentFragment();
       const comboFrag = document.createDocumentFragment();
@@ -2909,6 +3023,8 @@
 
           let isDealActive = flashStatus.isActive;
           let itemsText = c.rawItems.map(i => `${i.qty}x ${i.name}`).join('<br> • ');
+          let isPriorityCard = (priorityCardCount < 4);
+          priorityCardCount++;
           
           let totalImgs = c.images.length;
           let imagesHtml = ''; 
@@ -2926,9 +3042,10 @@
           c.images.forEach((img, idx) => { 
             let cap = c.imageCaptions && c.imageCaptions[idx] ? c.imageCaptions[idx] : "";
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
+            let imgLoadAttr = (isPriorityCard && idx === 0) ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
             imagesHtml += `
               <div class="carousel-item-wrap">
-                <img src="${escapeHtml(img)}" loading="lazy" decoding="async" onclick="openModal('${c.id}', ${idx})">
+                <img src="${escapeHtml(img)}" ${imgLoadAttr} onclick="openModal('${c.id}', ${idx})">
                 ${capHtml}
               </div>`; 
           });
@@ -3112,6 +3229,8 @@
 
         let totalImgs = p.images.length;
         let imagesHtml = ''; 
+        let isPriorityProdCard = (priorityCardCount < 4);
+        priorityCardCount++;
         
         if (totalImgs > 1) {
           imagesHtml += `
@@ -3121,9 +3240,10 @@
         }
 
         p.images.forEach((img, idx) => { 
+          let imgLoadAttr = (isPriorityProdCard && idx === 0) ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
           imagesHtml += `
             <div class="carousel-item-wrap">
-              <img src="${escapeHtml(img)}" loading="lazy" decoding="async" onclick="openModal('${p.id}', ${idx})">
+              <img src="${escapeHtml(img)}" ${imgLoadAttr} onclick="openModal('${p.id}', ${idx})">
             </div>`; 
         });
 
@@ -3159,36 +3279,52 @@
       });
       pList.appendChild(prodFrag);
 
-      renderPosts(); // Gọi hàm vẽ bài viết Sơ đồ
+      // Chỉ render ngay tab Sơ đồ (chứa iframe YouTube/TikTok/Google Drive nặng) nếu tab đó đang mở;
+      // nếu đang ẩn thì hoãn tới khi người dùng bấm vào tab "Sơ đồ & Hướng dẫn" để không chiếm băng thông lúc đầu.
+      const diagramsView = document.getElementById('view-diagrams');
+      if (diagramsView && diagramsView.style.display !== 'none') {
+        postsNeedsRender = false;
+        renderPosts();
+      } else {
+        postsNeedsRender = true;
+      }
 
       setTimeout(() => {
-        // Áp dụng tính năng lướt vô cực cho TẤT CẢ các vùng có dạng carousel-slides (kể cả Bài viết)
-        document.querySelectorAll('.carousel-slides').forEach(c => {
-          if (c.querySelector('[data-clone]')) {
-            c.style.scrollBehavior = 'auto';
+        initCarouselInfiniteScroll(document);
+      }, 60);
+    }
+
+    function initCarouselInfiniteScroll(rootEl) {
+      const scope = rootEl || document;
+      scope.querySelectorAll('.carousel-slides').forEach(c => {
+        if (c.querySelector('[data-clone]')) {
+          c.style.scrollBehavior = 'auto';
+          if (c.clientWidth > 0) {
             c.scrollLeft = c.clientWidth;
-            updateCarouselActiveIndicator(c);
-            
-            c.addEventListener('scroll', () => {
-              updateCarouselActiveIndicator(c);
-              clearTimeout(c.snapTimeout);
-              c.snapTimeout = setTimeout(() => {
-                const maxScroll = c.scrollWidth - c.clientWidth;
-                if (c.scrollLeft <= 5) {
-                  c.style.scrollBehavior = 'auto';
-                  c.scrollLeft = maxScroll - c.clientWidth;
-                  updateCarouselActiveIndicator(c);
-                } 
-                else if (c.scrollLeft >= maxScroll - 5) {
-                  c.style.scrollBehavior = 'auto';
-                  c.scrollLeft = c.clientWidth;
-                  updateCarouselActiveIndicator(c);
-                }
-              }, 150); 
-            });
           }
-        });
-      }, 100);
+          updateCarouselActiveIndicator(c);
+          if (c.dataset && c.dataset.carouselBound === '1') return;
+          if (c.dataset) c.dataset.carouselBound = '1';
+          
+          c.addEventListener('scroll', () => {
+            updateCarouselActiveIndicator(c);
+            clearTimeout(c.snapTimeout);
+            c.snapTimeout = setTimeout(() => {
+              const maxScroll = c.scrollWidth - c.clientWidth;
+              if (c.scrollLeft <= 5) {
+                c.style.scrollBehavior = 'auto';
+                c.scrollLeft = maxScroll - c.clientWidth;
+                updateCarouselActiveIndicator(c);
+              } 
+              else if (c.scrollLeft >= maxScroll - 5) {
+                c.style.scrollBehavior = 'auto';
+                c.scrollLeft = c.clientWidth;
+                updateCarouselActiveIndicator(c);
+              }
+            }, 150); 
+          }, { passive: true });
+        }
+      });
     }
 
     function jumpCarouselToIndex(id, imgIdx, totalImgs) {

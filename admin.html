@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Admin - Quản Lý Cửa Hàng</title>
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f9; color: #333; -webkit-font-smoothing: antialiased; }
@@ -2640,6 +2644,8 @@
     function clearAdminToken() {
       localStorage.removeItem("adminToken");
       localStorage.removeItem("adminTokenExpiry");
+      localStorage.removeItem("chuhieu_admin_swr_orders_v1");
+      localStorage.removeItem("chuhieu_admin_swr_products_v1");
       sessionStorage.removeItem("adminToken");
     }
 
@@ -2696,10 +2702,79 @@
 
     function showLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
 
+    const ADMIN_SWR_ORDERS_KEY = 'chuhieu_admin_swr_orders_v1';
+    const ADMIN_SWR_PRODUCTS_KEY = 'chuhieu_admin_swr_products_v1';
+
+    function applyAdminProductsPayload(resData) {
+      if (resData && resData.products) {
+        globalProductsData = resData.products;
+        globalCombosData = resData.combos || [];
+        globalPostsData = resData.posts || []; 
+        if (resData.spxConfig) {
+          currentSpxConfig = Object.assign({}, DEFAULT_SPX_CONFIG, resData.spxConfig);
+          try { localStorage.setItem('spx_config_cache', JSON.stringify(currentSpxConfig)); } catch(e) {}
+        }
+        let shipInput = document.getElementById("edit-shipping-fee");
+        if (shipInput && resData.shippingFee !== undefined) shipInput.value = resData.shippingFee;
+        let themeSelect = document.getElementById("edit-theme");
+        if (themeSelect) themeSelect.value = resData.theme || "default";
+        let themeVideoInput = document.getElementById("edit-theme-video");
+        if (themeVideoInput) {
+          let loadedVideo = (resData.themeVideo || localStorage.getItem('last_admin_theme_video') || "").trim();
+          themeVideoInput.value = loadedVideo;
+          if (loadedVideo) {
+            localStorage.setItem('last_admin_theme_video', loadedVideo);
+            saveVideoToHistory(loadedVideo, "Video nền");
+          }
+          toggleThemeVideoInput(resData.theme || "default");
+          renderSavedThemeVideosSelect();
+        }
+      } else if (Array.isArray(resData)) {
+        globalProductsData = resData;
+      }
+      renderInventory(globalProductsData);
+      renderCombos(globalCombosData);
+      renderPosts(globalPostsData); 
+      updateComboSelectOptions();
+      if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
+        renderAnalytics();
+      }
+      if (document.getElementById('profit') && document.getElementById('profit').classList.contains('active')) {
+        renderProfitAnalytics();
+      }
+    }
+
     async function loadData() {
-      let token = getAdminToken(); showLoading(true);
+      let token = getAdminToken();
+      let hasRenderedSwr = false;
+
+      // 1. Stale-While-Revalidate (SWR): Nếu đã có dữ liệu đệm trong localStorage, vẽ ngay tức thì (0ms) không hiện màn hình khóa loading
       try {
-        // Khởi chạy SONG SONG 2 luồng dữ liệu (Đơn hàng + Sản phẩm/Cấu hình) để giảm 50% thời gian chờ mạng
+        let cachedOrdersRaw = localStorage.getItem(ADMIN_SWR_ORDERS_KEY);
+        let cachedProdsRaw = localStorage.getItem(ADMIN_SWR_PRODUCTS_KEY);
+        if (cachedOrdersRaw && globalOrdersData.length === 0) {
+          let parsedOrders = JSON.parse(cachedOrdersRaw);
+          if (Array.isArray(parsedOrders)) {
+            globalOrdersData = parsedOrders;
+            renderOrders(globalOrdersData);
+            hasRenderedSwr = true;
+          }
+        }
+        if (cachedProdsRaw && globalProductsData.length === 0) {
+          let parsedProds = JSON.parse(cachedProdsRaw);
+          if (parsedProds && parsedProds.products) {
+            applyAdminProductsPayload(parsedProds);
+            hasRenderedSwr = true;
+          }
+        }
+      } catch (e) {}
+
+      if (!hasRenderedSwr) {
+        showLoading(true);
+      }
+
+      try {
+        // 2. Khởi chạy SONG SONG 2 luồng dữ liệu (Đơn hàng + Sản phẩm/Cấu hình) để đồng bộ mới nhất
         let ordersPromise = fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "getOrders", token: token }) })
           .then(res => res.json())
           .then(orders => {
@@ -2709,6 +2784,7 @@
               return null;
             }
             globalOrdersData = orders || [];
+            try { localStorage.setItem(ADMIN_SWR_ORDERS_KEY, JSON.stringify(globalOrdersData)); } catch (e) {}
             renderOrders(globalOrdersData);
             return globalOrdersData;
           });
@@ -2728,39 +2804,12 @@
         if (ordersResult === null) { showLoading(false); return; }
         
         if (resData && resData.products) {
-          globalProductsData = resData.products;
-          globalCombosData = resData.combos || [];
-          globalPostsData = resData.posts || []; 
-          if (resData.spxConfig) {
-            currentSpxConfig = Object.assign({}, DEFAULT_SPX_CONFIG, resData.spxConfig);
-            try { localStorage.setItem('spx_config_cache', JSON.stringify(currentSpxConfig)); } catch(e) {}
-          }
-          document.getElementById("edit-shipping-fee").value = resData.shippingFee;
-          document.getElementById("edit-theme").value = resData.theme || "default";
-          let themeVideoInput = document.getElementById("edit-theme-video");
-          if (themeVideoInput) {
-            let loadedVideo = (resData.themeVideo || localStorage.getItem('last_admin_theme_video') || "").trim();
-            themeVideoInput.value = loadedVideo;
-            if (loadedVideo) {
-              localStorage.setItem('last_admin_theme_video', loadedVideo);
-              saveVideoToHistory(loadedVideo, "Video nền");
-            }
-            toggleThemeVideoInput(resData.theme || "default");
-            renderSavedThemeVideosSelect();
-          }
-        } else { globalProductsData = resData || []; }
-        
-        renderInventory(globalProductsData);
-        renderCombos(globalCombosData);
-        renderPosts(globalPostsData); 
-        updateComboSelectOptions();
-        if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
-          renderAnalytics();
+          try { localStorage.setItem(ADMIN_SWR_PRODUCTS_KEY, JSON.stringify(resData)); } catch (e) {}
         }
-        if (document.getElementById('profit') && document.getElementById('profit').classList.contains('active')) {
-          renderProfitAnalytics();
-        }
-      } catch (e) { alert("Lỗi kết nối máy chủ Google!"); }
+        applyAdminProductsPayload(resData);
+      } catch (e) {
+        if (!hasRenderedSwr) alert("Lỗi kết nối máy chủ Google!");
+      }
       showLoading(false);
     }
 
