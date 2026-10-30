@@ -2153,6 +2153,56 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_session_token_underscore_signature_bug_fix(self):
+        """Kiểm tra: Chống lỗi văng đăng nhập sau 1 giây khi chữ ký Base64WebSafe chứa ký tự gạch dưới '_'"""
+        codegs = read_file('Code.gs')
+        admin = read_file('admin.html')
+
+        self.assertIn('parts.slice(2).join("_")', codegs, "LỖI: isValidSession trong Code.gs phải ghép lại chữ ký bằng parts.slice(2).join('_')!")
+        self.assertIn('.replace(/_/g, "-")', codegs, "LỖI: createSession trong Code.gs phải thay thế '_' bằng '-' trong chữ ký!")
+        self.assertIn('function isTokenFormatSafeForLegacyBackend', admin, "LỖI: admin.html thiếu hàm isTokenFormatSafeForLegacyBackend!")
+
+        session_code = codegs[codegs.find("function createSession()"):codegs.find("function destroySession(")]
+        test_js = """
+        const assert = require('assert');
+        const ADMIN_PASS_HASH = "ec6b2fecc0ebfefa5810d0fdc5595470c62b62abac4827958ef7543c2d7e9098";
+        const SESSION_DURATION_SEC = 7 * 24 * 60 * 60;
+        const Utilities = {
+          getUuid: () => "355e76a9-32e4-4011-9999-111122223333",
+          computeHmacSha256Signature: (raw) => raw,
+          // Giả lập chữ ký Base64WebSafe có chứa 2 dấu gạch dưới '_'
+          base64EncodeWebSafe: () => "TDlxJrMZIkjISH2NT1MH-YSy89k-_R3r_ORDWvfuQnYY="
+        };
+        const CacheService = {
+          getScriptCache: () => ({
+            put: () => {},
+            get: () => null
+          })
+        };
+        """ + session_code + """
+        // 1. Token mới sinh ra từ createSession() luôn chỉ có đúng 3 phần (không chứa '_' trong signature)
+        const newToken = createSession();
+        assert.strictEqual(newToken.split("_").length, 3, "Token mới không được phép chứa dấu '_' trong phần chữ ký");
+        assert.strictEqual(isValidSession(newToken), true, "Token mới phải hợp lệ");
+
+        // 2. Token kiểu cũ có chứa dấu '_' trong phần chữ ký vẫn phải được isValidSession chấp nhận
+        const legacyTokenWithUnderscores = Date.now() + "_355e76a932e44011_TDlxJrMZIkjISH2NT1MH-YSy89k-_R3r_ORDWvfuQnYY=";
+        assert.strictEqual(legacyTokenWithUnderscores.split("_").length, 5);
+        assert.strictEqual(isValidSession(legacyTokenWithUnderscores), true, "isValidSession phải chấp nhận cả token có dấu '_' trong chữ ký");
+        console.log("SESSION_UNDERSCORE_FIX_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, f"Lỗi Node.js:\n{res.stderr}")
+            self.assertIn("SESSION_UNDERSCORE_FIX_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 if __name__ == '__main__':

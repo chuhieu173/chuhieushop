@@ -2610,18 +2610,22 @@
 
     const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 ngày (1 tuần)
 
+    function isTokenFormatSafeForLegacyBackend(token) {
+      return typeof token === "string" && token.split("_").length === 3;
+    }
+
     function getAdminToken() {
       let token = localStorage.getItem("adminToken");
       let expiry = localStorage.getItem("adminTokenExpiry");
       if (!token) {
         token = sessionStorage.getItem("adminToken");
-        if (token) {
+        if (token && isTokenFormatSafeForLegacyBackend(token)) {
           setAdminToken(token);
           return token;
         }
         return null;
       }
-      if (expiry && Date.now() > parseInt(expiry, 10)) {
+      if ((expiry && Date.now() > parseInt(expiry, 10)) || !isTokenFormatSafeForLegacyBackend(token)) {
         clearAdminToken();
         return null;
       }
@@ -2655,6 +2659,15 @@
         let hashedPass = await sha256(plainPass);
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "login", password: hashedPass }) });
         let data = await res.json();
+        // Tương thích ngược nếu Code.gs trên Google Apps Script chưa redeploy:
+        // base64EncodeWebSafe có xác suất ~50% sinh ký tự '_' trong chữ ký khiến split('_').length > 3 bị từ chối ở getOrders.
+        // Tự động xin lại token mới cho tới khi nhận được token chuẩn 3 phần (không chứa '_' dư trong chữ ký).
+        let retryCount = 0;
+        while (data && data.status === "success" && data.token && !isTokenFormatSafeForLegacyBackend(data.token) && retryCount < 8) {
+          retryCount++;
+          res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "login", password: hashedPass }) });
+          data = await res.json();
+        }
         if (data.status === "success") { setAdminToken(data.token); document.getElementById("login-overlay").style.display = "none"; document.getElementById("admin-app").style.display = "block"; loadData(); } 
         else { document.getElementById("login-error").style.display = "block"; }
       } catch (e) { alert("Lỗi mạng!"); }
