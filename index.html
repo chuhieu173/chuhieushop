@@ -1294,21 +1294,21 @@
     .lead-right {
       text-align: right;
     }
-    .lead-amount {
-      font-size: 15px;
-      font-weight: 800;
-      color: #b45309;
-    }
-    body.theme-dark .lead-amount {
-      color: #f59e0b;
-    }
     .lead-orders {
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 2px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #9a3412;
+      background: #ffedd5;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid #fed7aa;
+      display: inline-block;
+      white-space: nowrap;
     }
     body.theme-dark .lead-orders {
-      color: #9ca3af;
+      background: #382516;
+      color: #fed7aa;
+      border-color: #78350f;
     }
     .leaderboard-footer-note {
       margin-top: 15px;
@@ -4256,7 +4256,6 @@
 
         const safeName = escapeHtml(cust.name || 'Khách hàng thân thiết');
         const safeProv = cust.province ? '📍 ' + escapeHtml(cust.province) : '';
-        const amtStr = formatMoney(cust.totalAmount || 0);
         const orderCountStr = cust.orderCount ? cust.orderCount + ' đơn hàng' : '';
 
         html += `
@@ -4269,8 +4268,7 @@
               </div>
             </div>
             <div class="lead-right">
-              <div class="lead-amount">${amtStr}</div>
-              ${orderCountStr ? `<div class="lead-orders">${orderCountStr}</div>` : ''}
+              ${orderCountStr ? `<div class="lead-orders">📦 ${orderCountStr}</div>` : ''}
             </div>
           </div>
         `;
