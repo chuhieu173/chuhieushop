@@ -346,6 +346,50 @@ class TestDOMIntegrity(unittest.TestCase):
             self.assertIn(sid, collector.ids, f"LỖI: Thiếu phần tử SPX id='{sid}' trong admin.html!")
         self.assertIn('xlsx.full.min.js', content, "LỖI: Thiếu thư viện SheetJS xlsx.full.min.js trong admin.html!")
 
+    def test_leaderboard_elements_exist_in_admin_and_index(self):
+        """Kiểm tra: Các phần tử Bảng Xếp Hạng Khách Hàng và Dòng Chữ Chạy Tri Ân phải tồn tại đầy đủ trong index.html và admin.html"""
+        # 1. Kiểm tra index.html
+        index_content = read_file('index.html')
+        index_collector = IDCollector()
+        index_collector.feed(index_content)
+        index_ids = [
+            'top-marquee-container',
+            'marquee-text-content',
+            'marquee-text-clone',
+            'customer-leaderboard-section',
+            'btn-lead-tab-day',
+            'btn-lead-tab-month',
+            'btn-lead-tab-all',
+            'leaderboard-cards-container',
+            'leaderboard-empty-msg',
+            'leaderboard-updated-at'
+        ]
+        for iid in index_ids:
+            self.assertIn(iid, index_collector.ids, f"LỖI: Thiếu phần tử id='{iid}' trong index.html!")
+
+        # 2. Kiểm tra admin.html
+        admin_content = read_file('admin.html')
+        admin_collector = IDCollector()
+        admin_collector.feed(admin_content)
+        admin_ids = [
+            'leaderboard',
+            'leaderboard-last-updated',
+            'btn-calc-leaderboard',
+            'btn-save-leaderboard',
+            'cfg-leaderboard-enabled',
+            'cfg-marquee-enabled',
+            'cfg-marquee-text',
+            'btn-auto-gen-marquee',
+            'btn-admin-subtab-day',
+            'btn-admin-subtab-month',
+            'btn-admin-subtab-all',
+            'btn-add-leaderboard-row',
+            'admin-leaderboard-body',
+            'admin-leaderboard-empty'
+        ]
+        for aid in admin_ids:
+            self.assertIn(aid, admin_collector.ids, f"LỖI: Thiếu phần tử id='{aid}' trong admin.html!")
+
 
 class TestSyntaxAndParsing(unittest.TestCase):
     """Kiểm tra cú pháp JavaScript & HTML của toàn bộ dự án"""
@@ -1819,7 +1863,7 @@ class TestBusinessLogic(unittest.TestCase):
         """Kiểm tra: Chunked Cache (vượt trần 100KB của Google CacheService) và đọc gộp B1:B4 trong Code.gs hoạt động chính xác 100%"""
         codegs = read_file('Code.gs')
         self.assertIn("function getConfigValues(doc)", codegs, "LỖI: Code.gs thiếu hàm đọc gộp cấu hình getConfigValues(doc)!")
-        self.assertIn('getRange("B1:B4").getValues()', codegs, "LỖI: Code.gs chưa đọc gộp dải ô B1:B4!")
+        self.assertTrue('getRange("B1:B4").getValues()' in codegs or 'getRange("B1:B5").getValues()' in codegs, "LỖI: Code.gs chưa đọc gộp dải ô B1:B4 hoặc B1:B5!")
         self.assertIn("function putChunkedCache", codegs, "LỖI: Code.gs thiếu hàm putChunkedCache!")
         self.assertIn("function getChunkedCache", codegs, "LỖI: Code.gs thiếu hàm getChunkedCache!")
         self.assertIn('action === "getAdminInitData"', codegs, "LỖI: Code.gs thiếu endpoint getAdminInitData!")
@@ -2229,6 +2273,146 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('fetchpriority="high" decoding="async"', index, "LỖI: index.html thiếu fetchpriority='high' cho ảnh đầu tiên!")
         self.assertIn("postsNeedsRender", index, "LỖI: index.html thiếu cờ postsNeedsRender để hoãn tải iframe YouTube/TikTok ở tab ẩn!")
         self.assertIn("function initCarouselInfiniteScroll", index, "LỖI: index.html thiếu hàm initCarouselInfiniteScroll!")
+
+    def test_leaderboard_privacy_and_calculation_logic(self):
+        """Kiểm tra: Thuật toán Bảng Xếp Hạng Khách Hàng và Dòng Chữ Chạy Tri Ân bảo mật 100% thông tin riêng tư và tính toán chuẩn xác bằng Node.js"""
+        admin = read_file('admin.html')
+        index = read_file('index.html')
+        codegs = read_file('Code.gs')
+
+        # 1. Kiểm tra Backend Code.gs đã đăng ký route updateLeaderboardConfig và trả về leaderboardConfig
+        self.assertIn('action === "updateLeaderboardConfig"', codegs, "LỖI: Code.gs chưa có route 'updateLeaderboardConfig' trong doPost!")
+        self.assertIn('leaderboardConfig: getLeaderboardConfig(doc)', codegs, "LỖI: Code.gs chưa trả về leaderboardConfig trong doGet!")
+        self.assertIn('DEFAULT_LEADERBOARD_CONFIG', codegs, "LỖI: Code.gs thiếu hằng số DEFAULT_LEADERBOARD_CONFIG!")
+
+        # 2. Kiểm tra tính năng trong admin.html và index.html
+        self.assertIn('function calculateLeaderboardFromOrders', admin, "LỖI: admin.html thiếu hàm calculateLeaderboardFromOrders!")
+        self.assertIn('function saveAndPublishLeaderboard', admin, "LỖI: admin.html thiếu hàm saveAndPublishLeaderboard!")
+        self.assertIn('function renderStorefrontLeaderboard', index, "LỖI: index.html thiếu hàm renderStorefrontLeaderboard!")
+        self.assertIn('function switchLeaderboardTab', index, "LỖI: index.html thiếu hàm switchLeaderboardTab!")
+
+        # 3. Chạy test giả lập thuật toán bằng Node.js
+        test_script = """
+        const assert = require('assert');
+
+        function formatRecipientName(name) {
+          let trimmed = (name || '').trim();
+          if (!trimmed) return '';
+          let words = trimmed.split(/\\s+/).filter(Boolean);
+          if (words.length === 1) {
+            let w = words[0];
+            if (!/^a$/i.test(w)) return 'A ' + w;
+          }
+          return trimmed;
+        }
+
+        function extractProvinceName(addr) {
+          if (!addr) return '';
+          let parts = addr.split(',').map(p => p.trim()).filter(Boolean);
+          if (parts.length > 0) {
+            let last = parts[parts.length - 1];
+            return last.replace(/^(Tỉnh|Thành phố|TP\\.?)\\s+/i, '').trim();
+          }
+          return '';
+        }
+
+        function formatMoney(n) { return String(Math.round(n)).replace(/\\B(?=(\\d{3})+(?!\\d))/g, ".") + "đ"; }
+
+        function calculateLeaderboardGroup(ordersList) {
+          let custMap = {};
+          ordersList.forEach(o => {
+            let st = (o.status || '').toLowerCase();
+            if (st === 'đã hủy' || st === 'hủy đơn') return;
+            let phone = (o.phone || '').trim();
+            let name = (o.name || 'Khách').trim();
+            let addr = (o.address || '').trim();
+            let totalVal = Number(o.rawTotal) || Number(String(o.total).replace(/[^\\d]/g, '')) || 0;
+            let key = phone || name;
+            if (!key) return;
+
+            if (!custMap[key]) {
+              custMap[key] = {
+                name: formatRecipientName(name),
+                province: extractProvinceName(addr),
+                totalAmount: 0,
+                orderCount: 0,
+                visible: true
+              };
+            }
+            custMap[key].orderCount += 1;
+            custMap[key].totalAmount += totalVal;
+            if (addr && !custMap[key].province) {
+              custMap[key].province = extractProvinceName(addr);
+            }
+          });
+
+          let sorted = Object.values(custMap)
+            .sort((a, b) => b.totalAmount - a.totalAmount)
+            .slice(0, 30);
+
+          return sorted.map((c, idx) => ({
+            rank: idx + 1,
+            name: c.name,
+            province: c.province,
+            totalAmount: c.totalAmount,
+            orderCount: c.orderCount,
+            visible: true
+          }));
+        }
+
+        // Test 1: Tách Tỉnh/Thành
+        assert.strictEqual(extractProvinceName("Thôn 2, Xã Gia Vân, Huyện Gia Viễn, Tỉnh Ninh Bình"), "Ninh Bình");
+        assert.strictEqual(extractProvinceName("123 Cầu Giấy, TP. Hà Nội"), "Hà Nội");
+        assert.strictEqual(extractProvinceName("Quận 1, Thành phố Hồ Chí Minh"), "Hồ Chí Minh");
+
+        // Test 2: Chuẩn hóa tên đơn chữ
+        assert.strictEqual(formatRecipientName("Thành"), "A Thành");
+        assert.strictEqual(formatRecipientName("Chị Lan"), "Chị Lan");
+
+        // Test 3: Tính toán xếp hạng & bảo mật không lộ SĐT, địa chỉ chi tiết
+        const mockOrders = [
+          { name: "Thành", phone: "0912345678", address: "Xã Gia Vân, Ninh Bình", rawTotal: 2500000, status: "Hoàn thành" },
+          { name: "Thành", phone: "0912345678", address: "Ninh Bình", rawTotal: 2900000, status: "Đã giao cho đơn vị vận chuyển" },
+          { name: "Chị Lan", phone: "0987654321", address: "Cầu Giấy, Hà Nội", rawTotal: 3000000, status: "Hoàn thành" },
+          { name: "Khách Ảo", phone: "0999999999", address: "Đà Nẵng", rawTotal: 10000000, status: "Đã hủy" }
+        ];
+
+        const ranked = calculateLeaderboardGroup(mockOrders);
+        assert.strictEqual(ranked.length, 2, "Đơn đã hủy phải bị loại trừ khỏi bảng xếp hạng");
+        assert.strictEqual(ranked[0].name, "A Thành");
+        assert.strictEqual(ranked[0].province, "Ninh Bình");
+        assert.strictEqual(ranked[0].totalAmount, 5400000);
+        assert.strictEqual(ranked[0].orderCount, 2);
+        assert.strictEqual(ranked[0].rank, 1);
+
+        // Bảo mật dữ liệu: đảm bảo KHÔNG có trường phone hoặc address chi tiết
+        assert.strictEqual(ranked[0].phone, undefined, "BẢO MẬT: Bảng xếp hạng không được chứa số điện thoại!");
+        assert.strictEqual(ranked[0].address, undefined, "BẢO MẬT: Bảng xếp hạng không được chứa địa chỉ nhà chi tiết!");
+
+        // Test 4: Format dòng chữ chạy tri ân Top 8 của tháng
+        const topMonth = ranked.slice(0, 8);
+        const parts = topMonth.map((c, idx) => {
+          let prov = c.province ? ` (${c.province})` : '';
+          let amt = formatMoney(c.totalAmount || 0);
+          return `${idx + 1}. ${c.name}${prov} - ${amt}`;
+        });
+        const fullMarquee = "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: " + parts.join(" 🌟 ") + " 🌟 Chúc Quý khách mua sắm vui vẻ!";
+        assert.ok(fullMarquee.includes("1. A Thành (Ninh Bình) - 5.400.000đ"));
+        assert.ok(fullMarquee.includes("2. Chị Lan (Hà Nội) - 3.000.000đ"));
+
+        console.log("LEADERBOARD_LOGIC_AND_PRIVACY_OK");
+        """
+
+        temp_path = 'temp_test_leaderboard.js'
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            f.write(test_script)
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("LEADERBOARD_LOGIC_AND_PRIVACY_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
 
 

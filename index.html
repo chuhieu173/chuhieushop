@@ -1052,11 +1052,287 @@
       color: #66b3ff;
       border-color: #2c4a6f;
     }
+
+    /* DÒNG CHỮ CHẠY TRI ÂN ĐẦU TRANG */
+    .top-marquee-bar {
+      width: 100%;
+      background: linear-gradient(90deg, #92400e 0%, #b45309 25%, #d97706 50%, #b45309 75%, #92400e 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(180, 83, 9, 0.25);
+      position: relative;
+      z-index: 999;
+      font-size: 13.5px;
+      line-height: 1.4;
+      user-select: none;
+    }
+    .marquee-badge {
+      background: #78350f;
+      color: #fef3c7;
+      padding: 8px 14px;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      box-shadow: 2px 0 6px rgba(0,0,0,0.2);
+      z-index: 2;
+    }
+    .marquee-track-wrapper {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      white-space: nowrap;
+    }
+    .marquee-track {
+      display: inline-flex;
+      white-space: nowrap;
+      animation: marqueeScroll 35s linear infinite;
+    }
+    .marquee-track:hover {
+      animation-play-state: paused;
+    }
+    .marquee-text-item {
+      display: inline-block;
+      padding: 8px 30px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    @keyframes marqueeScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* BẢNG VINH DANH KHÁCH HÀNG THÂN THIẾT */
+    .customer-leaderboard-section {
+      max-width: 900px;
+      margin: 35px auto 30px auto;
+      padding: 24px 20px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      border: 1px solid #fed7aa;
+      position: relative;
+    }
+    body.theme-dark .customer-leaderboard-section {
+      background: #1e1e2d;
+      border-color: #78350f;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    }
+    .lead-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .lead-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #9a3412;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    body.theme-dark .lead-title {
+      color: #fbbf24;
+    }
+    .lead-subtitle {
+      font-size: 13.5px;
+      color: #78716c;
+    }
+    body.theme-dark .lead-subtitle {
+      color: #a8a29e;
+    }
+    .lead-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+    .lead-pill {
+      padding: 8px 18px;
+      font-size: 13.5px;
+      font-weight: 600;
+      border: 1.5px solid #fed7aa;
+      background: #fff7ed;
+      color: #9a3412;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lead-pill:hover {
+      background: #ffedd5;
+      border-color: #fdba74;
+    }
+    .lead-pill.active {
+      background: linear-gradient(135deg, #ea580c, #c2410c);
+      border-color: #ea580c;
+      color: white;
+      box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+    }
+    body.theme-dark .lead-pill {
+      background: #2a221b;
+      border-color: #573312;
+      color: #fed7aa;
+    }
+    body.theme-dark .lead-pill.active {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      border-color: #d97706;
+      color: white;
+    }
+    .leaderboard-cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lead-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      background: #fdfbf7;
+      border: 1px solid #f2e8cf;
+      border-radius: 12px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .lead-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    body.theme-dark .lead-card {
+      background: #26222b;
+      border-color: #3b3238;
+    }
+    .lead-card-rank1 {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      border: 1.5px solid #f59e0b;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
+    }
+    body.theme-dark .lead-card-rank1 {
+      background: linear-gradient(135deg, #382d15 0%, #453412 100%);
+      border-color: #d97706;
+    }
+    .lead-card-rank2 {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1.5px solid #94a3b8;
+    }
+    body.theme-dark .lead-card-rank2 {
+      background: linear-gradient(135deg, #272d38 0%, #1e2430 100%);
+      border-color: #64748b;
+    }
+    .lead-card-rank3 {
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+      border: 1.5px solid #d97706;
+    }
+    body.theme-dark .lead-card-rank3 {
+      background: linear-gradient(135deg, #35251a 0%, #2a1c12 100%);
+      border-color: #9a3412;
+    }
+    .lead-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .lead-badge {
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: 15px;
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    .lead-card-rank1 .lead-badge {
+      background: #fef08a;
+      color: #854d0e;
+      font-size: 20px;
+    }
+    .lead-card-rank2 .lead-badge {
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 20px;
+    }
+    .lead-card-rank3 .lead-badge {
+      background: #fed7aa;
+      color: #9a3412;
+      font-size: 20px;
+    }
+    .lead-info-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    body.theme-dark .lead-info-name {
+      color: #f3f4f6;
+    }
+    .lead-info-prov {
+      font-size: 12.5px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    body.theme-dark .lead-info-prov {
+      color: #9ca3af;
+    }
+    .lead-right {
+      text-align: right;
+    }
+    .lead-amount {
+      font-size: 15px;
+      font-weight: 800;
+      color: #b45309;
+    }
+    body.theme-dark .lead-amount {
+      color: #f59e0b;
+    }
+    .lead-orders {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    body.theme-dark .lead-orders {
+      color: #9ca3af;
+    }
+    .leaderboard-footer-note {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
   </style>
   
   <script defer src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
 </head>
 <body>
+
+  <!-- DÒNG CHỮ CHẠY TRI ÂN KHÁCH HÀNG Ở ĐẦU TRANG -->
+  <div id="top-marquee-container" class="top-marquee-bar" style="display: none;">
+    <div class="marquee-badge">👑 TRI ÂN</div>
+    <div class="marquee-track-wrapper">
+      <div class="marquee-track" id="marquee-track">
+        <span id="marquee-text-content" class="marquee-text-item"></span>
+        <span id="marquee-text-clone" class="marquee-text-item" aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
 
   <!-- Menu chọn Theme -->
   <div class="theme-switcher">
@@ -1143,6 +1419,28 @@
       <span style="font-size: 15px; font-weight: 600;">🛒 <span id="cart-count">0</span></span>
       <span class="price" id="floating-total-price">0đ</span>
       <button class="floating-btn" onclick="scrollToCart()">ĐẶT HÀNG NGAY</button>
+    </div>
+  </div>
+
+  <!-- KHU VỰC BẢNG VINH DANH KHÁCH HÀNG THÂN THIẾT -->
+  <div id="customer-leaderboard-section" class="customer-leaderboard-section" style="display: none;">
+    <div class="lead-header">
+      <div class="lead-title">👑 BẢNG VINH DANH KHÁCH HÀNG THÂN THIẾT</div>
+      <div class="lead-subtitle">Tri ân sự tin tưởng và đồng hành của Quý khách hàng cùng Chú Hiếu Shop!</div>
+    </div>
+
+    <div class="lead-tabs">
+      <button type="button" id="btn-lead-tab-day" class="lead-pill" onclick="switchLeaderboardTab('day')">📅 Hôm nay</button>
+      <button type="button" id="btn-lead-tab-month" class="lead-pill active" onclick="switchLeaderboardTab('month')">🗓️ Tháng này</button>
+      <button type="button" id="btn-lead-tab-all" class="lead-pill" onclick="switchLeaderboardTab('all')">🏆 Toàn bộ thời gian</button>
+    </div>
+
+    <div id="leaderboard-cards-container" class="leaderboard-cards-container"></div>
+    <div id="leaderboard-empty-msg" class="leaderboard-empty" style="display: none; text-align: center; padding: 25px; color: #a0aec0; font-size: 14px;">Chưa có dữ liệu vinh danh trong kỳ này.</div>
+
+    <div class="leaderboard-footer-note">
+      <span id="leaderboard-updated-at"></span>
+      <span>🔒 Thông tin được bảo mật quyền riêng tư</span>
     </div>
   </div>
 
@@ -2375,6 +2673,13 @@
         let activeTheme = 'shop-default';
         try { activeTheme = localStorage.getItem('userSelectedTheme') || 'shop-default'; } catch (e) {}
         applyTheme(activeTheme);
+
+        if (resData.leaderboardConfig) {
+          renderStorefrontLeaderboard(resData.leaderboardConfig);
+        } else {
+          renderStorefrontLeaderboard(null);
+        }
+
         return true;
       } else if (Array.isArray(resData)) {
         productsData = resData.slice();
@@ -2382,6 +2687,7 @@
         currentServerTheme = 'default';
         currentServerThemeVideo = '';
         applyTheme('shop-default');
+        renderStorefrontLeaderboard(null);
         return true;
       }
       return false;
@@ -3818,6 +4124,133 @@
       if (openZalo === true) {
         window.open("https://zalo.me/" + zaloPhone, "_blank");
       }
+    }
+
+    // ==========================================
+    // 👑 BẢNG VINH DANH & DÒNG CHỮ CHẠY TRI ÂN
+    // ==========================================
+    let currentStorefrontLeaderboardConfig = null;
+    let currentStorefrontLeadTab = 'month';
+
+    function renderStorefrontLeaderboard(cfg) {
+      currentStorefrontLeaderboardConfig = cfg;
+      const marqueeContainer = document.getElementById('top-marquee-container');
+      const marqueeContent = document.getElementById('marquee-text-content');
+      const marqueeClone = document.getElementById('marquee-text-clone');
+      const section = document.getElementById('customer-leaderboard-section');
+
+      if (!cfg) {
+        if (marqueeContainer) marqueeContainer.style.display = 'none';
+        if (section) section.style.display = 'none';
+        return;
+      }
+
+      // 1. Dòng chữ chạy tri ân ở đầu trang
+      if (cfg.marqueeEnabled && cfg.marqueeText && cfg.marqueeText.trim()) {
+        if (marqueeContent) marqueeContent.textContent = cfg.marqueeText;
+        if (marqueeClone) marqueeClone.textContent = cfg.marqueeText;
+        if (marqueeContainer) marqueeContainer.style.display = 'flex';
+      } else {
+        if (marqueeContainer) marqueeContainer.style.display = 'none';
+      }
+
+      // 2. Bảng Xếp Hạng Khách Hàng
+      if (cfg.enabled) {
+        if (section) section.style.display = 'block';
+        updateLeaderboardDisplay();
+      } else {
+        if (section) section.style.display = 'none';
+      }
+    }
+
+    function switchLeaderboardTab(tabType) {
+      currentStorefrontLeadTab = tabType;
+      const pills = [
+        { id: 'btn-lead-tab-day', type: 'day' },
+        { id: 'btn-lead-tab-month', type: 'month' },
+        { id: 'btn-lead-tab-all', type: 'all' }
+      ];
+      pills.forEach(p => {
+        const el = document.getElementById(p.id);
+        if (el) {
+          if (p.type === tabType) el.classList.add('active');
+          else el.classList.remove('active');
+        }
+      });
+      updateLeaderboardDisplay();
+    }
+
+    function updateLeaderboardDisplay() {
+      const container = document.getElementById('leaderboard-cards-container');
+      const emptyMsg = document.getElementById('leaderboard-empty-msg');
+      const updatedAtEl = document.getElementById('leaderboard-updated-at');
+      if (!container) return;
+
+      if (!currentStorefrontLeaderboardConfig) {
+        container.innerHTML = '';
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }
+
+      if (updatedAtEl && currentStorefrontLeaderboardConfig.updatedAt) {
+        updatedAtEl.textContent = '🕒 Cập nhật: ' + currentStorefrontLeaderboardConfig.updatedAt;
+      }
+
+      let list = [];
+      if (currentStorefrontLeadTab === 'day') list = currentStorefrontLeaderboardConfig.topDay || [];
+      else if (currentStorefrontLeadTab === 'month') list = currentStorefrontLeaderboardConfig.topMonth || [];
+      else list = currentStorefrontLeaderboardConfig.topAll || [];
+
+      // Lọc các khách hàng được duyệt hiển thị (visible !== false)
+      const visibleList = (list || []).filter(item => item && item.visible !== false);
+
+      if (!visibleList || visibleList.length === 0) {
+        container.innerHTML = '';
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }
+
+      if (emptyMsg) emptyMsg.style.display = 'none';
+
+      let html = '';
+      visibleList.forEach((cust, idx) => {
+        const rank = idx + 1;
+        let rankClass = '';
+        let badgeIcon = rank;
+        if (rank === 1) {
+          rankClass = 'lead-card-rank1';
+          badgeIcon = '🥇';
+        } else if (rank === 2) {
+          rankClass = 'lead-card-rank2';
+          badgeIcon = '🥈';
+        } else if (rank === 3) {
+          rankClass = 'lead-card-rank3';
+          badgeIcon = '🥉';
+        }
+
+        const safeName = escapeHtml(cust.name || 'Khách hàng thân thiết');
+        const safeProv = cust.province ? '📍 ' + escapeHtml(cust.province) : '';
+        const amtStr = formatMoney(cust.totalAmount || 0);
+        const orderCountStr = cust.orderCount ? cust.orderCount + ' đơn hàng' : '';
+
+        html += `
+          <div class="lead-card ${rankClass}">
+            <div class="lead-left">
+              <div class="lead-badge">${badgeIcon}</div>
+              <div class="lead-info">
+                <div class="lead-info-name">${safeName}</div>
+                ${safeProv ? `<div class="lead-info-prov">${safeProv}</div>` : ''}
+              </div>
+            </div>
+            <div class="lead-right">
+              <div class="lead-amount">${amtStr}</div>
+              ${orderCountStr ? `<div class="lead-orders">${orderCountStr}</div>` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
     }
   </script>
 </body>

@@ -1563,6 +1563,7 @@
       <div class="tab" onclick="switchTab('posts', this)">📐 BÀI VIẾT / SƠ ĐỒ</div>
       <div class="tab" onclick="switchTab('analytics', this)">📊 THỐNG KÊ & BÁO CÁO</div>
       <div class="tab" onclick="switchTab('profit', this)">💰 LỢI NHUẬN</div>
+      <div class="tab" onclick="switchTab('leaderboard', this)">👑 BẢNG XẾP HẠNG & TRI ÂN</div>
     </div>
 
     <div id="loading-overlay">
@@ -2136,6 +2137,87 @@
         </div>
       </div>
     </div>
+
+    <!-- TAB BẢNG XẾP HẠNG & TRI ÂN -->
+    <div id="leaderboard" class="content">
+      <div class="analytics-toolbar">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 18px; font-weight: 700; color: #1a2935; display: flex; align-items: center; gap: 8px;">
+            <span>👑 Quản Lý Bảng Xếp Hạng & Tri Ân Khách Hàng</span>
+            <span id="leaderboard-last-updated" style="font-size: 11px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 12px; font-weight: 700;">🕒 Chưa cập nhật</span>
+          </div>
+          <div style="font-size: 13px; color: #718096;">Xem trước, tùy chỉnh thông tin và phê duyệt bảng vinh danh khách hàng trước khi xuất bản lên trang chủ.</div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <button type="button" id="btn-calc-leaderboard" class="btn-update" style="background: #d97706; padding: 8px 14px;" onclick="calculateLeaderboardFromOrders()">⚡ Tính toán tự động từ Đơn Hàng</button>
+          <button type="button" id="btn-save-leaderboard" class="btn-update" style="background: #059669; padding: 8px 14px;" onclick="saveAndPublishLeaderboard()">💾 Lưu & Xuất Bản</button>
+        </div>
+      </div>
+
+      <!-- CẤU HÌNH BẬT / TẮT HIỂN THỊ -->
+      <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px;">
+        <div style="font-weight: 700; font-size: 15px; color: #2d3748; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <span>⚙️ Bật / Tắt Hiển Thị Trên Trang Chủ</span>
+        </div>
+        <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: #374151;">
+            <input type="checkbox" id="cfg-leaderboard-enabled" style="transform: scale(1.3); cursor: pointer;">
+            <span>Hiện Bảng Xếp Hạng Khách Hàng (Section vinh danh)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: #374151;">
+            <input type="checkbox" id="cfg-marquee-enabled" style="transform: scale(1.3); cursor: pointer;">
+            <span>Hiện Dòng Chữ Chạy Tri Ân ở đầu trang (Top 8 tháng)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- CẤU HÌNH DÒNG CHỮ CHẠY MARQUEE -->
+      <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+          <div style="font-weight: 700; font-size: 15px; color: #2d3748; display: flex; align-items: center; gap: 8px;">
+            <span>📢 Dòng Chữ Chạy Tri Ân Top 8 Khách Hàng Trong Tháng</span>
+          </div>
+          <button type="button" id="btn-auto-gen-marquee" class="btn-sort" style="border: 1px solid #cbd5e0; background: #f8fafc;" onclick="autoGenerateMarqueeText()">✨ Tự tạo lại từ Top 8 tháng này</button>
+        </div>
+        <textarea id="cfg-marquee-text" class="status-select" style="width: 100%; height: 75px; resize: vertical; margin-bottom: 8px; font-size: 13.5px; line-height: 1.5;" placeholder="🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: 1. A Thành (Ninh Bình) - 5.400.000đ 🌟 2. Chị Lan (Hà Nội)..."></textarea>
+        <div style="font-size: 12px; color: #718096; display: flex; align-items: center; gap: 6px;">
+          <span>🔒 <i>Lưu ý: Hệ thống tự động bảo mật, không xuất hiện số điện thoại hoặc địa chỉ nhà cụ thể trên trang công khai.</i></span>
+        </div>
+      </div>
+
+      <!-- BẢNG DUYỆT & TÙY CHỈNH DANH SÁCH KHÁCH HÀNG -->
+      <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div class="date-preset-bar" style="margin-bottom: 0;">
+            <button type="button" id="btn-admin-subtab-day" class="btn-date-preset" onclick="switchAdminLeaderboardSubTab('day')">📅 Hôm nay</button>
+            <button type="button" id="btn-admin-subtab-month" class="btn-date-preset active" onclick="switchAdminLeaderboardSubTab('month')">🗓️ Tháng này</button>
+            <button type="button" id="btn-admin-subtab-all" class="btn-date-preset" onclick="switchAdminLeaderboardSubTab('all')">🏆 Toàn bộ thời gian</button>
+          </div>
+          <button type="button" id="btn-add-leaderboard-row" class="btn-sort" style="border: 1px solid #cbd5e0; background: #f8fafc;" onclick="addManualLeaderboardEntry()">➕ Thêm khách hàng thủ công</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 60px; text-align: center;">Hạng</th>
+                <th style="width: 25%;">Tên hiển thị công khai</th>
+                <th style="width: 25%;">Tỉnh / Thành phố</th>
+                <th style="width: 20%;">Tổng tiền chi tiêu (VNĐ)</th>
+                <th style="width: 100px; text-align: center;">Số đơn</th>
+                <th style="width: 90px; text-align: center;">Hiển thị</th>
+                <th style="width: 70px; text-align: center;">Xóa</th>
+              </tr>
+            </thead>
+            <tbody id="admin-leaderboard-body"></tbody>
+          </table>
+          <div id="admin-leaderboard-empty" style="display: none; text-align: center; padding: 25px; color: #a0aec0; font-size: 14px;">
+            Chưa có dữ liệu xếp hạng trong danh sách này. Bấm "⚡ Tính toán tự động từ Đơn Hàng" để quét dữ liệu tự động.
+          </div>
+        </div>
+      </div>
+    </div>
     
   </div>
 
@@ -2583,6 +2665,18 @@
     let globalCombosData = [];
     let globalPostsData = []; 
     
+    const DEFAULT_LEADERBOARD_CONFIG = {
+      enabled: false,
+      marqueeEnabled: false,
+      marqueeText: "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: Chú Hiếu Shop chúc Quý khách nhiều sức khỏe và may mắn!",
+      topDay: [],
+      topMonth: [],
+      topAll: [],
+      updatedAt: ""
+    };
+    let currentLeaderboardConfig = Object.assign({}, DEFAULT_LEADERBOARD_CONFIG);
+    let currentAdminLeaderboardSubTab = 'month'; 
+    
     let currentEditImages = []; 
     let currentComboItems = []; 
     let currentComboEditImages = [];
@@ -2697,6 +2791,8 @@
         renderAnalytics();
       } else if (tabId === 'profit') {
         renderProfitAnalytics();
+      } else if (tabId === 'leaderboard') {
+        renderAdminLeaderboardTab();
       }
     }
 
@@ -2713,6 +2809,10 @@
         if (resData.spxConfig) {
           currentSpxConfig = Object.assign({}, DEFAULT_SPX_CONFIG, resData.spxConfig);
           try { localStorage.setItem('spx_config_cache', JSON.stringify(currentSpxConfig)); } catch(e) {}
+        }
+        if (resData.leaderboardConfig) {
+          currentLeaderboardConfig = Object.assign({}, DEFAULT_LEADERBOARD_CONFIG, resData.leaderboardConfig);
+          try { localStorage.setItem('leaderboard_config_cache', JSON.stringify(currentLeaderboardConfig)); } catch(e) {}
         }
         let shipInput = document.getElementById("edit-shipping-fee");
         if (shipInput && resData.shippingFee !== undefined) shipInput.value = resData.shippingFee;
@@ -2741,6 +2841,9 @@
       }
       if (document.getElementById('profit') && document.getElementById('profit').classList.contains('active')) {
         renderProfitAnalytics();
+      }
+      if (document.getElementById('leaderboard') && document.getElementById('leaderboard').classList.contains('active')) {
+        renderAdminLeaderboardTab();
       }
     }
 
@@ -8027,6 +8130,275 @@
         console.error("Lỗi tạo file Excel SPX:", err);
         alert("Có lỗi xảy ra khi tạo file Excel SPX: " + err.message);
         return false;
+      }
+    }
+
+    // ==========================================
+    // 👑 BẢNG XẾP HẠNG & TRI ÂN KHÁCH HÀNG
+    // ==========================================
+    function extractProvinceName(addr) {
+      if (!addr) return '';
+      let parts = addr.split(',').map(p => p.trim()).filter(Boolean);
+      if (parts.length > 0) {
+        let last = parts[parts.length - 1];
+        return last.replace(/^(Tỉnh|Thành phố|TP\.?)\s+/i, '').trim();
+      }
+      return '';
+    }
+
+    function calculateLeaderboardGroup(ordersList) {
+      let custMap = {};
+      ordersList.forEach(o => {
+        let st = (o.status || '').toLowerCase();
+        if (st === 'đã hủy' || st === 'hủy đơn') return;
+        let phone = (o.phone || '').trim();
+        let name = (o.name || 'Khách').trim();
+        let addr = (o.address || '').trim();
+        let totalVal = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
+        let key = phone || name;
+        if (!key) return;
+
+        if (!custMap[key]) {
+          custMap[key] = {
+            name: formatRecipientName(name),
+            province: extractProvinceName(addr),
+            totalAmount: 0,
+            orderCount: 0,
+            visible: true
+          };
+        }
+        custMap[key].orderCount += 1;
+        custMap[key].totalAmount += totalVal;
+        if (addr && !custMap[key].province) {
+          custMap[key].province = extractProvinceName(addr);
+        }
+        if (name && custMap[key].name === 'Khách') {
+          custMap[key].name = formatRecipientName(name);
+        }
+      });
+
+      let sorted = Object.values(custMap)
+        .sort((a, b) => b.totalAmount - a.totalAmount)
+        .slice(0, 30);
+
+      return sorted.map((c, idx) => ({
+        rank: idx + 1,
+        name: c.name,
+        province: c.province,
+        totalAmount: c.totalAmount,
+        orderCount: c.orderCount,
+        visible: true
+      }));
+    }
+
+    function calculateLeaderboardFromOrders() {
+      if (!globalOrdersData || globalOrdersData.length === 0) {
+        alert("Chưa có dữ liệu đơn hàng để tính toán!");
+        return;
+      }
+
+      const now = new Date();
+      const currentDay = now.getDate();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      let dayOrders = [];
+      let monthOrders = [];
+      let allOrders = globalOrdersData;
+
+      globalOrdersData.forEach(o => {
+        let d = parseOrderDate(o.date);
+        if (!d) return;
+        if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+          monthOrders.push(o);
+          if (d.getDate() === currentDay) {
+            dayOrders.push(o);
+          }
+        }
+      });
+
+      currentLeaderboardConfig.topDay = calculateLeaderboardGroup(dayOrders);
+      currentLeaderboardConfig.topMonth = calculateLeaderboardGroup(monthOrders);
+      currentLeaderboardConfig.topAll = calculateLeaderboardGroup(allOrders);
+
+      autoGenerateMarqueeText();
+      renderAdminLeaderboardTab();
+      alert("⚡ Đã tính toán xong bảng xếp hạng từ " + globalOrdersData.length + " đơn hàng!\nVui lòng kiểm tra và ấn 'Lưu & Xuất Bản' để áp dụng.");
+    }
+
+    function autoGenerateMarqueeText() {
+      const topMonth = (currentLeaderboardConfig.topMonth || []).filter(c => c && c.visible !== false).slice(0, 8);
+      if (topMonth.length === 0) {
+        const textEl = document.getElementById('cfg-marquee-text');
+        if (textEl) textEl.value = "🎉 Cảm ơn các khách hàng thân thiết đã luôn đồng hành và ủng hộ Chú Hiếu Shop!";
+        currentLeaderboardConfig.marqueeText = textEl ? textEl.value : "";
+        return;
+      }
+
+      let parts = topMonth.map((c, idx) => {
+        let prov = c.province ? ` (${c.province})` : '';
+        let amt = formatMoney(c.totalAmount || 0);
+        return `${idx + 1}. ${c.name}${prov} - ${amt}`;
+      });
+
+      let fullText = "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: " + parts.join(" 🌟 ") + " 🌟 Chúc Quý khách mua sắm vui vẻ!";
+      const textEl = document.getElementById('cfg-marquee-text');
+      if (textEl) textEl.value = fullText;
+      currentLeaderboardConfig.marqueeText = fullText;
+    }
+
+    function renderAdminLeaderboardTab() {
+      const chkLead = document.getElementById('cfg-leaderboard-enabled');
+      if (chkLead) chkLead.checked = !!currentLeaderboardConfig.enabled;
+
+      const chkMarquee = document.getElementById('cfg-marquee-enabled');
+      if (chkMarquee) chkMarquee.checked = !!currentLeaderboardConfig.marqueeEnabled;
+
+      const txtMarquee = document.getElementById('cfg-marquee-text');
+      if (txtMarquee) txtMarquee.value = currentLeaderboardConfig.marqueeText || "";
+
+      const timeEl = document.getElementById('leaderboard-last-updated');
+      if (timeEl) {
+        timeEl.innerText = currentLeaderboardConfig.updatedAt 
+          ? ("🕒 Cập nhật lần cuối: " + currentLeaderboardConfig.updatedAt) 
+          : "🕒 Chưa cập nhật";
+      }
+
+      const subTabs = ['day', 'month', 'all'];
+      subTabs.forEach(st => {
+        const btn = document.getElementById('btn-admin-subtab-' + st);
+        if (btn) {
+          if (st === currentAdminLeaderboardSubTab) btn.classList.add('active');
+          else btn.classList.remove('active');
+        }
+      });
+
+      renderAdminLeaderboardTable();
+    }
+
+    function switchAdminLeaderboardSubTab(subTab) {
+      currentAdminLeaderboardSubTab = subTab;
+      renderAdminLeaderboardTab();
+    }
+
+    function renderAdminLeaderboardTable() {
+      const tbody = document.getElementById('admin-leaderboard-body');
+      const emptyDiv = document.getElementById('admin-leaderboard-empty');
+      if (!tbody) return;
+
+      let listKey = currentAdminLeaderboardSubTab === 'day' 
+        ? 'topDay' 
+        : (currentAdminLeaderboardSubTab === 'month' ? 'topMonth' : 'topAll');
+
+      let list = currentLeaderboardConfig[listKey] || [];
+      if (list.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyDiv) emptyDiv.style.display = 'block';
+        return;
+      }
+      if (emptyDiv) emptyDiv.style.display = 'none';
+
+      let html = '';
+      list.forEach((item, idx) => {
+        let rank = idx + 1;
+        let badge = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : '#' + rank));
+        let isChecked = item.visible !== false ? 'checked' : '';
+        html += `
+          <tr>
+            <td data-label="Hạng" style="text-align: center; font-weight: 700; font-size: 16px;">${badge}</td>
+            <td data-label="Tên hiển thị">
+              <input type="text" class="status-select" style="width: 100%; margin: 0; padding: 6px 10px;" value="${escapeHtml(item.name || '')}" onchange="updateLeaderboardItem('${listKey}', ${idx}, 'name', this.value)">
+            </td>
+            <td data-label="Tỉnh / Thành phố">
+              <input type="text" class="status-select" style="width: 100%; margin: 0; padding: 6px 10px;" value="${escapeHtml(item.province || '')}" onchange="updateLeaderboardItem('${listKey}', ${idx}, 'province', this.value)">
+            </td>
+            <td data-label="Tổng tiền chi tiêu">
+              <input type="number" class="status-select" style="width: 100%; margin: 0; padding: 6px 10px; font-weight: 600; color: #b45309;" value="${item.totalAmount || 0}" onchange="updateLeaderboardItem('${listKey}', ${idx}, 'totalAmount', Number(this.value))">
+            </td>
+            <td data-label="Số đơn" style="text-align: center;">
+              <input type="number" class="status-select" style="width: 70px; margin: 0 auto; text-align: center;" value="${item.orderCount || 1}" onchange="updateLeaderboardItem('${listKey}', ${idx}, 'orderCount', Number(this.value))">
+            </td>
+            <td data-label="Hiển thị" style="text-align: center;">
+              <input type="checkbox" style="transform: scale(1.3); cursor: pointer;" ${isChecked} onchange="updateLeaderboardItem('${listKey}', ${idx}, 'visible', this.checked)">
+            </td>
+            <td data-label="Xóa" style="text-align: center;">
+              <button type="button" class="btn-delete-order" style="padding: 4px 8px; font-size: 12px;" onclick="deleteLeaderboardItem('${listKey}', ${idx})">❌</button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function updateLeaderboardItem(listKey, idx, field, val) {
+      if (currentLeaderboardConfig[listKey] && currentLeaderboardConfig[listKey][idx]) {
+        currentLeaderboardConfig[listKey][idx][field] = val;
+      }
+    }
+
+    function deleteLeaderboardItem(listKey, idx) {
+      if (currentLeaderboardConfig[listKey]) {
+        currentLeaderboardConfig[listKey].splice(idx, 1);
+        currentLeaderboardConfig[listKey].forEach((c, i) => c.rank = i + 1);
+        renderAdminLeaderboardTable();
+      }
+    }
+
+    function addManualLeaderboardEntry() {
+      let listKey = currentAdminLeaderboardSubTab === 'day' 
+        ? 'topDay' 
+        : (currentAdminLeaderboardSubTab === 'month' ? 'topMonth' : 'topAll');
+      if (!currentLeaderboardConfig[listKey]) currentLeaderboardConfig[listKey] = [];
+      
+      let newRank = currentLeaderboardConfig[listKey].length + 1;
+      currentLeaderboardConfig[listKey].push({
+        rank: newRank,
+        name: 'Khách hàng mới',
+        province: 'Hà Nội',
+        totalAmount: 1000000,
+        orderCount: 1,
+        visible: true
+      });
+      renderAdminLeaderboardTable();
+    }
+
+    async function saveAndPublishLeaderboard() {
+      const token = getAdminToken();
+      if (!token) return logout();
+
+      const chkLead = document.getElementById('cfg-leaderboard-enabled');
+      const chkMarquee = document.getElementById('cfg-marquee-enabled');
+      const txtMarquee = document.getElementById('cfg-marquee-text');
+
+      currentLeaderboardConfig.enabled = chkLead ? chkLead.checked : false;
+      currentLeaderboardConfig.marqueeEnabled = chkMarquee ? chkMarquee.checked : false;
+      currentLeaderboardConfig.marqueeText = txtMarquee ? txtMarquee.value.trim() : "";
+
+      showLoading(true);
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'updateLeaderboardConfig',
+            token: token,
+            leaderboardConfig: currentLeaderboardConfig
+          })
+        });
+        const data = await res.json();
+        showLoading(false);
+        if (data.status === 'success') {
+          if (data.leaderboardConfig) {
+            currentLeaderboardConfig = data.leaderboardConfig;
+          }
+          try { localStorage.setItem('leaderboard_config_cache', JSON.stringify(currentLeaderboardConfig)); } catch (e) {}
+          renderAdminLeaderboardTab();
+          alert("✅ Đã lưu và xuất bản Bảng Xếp Hạng & Tri Ân thành công!\nDữ liệu đã được đồng bộ lên trang chủ.");
+        } else {
+          alert("❌ Lỗi: " + (data.msg || "Không thể lưu bảng xếp hạng"));
+        }
+      } catch (err) {
+        showLoading(false);
+        alert("❌ Lỗi kết nối máy chủ: " + err.message);
       }
     }
   </script>
