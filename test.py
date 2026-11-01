@@ -2293,6 +2293,7 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('function renderStorefrontLeaderboard', index, "LỖI: index.html thiếu hàm renderStorefrontLeaderboard!")
         self.assertIn('function switchLeaderboardTab', index, "LỖI: index.html thiếu hàm switchLeaderboardTab!")
         self.assertNotIn('<div class="lead-amount">', index, "BẢO MẬT: index.html không được hiển thị số tiền mua hàng của khách!")
+        self.assertIn('Link sản phẩm', index, "LỖI: index.html thiếu nhãn 'Link sản phẩm' trong bài viết!")
 
         # 3. Chạy test giả lập thuật toán bằng Node.js
         test_script = """
@@ -2399,7 +2400,7 @@ class TestBusinessLogic(unittest.TestCase):
           let targetList = [];
           let prefix = "";
 
-          if (monthCust.length >= 3) {
+          if (monthCust.length >= 2) {
             targetList = monthCust.slice(0, 8);
             prefix = "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: ";
           } else if (allCust.length > 0) {
@@ -2420,13 +2421,11 @@ class TestBusinessLogic(unittest.TestCase):
           return prefix + parts.join(" 🌟 ") + " 🌟 Chúc Quý khách mua sắm vui vẻ!";
         }
 
-        // Trường hợp 1: Tháng có >= 3 khách hàng -> Lấy theo tháng, đồng bộ icon 🥇🥈🥉, ẨN HOÀN TOÀN SỐ TIỀN
+        // Trường hợp 1: Tháng có >= 2 khách hàng -> Lấy theo tháng, đồng bộ icon 🥇🥈🥉, ẨN HOÀN TOÀN SỐ TIỀN
         const cfgMonthOK = {
           topMonth: [
             { name: "A Thành", province: "Ninh Bình", totalAmount: 5400000, visible: true },
-            { name: "Chị Lan", province: "Hà Nội", totalAmount: 3000000, visible: true },
-            { name: "Anh Nam", province: "Đà Nẵng", totalAmount: 2000000, visible: true },
-            { name: "Khách 4", province: "TP.HCM", totalAmount: 1000000, visible: true }
+            { name: "Chị Lan", province: "Hà Nội", totalAmount: 3000000, visible: true }
           ],
           topAll: []
         };
@@ -2434,11 +2433,9 @@ class TestBusinessLogic(unittest.TestCase):
         assert.ok(marqueeMonth.startsWith("🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng:"));
         assert.ok(marqueeMonth.includes("🥇 A Thành (Ninh Bình)"));
         assert.ok(marqueeMonth.includes("🥈 Chị Lan (Hà Nội)"));
-        assert.ok(marqueeMonth.includes("🥉 Anh Nam (Đà Nẵng)"));
-        assert.ok(marqueeMonth.includes("4. Khách 4 (TP.HCM)"));
         assert.ok(!marqueeMonth.includes("5.400.000"), "BẢO MẬT: Chữ chạy không được hiển thị số tiền của khách!");
 
-        // Trường hợp 2: Đầu tháng mới có < 3 khách (chỉ 1 hoặc 2) -> Tự động lấy Top All thời gian, ẨN SỐ TIỀN
+        // Trường hợp 2: Đầu tháng mới có < 2 khách (chỉ 1 khách hoặc 0) -> Tự động lấy Top All thời gian, ẨN SỐ TIỀN
         const cfgMonthFew = {
           topMonth: [
             { name: "Khách Mới", province: "Hà Nội", totalAmount: 500000, visible: true }

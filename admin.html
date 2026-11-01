@@ -2176,7 +2176,7 @@
       <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
           <div style="font-weight: 700; font-size: 15px; color: #2d3748; display: flex; align-items: center; gap: 8px;">
-            <span>📢 Dòng Chữ Chạy Tri Ân Top 8 Khách Hàng (Tự chuyển Tổng thời gian nếu tháng &lt; 3 người)</span>
+            <span>📢 Dòng Chữ Chạy Tri Ân Top 8 Khách Hàng (Tự chuyển Tổng thời gian nếu tháng &lt; 2 người)</span>
           </div>
           <button type="button" id="btn-auto-gen-marquee" class="btn-sort" style="border: 1px solid #cbd5e0; background: #f8fafc;" onclick="autoGenerateMarqueeText()">✨ Tự tạo lại chữ chạy (Top 8)</button>
         </div>
@@ -8233,9 +8233,9 @@
       let targetList = [];
       let prefix = "";
 
-      // Điều kiện: Nếu có ít nhất 3 khách hàng trong tháng -> Tổng kết theo tháng
-      // Nếu không đủ ít nhất 3 người theo tháng (ví dụ đầu tháng chưa có đơn mới) -> Tổng kết theo tổng thời gian
-      if (monthCustomers.length >= 3) {
+      // Điều kiện: Nếu có ít nhất 2 khách hàng trong tháng -> Tổng kết theo tháng
+      // Nếu không đủ ít nhất 2 người theo tháng (ví dụ đầu tháng chưa có đơn mới) -> Tổng kết theo tổng thời gian
+      if (monthCustomers.length >= 2) {
         targetList = monthCustomers.slice(0, 8);
         prefix = "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: ";
       } else if (allCustomers.length > 0) {
