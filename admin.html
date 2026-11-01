@@ -2160,14 +2160,18 @@
         <div style="font-weight: 700; font-size: 15px; color: #2d3748; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
           <span>⚙️ Bật / Tắt Hiển Thị Trên Trang Chủ</span>
         </div>
-        <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">
           <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: #374151;">
             <input type="checkbox" id="cfg-leaderboard-enabled" style="transform: scale(1.3); cursor: pointer;">
             <span>Hiện Bảng Xếp Hạng Khách Hàng (Section vinh danh)</span>
           </label>
           <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: #374151;">
             <input type="checkbox" id="cfg-marquee-enabled" style="transform: scale(1.3); cursor: pointer;">
-            <span>Hiện Dòng Chữ Chạy Tri Ân ở đầu trang (Top 8 tháng)</span>
+            <span>Hiện Dòng Chữ Chạy Tri Ân ở đầu trang</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: #0284c7;">
+            <input type="checkbox" id="cfg-leaderboard-auto-realtime" style="transform: scale(1.3); cursor: pointer;" checked>
+            <span>⚡ Tự động cập nhật Real-time khi có đơn mới (Auto Real-time)</span>
           </label>
         </div>
       </div>
@@ -2668,6 +2672,7 @@
     const DEFAULT_LEADERBOARD_CONFIG = {
       enabled: false,
       marqueeEnabled: false,
+      autoRealtime: true,
       marqueeText: "🎉 Cảm ơn các khách hàng đã ủng hộ: Chu Hiếu Shop chúc Quý khách nhiều sức khỏe và may mắn!",
       topDay: [],
       topMonth: [],
@@ -8272,6 +8277,9 @@
       const chkMarquee = document.getElementById('cfg-marquee-enabled');
       if (chkMarquee) chkMarquee.checked = !!currentLeaderboardConfig.marqueeEnabled;
 
+      const chkAuto = document.getElementById('cfg-leaderboard-auto-realtime');
+      if (chkAuto) chkAuto.checked = currentLeaderboardConfig.autoRealtime !== false;
+
       const txtMarquee = document.getElementById('cfg-marquee-text');
       if (txtMarquee) txtMarquee.value = currentLeaderboardConfig.marqueeText || "";
 
@@ -8386,10 +8394,12 @@
 
       const chkLead = document.getElementById('cfg-leaderboard-enabled');
       const chkMarquee = document.getElementById('cfg-marquee-enabled');
+      const chkAuto = document.getElementById('cfg-leaderboard-auto-realtime');
       const txtMarquee = document.getElementById('cfg-marquee-text');
 
       currentLeaderboardConfig.enabled = chkLead ? chkLead.checked : false;
       currentLeaderboardConfig.marqueeEnabled = chkMarquee ? chkMarquee.checked : false;
+      currentLeaderboardConfig.autoRealtime = chkAuto ? chkAuto.checked : true;
       currentLeaderboardConfig.marqueeText = txtMarquee ? txtMarquee.value.trim() : "";
 
       showLoading(true);

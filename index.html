@@ -4133,6 +4133,7 @@
 
       updateCheckoutSubmittedUI();
       openOrderSuccessModal(orderText, false);
+      setTimeout(syncLeaderboardRealtime, 2500);
 
       if (openZalo === true) {
         window.open("https://zalo.me/" + zaloPhone, "_blank");
@@ -4167,8 +4168,12 @@
 
       // 1. Dòng chữ chạy tri ân ở đầu trang
       if (cfg.marqueeEnabled && cfg.marqueeText && cfg.marqueeText.trim()) {
-        if (marqueeContent) marqueeContent.textContent = cfg.marqueeText;
-        if (marqueeClone) marqueeClone.textContent = cfg.marqueeText;
+        if (marqueeContent && marqueeContent.textContent !== cfg.marqueeText) {
+          marqueeContent.textContent = cfg.marqueeText;
+        }
+        if (marqueeClone && marqueeClone.textContent !== cfg.marqueeText) {
+          marqueeClone.textContent = cfg.marqueeText;
+        }
         if (marqueeContainer) marqueeContainer.style.display = 'flex';
       } else {
         if (marqueeContainer) marqueeContainer.style.display = 'none';
@@ -4275,6 +4280,55 @@
       });
 
       container.innerHTML = html;
+    }
+
+    // ==========================================
+    // ⚡ CƠ CHẾ SWR REAL-TIME: ĐỒNG BỘ NGẦM 0ms
+    // ==========================================
+    let isSyncingLeaderboard = false;
+    async function syncLeaderboardRealtime() {
+      if (isSyncingLeaderboard) return;
+      isSyncingLeaderboard = true;
+      try {
+        const fetchUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 'action=getLeaderboard';
+        const res = await fetch(fetchUrl);
+        const data = await res.json();
+        if (data && data.status === 'success' && data.leaderboardConfig) {
+          const freshCfg = data.leaderboardConfig;
+          const freshStr = JSON.stringify(freshCfg);
+          const currentStr = JSON.stringify(currentStorefrontLeaderboardConfig || {});
+          if (freshStr !== currentStr) {
+            currentStorefrontLeaderboardConfig = freshCfg;
+            renderStorefrontLeaderboard(freshCfg);
+            try {
+              let cachedRaw = localStorage.getItem(STOREFRONT_SWR_CACHE_KEY);
+              if (cachedRaw) {
+                let cachedObj = JSON.parse(cachedRaw);
+                cachedObj.leaderboardConfig = freshCfg;
+                localStorage.setItem(STOREFRONT_SWR_CACHE_KEY, JSON.stringify(cachedObj));
+              }
+            } catch (e) {}
+          }
+        }
+      } catch (err) {
+        // Lỗi kết nối nền bỏ qua không làm gián đoạn người dùng
+      } finally {
+        isSyncingLeaderboard = false;
+      }
+    }
+
+    // Tự động kiểm tra đồng bộ ngầm khi người dùng quay lại tab cửa hàng
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          syncLeaderboardRealtime();
+        }
+      });
+    }
+
+    // Đồng bộ định kỳ mỗi 60 giây trong nền (khi chạy trên trình duyệt)
+    if (typeof window !== 'undefined' && typeof window.setInterval === 'function') {
+      window.setInterval(syncLeaderboardRealtime, 60000);
     }
   </script>
 </body>

@@ -380,6 +380,7 @@ class TestDOMIntegrity(unittest.TestCase):
             'btn-save-leaderboard',
             'cfg-leaderboard-enabled',
             'cfg-marquee-enabled',
+            'cfg-leaderboard-auto-realtime',
             'cfg-marquee-text',
             'btn-auto-gen-marquee',
             'btn-admin-subtab-day',
@@ -2284,14 +2285,18 @@ class TestBusinessLogic(unittest.TestCase):
 
         # 1. Kiểm tra Backend Code.gs đã đăng ký route updateLeaderboardConfig và trả về leaderboardConfig
         self.assertIn('action === "updateLeaderboardConfig"', codegs, "LỖI: Code.gs chưa có route 'updateLeaderboardConfig' trong doPost!")
+        self.assertIn('action === "getLeaderboard"', codegs, "LỖI: Code.gs chưa có route 'getLeaderboard' cho real-time SWR sync!")
+        self.assertIn('recomputeLeaderboardBackend', codegs, "LỖI: Code.gs thiếu hàm 'recomputeLeaderboardBackend' tự động tính toán lúc Ghi (Event-Driven)!")
         self.assertIn('leaderboardConfig: getLeaderboardConfig(doc)', codegs, "LỖI: Code.gs chưa trả về leaderboardConfig trong doGet!")
         self.assertIn('DEFAULT_LEADERBOARD_CONFIG', codegs, "LỖI: Code.gs thiếu hằng số DEFAULT_LEADERBOARD_CONFIG!")
 
         # 2. Kiểm tra tính năng trong admin.html và index.html
         self.assertIn('function calculateLeaderboardFromOrders', admin, "LỖI: admin.html thiếu hàm calculateLeaderboardFromOrders!")
         self.assertIn('function saveAndPublishLeaderboard', admin, "LỖI: admin.html thiếu hàm saveAndPublishLeaderboard!")
+        self.assertIn('cfg-leaderboard-auto-realtime', admin, "LỖI: admin.html thiếu cấu hình bật/tắt Auto Real-time!")
         self.assertIn('function renderStorefrontLeaderboard', index, "LỖI: index.html thiếu hàm renderStorefrontLeaderboard!")
         self.assertIn('function switchLeaderboardTab', index, "LỖI: index.html thiếu hàm switchLeaderboardTab!")
+        self.assertIn('function syncLeaderboardRealtime', index, "LỖI: index.html thiếu hàm syncLeaderboardRealtime đồng bộ ngầm!")
         self.assertNotIn('<div class="lead-amount">', index, "BẢO MẬT: index.html không được hiển thị số tiền mua hàng của khách!")
         self.assertIn('Link sản phẩm', index, "LỖI: index.html thiếu nhãn 'Link sản phẩm' trong bài viết!")
 
