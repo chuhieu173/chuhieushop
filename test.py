@@ -2411,25 +2411,31 @@ class TestBusinessLogic(unittest.TestCase):
           }
 
           let parts = targetList.map((c, idx) => {
+            let rank = idx + 1;
+            let rankBadge = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : `${rank}.`));
             let prov = c.province ? ` (${c.province})` : '';
             let amt = formatMoney(c.totalAmount || 0);
-            return `${idx + 1}. ${c.name}${prov} - ${amt}`;
+            return `${rankBadge} ${c.name}${prov} - ${amt}`;
           });
           return prefix + parts.join(" 🌟 ") + " 🌟 Chúc Quý khách mua sắm vui vẻ!";
         }
 
-        // Trường hợp 1: Tháng có >= 3 khách hàng -> Lấy theo tháng
+        // Trường hợp 1: Tháng có >= 3 khách hàng -> Lấy theo tháng, đồng bộ icon 🥇🥈🥉
         const cfgMonthOK = {
           topMonth: [
             { name: "A Thành", province: "Ninh Bình", totalAmount: 5400000, visible: true },
             { name: "Chị Lan", province: "Hà Nội", totalAmount: 3000000, visible: true },
-            { name: "Anh Nam", province: "Đà Nẵng", totalAmount: 2000000, visible: true }
+            { name: "Anh Nam", province: "Đà Nẵng", totalAmount: 2000000, visible: true },
+            { name: "Khách 4", province: "TP.HCM", totalAmount: 1000000, visible: true }
           ],
           topAll: []
         };
         const marqueeMonth = generateMarqueeFromConfig(cfgMonthOK);
         assert.ok(marqueeMonth.startsWith("🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng:"));
-        assert.ok(marqueeMonth.includes("1. A Thành (Ninh Bình) - 5.400.000đ"));
+        assert.ok(marqueeMonth.includes("🥇 A Thành (Ninh Bình) - 5.400.000đ"));
+        assert.ok(marqueeMonth.includes("🥈 Chị Lan (Hà Nội) - 3.000.000đ"));
+        assert.ok(marqueeMonth.includes("🥉 Anh Nam (Đà Nẵng) - 2.000.000đ"));
+        assert.ok(marqueeMonth.includes("4. Khách 4 (TP.HCM) - 1.000.000đ"));
 
         // Trường hợp 2: Đầu tháng mới có < 3 khách (chỉ 1 hoặc 2) -> Tự động lấy Top All thời gian
         const cfgMonthFew = {
@@ -2444,7 +2450,7 @@ class TestBusinessLogic(unittest.TestCase):
         };
         const marqueeFallback = generateMarqueeFromConfig(cfgMonthFew);
         assert.ok(marqueeFallback.startsWith("🎉 Cảm ơn các khách hàng thân thiết đã luôn đồng hành và ủng hộ Chu Hiếu Shop:"));
-        assert.ok(marqueeFallback.includes("1. A Thành (Ninh Bình) - 15.400.000đ"));
+        assert.ok(marqueeFallback.includes("🥇 A Thành (Ninh Bình) - 15.400.000đ"));
 
         console.log("LEADERBOARD_LOGIC_AND_PRIVACY_OK");
         """
