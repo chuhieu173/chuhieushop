@@ -1370,6 +1370,7 @@
   <div class="main-nav-tabs">
     <button id="tab-btn-products" class="tab-btn active" onclick="switchView('products')">SẢN PHẨM</button>
     <button id="tab-btn-diagrams" class="tab-btn" onclick="switchView('diagrams')">SƠ ĐỒ</button>
+    <button id="tab-btn-leaderboard" class="tab-btn" onclick="switchView('leaderboard')" style="display: none;">👑 BẢNG XẾP HẠNG</button>
   </div>
 
   <div id="loading" class="loader">
@@ -1422,25 +1423,27 @@
     </div>
   </div>
 
-  <!-- KHU VỰC BẢNG VINH DANH KHÁCH HÀNG THÂN THIẾT -->
-  <div id="customer-leaderboard-section" class="customer-leaderboard-section" style="display: none;">
-    <div class="lead-header">
-      <div class="lead-title">👑 BẢNG VINH DANH KHÁCH HÀNG THÂN THIẾT</div>
-      <div class="lead-subtitle">Tri ân sự tin tưởng và đồng hành của Quý khách hàng cùng Chú Hiếu Shop!</div>
-    </div>
+  <!-- KHU VỰC HIỂN THỊ BẢNG XẾP HẠNG (TAB RIÊNG BIỆT) -->
+  <div id="view-leaderboard" style="display: none;">
+    <div id="customer-leaderboard-section" class="customer-leaderboard-section">
+      <div class="lead-header">
+        <div class="lead-title">👑 BẢNG VINH DANH KHÁCH HÀNG THÂN THIẾT</div>
+        <div class="lead-subtitle">Tri ân sự tin tưởng và đồng hành của Quý khách hàng cùng Chu Hiếu Shop!</div>
+      </div>
 
-    <div class="lead-tabs">
-      <button type="button" id="btn-lead-tab-day" class="lead-pill" onclick="switchLeaderboardTab('day')">📅 Hôm nay</button>
-      <button type="button" id="btn-lead-tab-month" class="lead-pill active" onclick="switchLeaderboardTab('month')">🗓️ Tháng này</button>
-      <button type="button" id="btn-lead-tab-all" class="lead-pill" onclick="switchLeaderboardTab('all')">🏆 Toàn bộ thời gian</button>
-    </div>
+      <div class="lead-tabs">
+        <button type="button" id="btn-lead-tab-day" class="lead-pill" onclick="switchLeaderboardTab('day')">📅 Hôm nay</button>
+        <button type="button" id="btn-lead-tab-month" class="lead-pill active" onclick="switchLeaderboardTab('month')">🗓️ Tháng này</button>
+        <button type="button" id="btn-lead-tab-all" class="lead-pill" onclick="switchLeaderboardTab('all')">🏆 Toàn bộ thời gian</button>
+      </div>
 
-    <div id="leaderboard-cards-container" class="leaderboard-cards-container"></div>
-    <div id="leaderboard-empty-msg" class="leaderboard-empty" style="display: none; text-align: center; padding: 25px; color: #a0aec0; font-size: 14px;">Chưa có dữ liệu vinh danh trong kỳ này.</div>
+      <div id="leaderboard-cards-container" class="leaderboard-cards-container"></div>
+      <div id="leaderboard-empty-msg" class="leaderboard-empty" style="display: none; text-align: center; padding: 25px; color: #a0aec0; font-size: 14px;">Chưa có dữ liệu vinh danh trong kỳ này.</div>
 
-    <div class="leaderboard-footer-note">
-      <span id="leaderboard-updated-at"></span>
-      <span>🔒 Thông tin được bảo mật quyền riêng tư</span>
+      <div class="leaderboard-footer-note">
+        <span id="leaderboard-updated-at"></span>
+        <span>🔒 Thông tin được bảo mật quyền riêng tư</span>
+      </div>
     </div>
   </div>
 
@@ -1580,9 +1583,13 @@
     function switchView(viewName) {
       document.getElementById('view-products').style.display = (viewName === 'products') ? 'block' : 'none';
       document.getElementById('view-diagrams').style.display = (viewName === 'diagrams') ? 'block' : 'none';
+      let leadView = document.getElementById('view-leaderboard');
+      if (leadView) leadView.style.display = (viewName === 'leaderboard') ? 'block' : 'none';
       
       document.getElementById('tab-btn-products').classList.toggle('active', viewName === 'products');
       document.getElementById('tab-btn-diagrams').classList.toggle('active', viewName === 'diagrams');
+      let leadTabBtn = document.getElementById('tab-btn-leaderboard');
+      if (leadTabBtn) leadTabBtn.classList.toggle('active', viewName === 'leaderboard');
 
       if (viewName === 'diagrams' && postsNeedsRender) {
         postsNeedsRender = false;
@@ -4138,10 +4145,17 @@
       const marqueeContent = document.getElementById('marquee-text-content');
       const marqueeClone = document.getElementById('marquee-text-clone');
       const section = document.getElementById('customer-leaderboard-section');
+      const leadTabBtn = document.getElementById('tab-btn-leaderboard');
+      const leadView = document.getElementById('view-leaderboard');
 
       if (!cfg) {
         if (marqueeContainer) marqueeContainer.style.display = 'none';
         if (section) section.style.display = 'none';
+        if (leadTabBtn) {
+          leadTabBtn.style.display = 'none';
+          if (leadTabBtn.classList.contains('active')) switchView('products');
+        }
+        if (leadView) leadView.style.display = 'none';
         return;
       }
 
@@ -4154,11 +4168,17 @@
         if (marqueeContainer) marqueeContainer.style.display = 'none';
       }
 
-      // 2. Bảng Xếp Hạng Khách Hàng
+      // 2. Bảng Xếp Hạng Khách Hàng (Tab riêng biệt)
       if (cfg.enabled) {
+        if (leadTabBtn) leadTabBtn.style.display = 'inline-block';
         if (section) section.style.display = 'block';
         updateLeaderboardDisplay();
       } else {
+        if (leadTabBtn) {
+          leadTabBtn.style.display = 'none';
+          if (leadTabBtn.classList.contains('active')) switchView('products');
+        }
+        if (leadView) leadView.style.display = 'none';
         if (section) section.style.display = 'none';
       }
     }

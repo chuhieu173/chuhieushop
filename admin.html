@@ -2176,9 +2176,9 @@
       <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
           <div style="font-weight: 700; font-size: 15px; color: #2d3748; display: flex; align-items: center; gap: 8px;">
-            <span>📢 Dòng Chữ Chạy Tri Ân Top 8 Khách Hàng Trong Tháng</span>
+            <span>📢 Dòng Chữ Chạy Tri Ân Top 8 Khách Hàng (Tự chuyển Tổng thời gian nếu tháng &lt; 3 người)</span>
           </div>
-          <button type="button" id="btn-auto-gen-marquee" class="btn-sort" style="border: 1px solid #cbd5e0; background: #f8fafc;" onclick="autoGenerateMarqueeText()">✨ Tự tạo lại từ Top 8 tháng này</button>
+          <button type="button" id="btn-auto-gen-marquee" class="btn-sort" style="border: 1px solid #cbd5e0; background: #f8fafc;" onclick="autoGenerateMarqueeText()">✨ Tự tạo lại chữ chạy (Top 8)</button>
         </div>
         <textarea id="cfg-marquee-text" class="status-select" style="width: 100%; height: 75px; resize: vertical; margin-bottom: 8px; font-size: 13.5px; line-height: 1.5;" placeholder="🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: 1. A Thành (Ninh Bình) - 5.400.000đ 🌟 2. Chị Lan (Hà Nội)..."></textarea>
         <div style="font-size: 12px; color: #718096; display: flex; align-items: center; gap: 6px;">
@@ -2668,7 +2668,7 @@
     const DEFAULT_LEADERBOARD_CONFIG = {
       enabled: false,
       marqueeEnabled: false,
-      marqueeText: "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: Chú Hiếu Shop chúc Quý khách nhiều sức khỏe và may mắn!",
+      marqueeText: "🎉 Cảm ơn các khách hàng đã ủng hộ: Chu Hiếu Shop chúc Quý khách nhiều sức khỏe và may mắn!",
       topDay: [],
       topMonth: [],
       topAll: [],
@@ -8227,21 +8227,37 @@
     }
 
     function autoGenerateMarqueeText() {
-      const topMonth = (currentLeaderboardConfig.topMonth || []).filter(c => c && c.visible !== false).slice(0, 8);
-      if (topMonth.length === 0) {
+      const monthCustomers = (currentLeaderboardConfig.topMonth || []).filter(c => c && c.visible !== false);
+      const allCustomers = (currentLeaderboardConfig.topAll || []).filter(c => c && c.visible !== false);
+
+      let targetList = [];
+      let prefix = "";
+
+      // Điều kiện: Nếu có ít nhất 3 khách hàng trong tháng -> Tổng kết theo tháng
+      // Nếu không đủ ít nhất 3 người theo tháng (ví dụ đầu tháng chưa có đơn mới) -> Tổng kết theo tổng thời gian
+      if (monthCustomers.length >= 3) {
+        targetList = monthCustomers.slice(0, 8);
+        prefix = "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: ";
+      } else if (allCustomers.length > 0) {
+        targetList = allCustomers.slice(0, 8);
+        prefix = "🎉 Cảm ơn các khách hàng thân thiết đã luôn đồng hành và ủng hộ Chu Hiếu Shop: ";
+      }
+
+      if (targetList.length === 0) {
         const textEl = document.getElementById('cfg-marquee-text');
-        if (textEl) textEl.value = "🎉 Cảm ơn các khách hàng thân thiết đã luôn đồng hành và ủng hộ Chú Hiếu Shop!";
-        currentLeaderboardConfig.marqueeText = textEl ? textEl.value : "";
+        let defaultMsg = "🎉 Cảm ơn các khách hàng thân thiết đã luôn đồng hành và ủng hộ Chu Hiếu Shop! Chúc Quý khách mua sắm vui vẻ!";
+        if (textEl) textEl.value = defaultMsg;
+        currentLeaderboardConfig.marqueeText = defaultMsg;
         return;
       }
 
-      let parts = topMonth.map((c, idx) => {
+      let parts = targetList.map((c, idx) => {
         let prov = c.province ? ` (${c.province})` : '';
         let amt = formatMoney(c.totalAmount || 0);
         return `${idx + 1}. ${c.name}${prov} - ${amt}`;
       });
 
-      let fullText = "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: " + parts.join(" 🌟 ") + " 🌟 Chúc Quý khách mua sắm vui vẻ!";
+      let fullText = prefix + parts.join(" 🌟 ") + " 🌟 Chúc Quý khách mua sắm vui vẻ!";
       const textEl = document.getElementById('cfg-marquee-text');
       if (textEl) textEl.value = fullText;
       currentLeaderboardConfig.marqueeText = fullText;

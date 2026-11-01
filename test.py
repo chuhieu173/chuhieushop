@@ -356,6 +356,8 @@ class TestDOMIntegrity(unittest.TestCase):
             'top-marquee-container',
             'marquee-text-content',
             'marquee-text-clone',
+            'tab-btn-leaderboard',
+            'view-leaderboard',
             'customer-leaderboard-section',
             'btn-lead-tab-day',
             'btn-lead-tab-month',
@@ -2389,16 +2391,60 @@ class TestBusinessLogic(unittest.TestCase):
         assert.strictEqual(ranked[0].phone, undefined, "BẢO MẬT: Bảng xếp hạng không được chứa số điện thoại!");
         assert.strictEqual(ranked[0].address, undefined, "BẢO MẬT: Bảng xếp hạng không được chứa địa chỉ nhà chi tiết!");
 
-        // Test 4: Format dòng chữ chạy tri ân Top 8 của tháng
-        const topMonth = ranked.slice(0, 8);
-        const parts = topMonth.map((c, idx) => {
-          let prov = c.province ? ` (${c.province})` : '';
-          let amt = formatMoney(c.totalAmount || 0);
-          return `${idx + 1}. ${c.name}${prov} - ${amt}`;
-        });
-        const fullMarquee = "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: " + parts.join(" 🌟 ") + " 🌟 Chúc Quý khách mua sắm vui vẻ!";
-        assert.ok(fullMarquee.includes("1. A Thành (Ninh Bình) - 5.400.000đ"));
-        assert.ok(fullMarquee.includes("2. Chị Lan (Hà Nội) - 3.000.000đ"));
+        // Test 4: Format dòng chữ chạy tri ân - Tự động fallback sang Toàn bộ thời gian nếu tháng có dưới 3 khách hàng
+        function generateMarqueeFromConfig(cfg) {
+          const monthCust = (cfg.topMonth || []).filter(c => c && c.visible !== false);
+          const allCust = (cfg.topAll || []).filter(c => c && c.visible !== false);
+          let targetList = [];
+          let prefix = "";
+
+          if (monthCust.length >= 3) {
+            targetList = monthCust.slice(0, 8);
+            prefix = "🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng: ";
+          } else if (allCust.length > 0) {
+            targetList = allCust.slice(0, 8);
+            prefix = "🎉 Cảm ơn các khách hàng thân thiết đã luôn đồng hành và ủng hộ Chu Hiếu Shop: ";
+          }
+
+          if (targetList.length === 0) {
+            return "🎉 Cảm ơn các khách hàng thân thiết đã luôn đồng hành và ủng hộ Chu Hiếu Shop! Chúc Quý khách mua sắm vui vẻ!";
+          }
+
+          let parts = targetList.map((c, idx) => {
+            let prov = c.province ? ` (${c.province})` : '';
+            let amt = formatMoney(c.totalAmount || 0);
+            return `${idx + 1}. ${c.name}${prov} - ${amt}`;
+          });
+          return prefix + parts.join(" 🌟 ") + " 🌟 Chúc Quý khách mua sắm vui vẻ!";
+        }
+
+        // Trường hợp 1: Tháng có >= 3 khách hàng -> Lấy theo tháng
+        const cfgMonthOK = {
+          topMonth: [
+            { name: "A Thành", province: "Ninh Bình", totalAmount: 5400000, visible: true },
+            { name: "Chị Lan", province: "Hà Nội", totalAmount: 3000000, visible: true },
+            { name: "Anh Nam", province: "Đà Nẵng", totalAmount: 2000000, visible: true }
+          ],
+          topAll: []
+        };
+        const marqueeMonth = generateMarqueeFromConfig(cfgMonthOK);
+        assert.ok(marqueeMonth.startsWith("🎉 Cảm ơn các khách hàng đã ủng hộ trong tháng:"));
+        assert.ok(marqueeMonth.includes("1. A Thành (Ninh Bình) - 5.400.000đ"));
+
+        // Trường hợp 2: Đầu tháng mới có < 3 khách (chỉ 1 hoặc 2) -> Tự động lấy Top All thời gian
+        const cfgMonthFew = {
+          topMonth: [
+            { name: "Khách Mới", province: "Hà Nội", totalAmount: 500000, visible: true }
+          ],
+          topAll: [
+            { name: "A Thành", province: "Ninh Bình", totalAmount: 15400000, visible: true },
+            { name: "Chị Lan", province: "Hà Nội", totalAmount: 12000000, visible: true },
+            { name: "Anh Nam", province: "Đà Nẵng", totalAmount: 9000000, visible: true }
+          ]
+        };
+        const marqueeFallback = generateMarqueeFromConfig(cfgMonthFew);
+        assert.ok(marqueeFallback.startsWith("🎉 Cảm ơn các khách hàng thân thiết đã luôn đồng hành và ủng hộ Chu Hiếu Shop:"));
+        assert.ok(marqueeFallback.includes("1. A Thành (Ninh Bình) - 15.400.000đ"));
 
         console.log("LEADERBOARD_LOGIC_AND_PRIVACY_OK");
         """
@@ -2418,7 +2464,7 @@ class TestBusinessLogic(unittest.TestCase):
 
 if __name__ == '__main__':
     print("=" * 65)
-    print("🚀 CHÚ HIẾU SHOP - HỆ THỐNG KIỂM TRA CHẤT LƯỢNG CODE TỰ ĐỘNG")
+    print("🚀 CHU HIẾU SHOP - HỆ THỐNG KIỂM TRA CHẤT LƯỢNG CODE TỰ ĐỘNG")
     print("=" * 65)
     suite = unittest.TestLoader().loadTestsFromTestCase(TestDOMIntegrity)
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSyntaxAndParsing))
