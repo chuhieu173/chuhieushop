@@ -4,13 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="Chu Hiếu Shop - Chuyên cung cấp linh kiện điện tử, sơ đồ lắp ráp, combo công nghệ chất lượng, hỗ trợ kỹ thuật tận tâm và bảo hành uy tín.">
   <title>Cửa Hàng Của Minh Hiếu</title>
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <link rel="preconnect" href="https://provinces.open-api.vn">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" as="style">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
   
   <style>
     /* Nền chung cho hệ thống hiệu ứng */
@@ -433,8 +436,8 @@
       padding-top: 0;
       transform: translateY(-2px);
     }
-    .combo-ribbon { position: absolute; top: -5px; left: -5px; background: #e53e3e; color: white; padding: 5px 12px; font-weight: bold; font-size: 12px; z-index: 10; box-shadow: 2px 2px 4px rgba(0,0,0,0.2); border-radius: 3px; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;}
-    .combo-ribbon.flash-deal-ribbon { background: linear-gradient(135deg, #dd6b20, #e53e3e); }
+    .combo-ribbon { position: absolute; top: -5px; left: -5px; background: #c53030; color: white; padding: 5px 12px; font-weight: bold; font-size: 12px; z-index: 10; box-shadow: 2px 2px 4px rgba(0,0,0,0.2); border-radius: 3px; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;}
+    .combo-ribbon.flash-deal-ribbon { background: linear-gradient(135deg, #c53030, #9b2c2c); }
     
     .deal-top-header-bar {
       margin: 0 -15px 12px -15px;
@@ -743,7 +746,8 @@
     .qty-btn.small { width: 26px; height: 26px; font-size: 14px; }
     .qty-input.small { width: 40px; height: 26px; font-size: 14px; }
 
-    .cart-section { max-width: 600px; margin: 30px auto; background: white; color: #333; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 4px solid #ee4d2d; scroll-margin-top: 20px; transition: 0.3s;}
+    #view-products { min-height: 100vh; contain: layout style; }
+    .cart-section { contain: layout; max-width: 600px; margin: 30px auto; background: white; color: #333; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 4px solid #ee4d2d; scroll-margin-top: 20px; transition: 0.3s;}
     .cart-item { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; border-bottom: 1px dashed #eee; padding-bottom: 15px; gap: 15px; transition: 0.3s;}
     .total-price { text-align: right; font-size: 1.5em; color: #ee4d2d; font-weight: bold; margin-top: 15px; }
     
@@ -1330,7 +1334,7 @@
   <!-- Menu chọn Theme -->
   <div class="theme-switcher-bar">
     <div class="theme-switcher">
-      <select id="user-theme-selector" onchange="userChangeTheme(this.value)">
+      <select id="user-theme-selector" onchange="userChangeTheme(this.value)" aria-label="Chọn giao diện hiển thị">
         <option value="shop-default">🏪 Theo cài đặt của Shop</option>
         <option value="auto">🌗 Theo giao diện Sáng/Tối của máy</option>
         <option value="default">☀️ Mặc định (Sáng tối giản)</option>
@@ -1370,6 +1374,7 @@
     <div id="theme-bg-overlay"></div>
   </div>
 
+  <main id="main-content">
   <h1>CỬA HÀNG CỦA MINH HIẾU</h1>
   
   <!-- CÁC NÚT CHUYỂN TAB -->
@@ -1462,12 +1467,12 @@
 
     <div id="checkout-form" style="margin-top: 30px;">
       <h3>Thông tin nhận hàng</h3>
-      <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" oninput="onCustomerFormInput()" required></div>
-      <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" oninput="onCustomerFormInput()" required></div>
-      <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value); updateAddressPreview(); onCustomerFormInput();" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
-      <div class="form-group"><select id="phuong" onchange="updateAddressPreview(); onCustomerFormInput();" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
+      <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" aria-label="Tên người nhận" oninput="onCustomerFormInput()" required></div>
+      <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" aria-label="Số điện thoại Zalo" oninput="onCustomerFormInput()" required></div>
+      <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value); updateAddressPreview(); onCustomerFormInput();" aria-label="Chọn Tỉnh hoặc Thành phố" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
+      <div class="form-group"><select id="phuong" onchange="updateAddressPreview(); onCustomerFormInput();" aria-label="Chọn Phường hoặc Xã" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
       <div class="form-group">
-        <input type="text" id="customer-address-detail" placeholder="Số nhà, tên đường, thôn/xóm (Không cần gõ Phường, Tỉnh/TP) *" oninput="updateAddressPreview(); onCustomerFormInput();" required>
+        <input type="text" id="customer-address-detail" placeholder="Số nhà, tên đường, thôn/xóm (Không cần gõ Phường, Tỉnh/TP) *" aria-label="Số nhà, tên đường, thôn xóm" oninput="updateAddressPreview(); onCustomerFormInput();" required>
         <div style="font-size: 12px; color: #718096; margin-top: 4px; padding-left: 2px;">
           💡 Chỉ cần nhập số nhà, tên đường (hệ thống sẽ tự động ghép với Phường & Tỉnh/TP đã chọn ở trên).
         </div>
@@ -1477,7 +1482,7 @@
         <div id="address-preview-text" style="font-weight: bold; color: #1a202c; word-break: break-word;"></div>
       </div>
       <!-- Tạm thời ẩn phần ghi chú đặt hàng -->
-      <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)" oninput="onCustomerFormInput()"></div>
+      <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)" aria-label="Ghi chú đơn hàng" oninput="onCustomerFormInput()"></div>
 
       <!-- Cảnh báo bắt buộc nhắn Zalo để đơn hàng được thực hiện -->
       <div id="zalo-mandatory-warning-box" class="zalo-mandatory-warning">
@@ -1496,6 +1501,7 @@
       <button id="btn-checkout-copy" class="btn-primary" onclick="checkout(false)" style="background: #4a5568; margin-top: 10px;">Copy nội dung đơn hàng</button>
     </div>
   </div>
+  </main>
 
   <!-- Modal xác nhận đã lưu đơn & hướng dẫn dán gửi Zalo (chống khách bấm tạo đơn trùng) -->
   <div id="order-success-modal" class="order-success-modal" onclick="if(event.target===this) closeOrderSuccessModal()">
@@ -1540,7 +1546,7 @@
   <div id="image-modal" class="image-modal">
     <span class="close-modal" onclick="closeModal()">&times;</span>
     <button class="modal-nav prev" onclick="changeModalImg(-1)">&#10094;</button>
-    <img class="image-modal-content" id="modal-img">
+    <img class="image-modal-content" id="modal-img" alt="Ảnh chi tiết sản phẩm">
     
     <!-- Phần hiển thị chú thích ảnh lớn -->
     <div id="modal-caption"></div>
@@ -3183,14 +3189,15 @@
         let carouselBlock = '';
         
         if (totalImgs > 0) {
+          let postAlt = escapeHtml(post.title || 'Sơ đồ hướng dẫn');
           if (totalImgs > 1) {
-            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[totalImgs-1])}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
+            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[totalImgs-1])}" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
           }
           post.images.forEach((img, idx) => { 
-            imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(img)}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${idx})"></div>`; 
+            imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(img)}" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${idx})"></div>`; 
           });
           if (totalImgs > 1) {
-            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[0])}" loading="lazy" decoding="async" onclick="openModal('${post.id}', 0)"></div>`; 
+            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[0])}" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', 0)"></div>`; 
           }
 
           let arrowsHtml = buildCarouselOverlayHtml(post.id, totalImgs, false);
@@ -3347,13 +3354,14 @@
           
           let totalImgs = c.images.length;
           let imagesHtml = ''; 
+          let comboAlt = escapeHtml(c.name || 'Combo sản phẩm');
           
           if (totalImgs > 1) {
             let cap = c.imageCaptions && c.imageCaptions[totalImgs-1] ? c.imageCaptions[totalImgs-1] : "";
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
             imagesHtml += `
               <div class="carousel-item-wrap" data-clone="true">
-                <img src="${escapeHtml(c.images[totalImgs-1])}" loading="lazy" decoding="async" onclick="openModal('${c.id}', ${totalImgs-1})">
+                <img src="${escapeHtml(c.images[totalImgs-1])}" alt="${comboAlt}" loading="lazy" decoding="async" onclick="openModal('${c.id}', ${totalImgs-1})">
                 ${capHtml}
               </div>`; 
           }
@@ -3364,7 +3372,7 @@
             let imgLoadAttr = (isPriorityCard && idx === 0) ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
             imagesHtml += `
               <div class="carousel-item-wrap">
-                <img src="${escapeHtml(img)}" ${imgLoadAttr} onclick="openModal('${c.id}', ${idx})">
+                <img src="${escapeHtml(img)}" alt="${comboAlt}" ${imgLoadAttr} onclick="openModal('${c.id}', ${idx})">
                 ${capHtml}
               </div>`; 
           });
@@ -3374,7 +3382,7 @@
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
             imagesHtml += `
               <div class="carousel-item-wrap" data-clone="true">
-                <img src="${escapeHtml(c.images[0])}" loading="lazy" decoding="async" onclick="openModal('${c.id}', 0)">
+                <img src="${escapeHtml(c.images[0])}" alt="${comboAlt}" loading="lazy" decoding="async" onclick="openModal('${c.id}', 0)">
                 ${capHtml}
               </div>`; 
           }
@@ -3403,7 +3411,7 @@
             if (flashStatus.activeGifts && flashStatus.activeGifts.length > 0) {
               let giftItemsHtml = flashStatus.activeGifts.map(g => {
                 let gThumb = g.image
-                  ? `<img src="${escapeHtml(g.image)}" loading="lazy" decoding="async" class="gift-thumb">`
+                  ? `<img src="${escapeHtml(g.image)}" alt="${escapeHtml(g.name || 'Quà tặng kèm')}" loading="lazy" decoding="async" class="gift-thumb">`
                   : `<div class="gift-thumb" style="display:flex;align-items:center;justify-content:center;font-size:22px;">🎁</div>`;
                 
                 let origValHtml = '';
@@ -3453,7 +3461,7 @@
               <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
               <div class="qty-wrapper">
                 <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
-                <input type="number" id="qty-${c.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${c.id}')">
+                <input type="number" id="qty-${c.id}" class="qty-input" aria-label="Số lượng đặt mua ${escapeHtml(c.name)}" value="1" min="1" onchange="validateProductQty('${c.id}')">
                 <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
               </div>
               <button class="btn-primary btn-flash-deal" onclick="addToCart('${c.id}', true)">🎁 Nhận Combo & Quà Tặng</button>
@@ -3473,10 +3481,10 @@
               <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
               <div class="qty-wrapper">
                 <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
-                <input type="number" id="qty-${c.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${c.id}')">
+                <input type="number" id="qty-${c.id}" class="qty-input" aria-label="Số lượng đặt mua ${escapeHtml(c.name)}" value="1" min="1" onchange="validateProductQty('${c.id}')">
                 <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
               </div>
-              <button class="btn-primary" style="background:#e53e3e;" onclick="addToCart('${c.id}', true)">🛒 Chọn Combo</button>
+              <button class="btn-primary" style="background:#c53030;" onclick="addToCart('${c.id}', true)">🛒 Chọn Combo</button>
             `;
             comboFrag.appendChild(card);
             visibleCombosCount++;
@@ -3550,11 +3558,12 @@
         let imagesHtml = ''; 
         let isPriorityProdCard = (priorityCardCount < 4);
         priorityCardCount++;
+        let prodAlt = escapeHtml(p.name || 'Sản phẩm');
         
         if (totalImgs > 1) {
           imagesHtml += `
             <div class="carousel-item-wrap" data-clone="true">
-              <img src="${escapeHtml(p.images[totalImgs-1])}" loading="lazy" decoding="async" onclick="openModal('${p.id}', ${totalImgs-1})">
+              <img src="${escapeHtml(p.images[totalImgs-1])}" alt="${prodAlt}" loading="lazy" decoding="async" onclick="openModal('${p.id}', ${totalImgs-1})">
             </div>`; 
         }
 
@@ -3562,14 +3571,14 @@
           let imgLoadAttr = (isPriorityProdCard && idx === 0) ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
           imagesHtml += `
             <div class="carousel-item-wrap">
-              <img src="${escapeHtml(img)}" ${imgLoadAttr} onclick="openModal('${p.id}', ${idx})">
+              <img src="${escapeHtml(img)}" alt="${prodAlt}" ${imgLoadAttr} onclick="openModal('${p.id}', ${idx})">
             </div>`; 
         });
 
         if (totalImgs > 1) {
           imagesHtml += `
             <div class="carousel-item-wrap" data-clone="true">
-              <img src="${escapeHtml(p.images[0])}" loading="lazy" decoding="async" onclick="openModal('${p.id}', 0)">
+              <img src="${escapeHtml(p.images[0])}" alt="${prodAlt}" loading="lazy" decoding="async" onclick="openModal('${p.id}', 0)">
             </div>`; 
         }
 
@@ -3589,7 +3598,7 @@
           <div class="price-container" id="price-container-${p.id}">${priceHtml}</div>
           <div class="qty-wrapper">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', -1)">-</button>
-            <input type="number" id="qty-${p.id}" class="qty-input" value="1" min="1" onchange="validateProductQty('${p.id}')">
+            <input type="number" id="qty-${p.id}" class="qty-input" aria-label="Số lượng đặt mua ${escapeHtml(p.name)}" value="1" min="1" onchange="validateProductQty('${p.id}')">
             <button class="qty-btn" onclick="changeProductQty('${p.id}', 1)">+</button>
           </div>
           <button class="btn-primary" id="add-btn-${p.id}" style="${addBtnStyle}" ${addBtnDisabled} onclick="addToCart('${p.id}', false)">${addBtnText}</button>
