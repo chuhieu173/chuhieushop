@@ -2470,6 +2470,67 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_ui_ux_phase1_and_phase2_improvements(self):
+        """Kiểm tra toàn diện cải tiến UI/UX Giai đoạn 1 (index.html) và Giai đoạn 2 (admin.html)"""
+        with open('index.html', 'r', encoding='utf-8') as f:
+            index_content = f.read()
+        with open('admin.html', 'r', encoding='utf-8') as f:
+            admin_content = f.read()
+
+        # --- GIAI ĐOẠN 1: INDEX.HTML ---
+        # 1. Brand Hero Header & Trust Badges (tuyệt đối KHÔNG có dòng "🚚 Ship COD toàn quốc (Phí ship chỉ 18k)")
+        self.assertIn('class="brand-hero-header"', index_content)
+        self.assertIn('class="brand-logo-badge"', index_content)
+        self.assertIn('⚡ Linh kiện tuyển chọn, kiểm kỹ trước khi gửi', index_content)
+        self.assertIn('🛠️ Hỗ trợ sơ đồ &amp; kỹ thuật 1-1', index_content)
+        self.assertNotIn('🚚 Ship COD toàn quốc (Phí ship chỉ 18k)', index_content,
+                         "YÊU CẦU: Phải bỏ dòng chữ '🚚 Ship COD toàn quốc (Phí ship chỉ 18k)' khỏi index.html")
+
+        # 2. Thanh Tìm Kiếm & Bộ Lọc Nhanh 0ms + Nút chuyển đổi 1 cột / 2 cột Mobile
+        for dom_id in [
+            'storefront-filter-bar', 'storefront-search-input', 'btn-clear-storefront-search',
+            'sf-pill-all', 'sf-pill-discount', 'sf-pill-combo', 'sf-pill-price-asc', 'sf-pill-price-desc',
+            'btn-toggle-mobile-grid', 'mobile-grid-toggle-label', 'storefront-empty-search'
+        ]:
+            self.assertIn(f'id="{dom_id}"', index_content, f"Thiếu #{dom_id} trong index.html")
+
+        for fn_name in [
+            'doesTextMatchStorefrontQuery', 'onStorefrontSearchInput', 'clearStorefrontSearch',
+            'setStorefrontFilterPill', 'toggleMobileGridMode', 'initMobileGridMode'
+        ]:
+            self.assertIn(f'function {fn_name}', index_content, f"Thiếu hàm {fn_name} trong index.html")
+
+        # 3. Giỏ hàng 2 Bước (Step 1 & Step 2), nút Xóa tất cả & tự động lưu nháp thông tin nhận hàng
+        self.assertIn('id="btn-clear-cart"', index_content)
+        self.assertIn('function clearAllCartItems()', index_content)
+        self.assertIn("CUSTOMER_DRAFT_STORAGE_KEY = 'chuhieu_customer_draft_v1'", index_content)
+        self.assertIn('function saveCustomerDraft()', index_content)
+        self.assertIn('function restoreCustomerDraft()', index_content)
+
+        # --- GIAI ĐOẠN 2: ADMIN.HTML ---
+        # 1. Sticky Navigation Bar & Live Order Status Counter Badges
+        self.assertIn('id="nav-badge-orders"', admin_content)
+        for badge_id in ['pill-count-all', 'pill-count-new', 'pill-count-pending', 'pill-count-shipping', 'pill-count-completed']:
+            self.assertIn(f'id="{badge_id}"', admin_content, f"Thiếu badge #{badge_id} trong admin.html")
+        self.assertIn('function updateOrderStatusCounts(', admin_content)
+
+        # 2. Thanh tìm kiếm & lọc nhanh tồn kho trong Tab Sản Phẩm (#inventory)
+        for inv_id in [
+            'inventory-toolbar', 'inventory-search-input', 'btn-clear-inventory-search',
+            'inv-pill-all', 'inv-pill-low', 'inv-pill-active', 'inv-pill-hidden',
+            'inv-count-all', 'inv-count-low', 'inv-count-active', 'inv-count-hidden'
+        ]:
+            self.assertIn(f'id="{inv_id}"', admin_content, f"Thiếu #{inv_id} trong admin.html")
+        self.assertIn('function onInventorySearchInput(', admin_content)
+        self.assertIn('function filterInventoryByStatus(', admin_content)
+
+        # --- BẢO VỆ HIỂN THỊ ẢNH 2 LỚP (LỚP 1: NO-REFERRER + LỚP 2: CLOUDFLARE CDN FALLBACK CHO IMGBB) ---
+        for page_name, page_html in [('index.html', index_content), ('admin.html', admin_content)]:
+            self.assertIn('function resolveSafeImgUrl(', page_html, f"Thiếu resolveSafeImgUrl trong {page_name}")
+            self.assertIn('function handleImgError(', page_html, f"Thiếu handleImgError trong {page_name}")
+            self.assertIn('referrerpolicy="no-referrer"', page_html, f"Thiếu referrerpolicy='no-referrer' trong {page_name}")
+            self.assertIn('https://wsrv.nl/?url=', page_html, f"Thiếu CDN dự phòng wsrv.nl trong {page_name}")
+
 
 
 if __name__ == '__main__':

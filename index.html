@@ -365,8 +365,9 @@
       border-color: rgba(102, 179, 255, 0.3) !important;
     }
 
-    .product-card { position: relative; background: #eef2f5; padding: 15px; border-radius: 8px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; color: #333; transition: 0.3s;}
-    .discount-badge { position: absolute; top: 10px; left: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 4px; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
+    .product-card { position: relative; background: #ffffff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 14px; width: 255px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); text-align: center; display: flex; flex-direction: column; color: #1e293b; transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; box-sizing: border-box;}
+    .product-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.11); border-color: #cbd5e1; }
+    .discount-badge { position: absolute; top: 10px; left: 10px; background: #ffd127; color: #ee4d2d; padding: 4px 8px; font-size: 13px; font-weight: bold; border-radius: 6px; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
     
     @keyframes dealPulseGlow {
       0% { box-shadow: 0 4px 15px rgba(238, 77, 45, 0.25), 0 0 0 1px rgba(238, 77, 45, 0.2); }
@@ -1327,6 +1328,331 @@
       gap: 15px;
       flex-wrap: wrap;
     }
+
+    /* ==========================================
+       NÂNG CẤP UI/UX TRANG BÁN HÀNG (BRAND HEADER, SEARCH 0MS, GRID & CART)
+       ========================================== */
+    .brand-hero-header {
+      max-width: 980px;
+      margin: 8px auto 20px auto;
+      text-align: center;
+      padding: 18px 16px 14px 16px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+      backdrop-filter: blur(8px);
+    }
+    body.theme-dark .brand-hero-header {
+      background: rgba(30, 30, 46, 0.88);
+      border-color: #334155;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    }
+    .brand-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .brand-logo-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #ff5722 0%, #c53030 100%);
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+      font-size: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: -1px;
+      box-shadow: 0 4px 10px rgba(229, 62, 62, 0.35);
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .brand-hero-header h1 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.3px;
+      color: #0f172a;
+    }
+    .trust-badges-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .trust-badge-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+    body.theme-dark .trust-badge-item {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: #475569;
+      color: #cbd5e1;
+    }
+
+    /* Thanh Tìm Kiếm 0ms & Bộ Lọc Thông Minh */
+    .storefront-toolbar {
+      max-width: 1080px;
+      margin: 0 auto 24px auto;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    body.theme-dark .storefront-toolbar {
+      background: rgba(35, 35, 54, 0.92);
+      border-color: #334155;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+    .storefront-search-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .storefront-search-wrap {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+    .storefront-search-input {
+      width: 100%;
+      padding: 10px 36px 10px 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Roboto', sans-serif;
+      background: #ffffff;
+      color: #1e293b;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+    .storefront-search-input:focus {
+      border-color: #0068ff;
+      box-shadow: 0 0 0 3px rgba(0, 104, 255, 0.14);
+    }
+    body.theme-dark .storefront-search-input {
+      background: #1e1e2e;
+      border-color: #475569;
+      color: #f1f5f9;
+    }
+    .btn-clear-search {
+      position: absolute;
+      right: 8px;
+      background: #e2e8f0;
+      color: #475569;
+      border: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    body.theme-dark .btn-clear-search {
+      background: #334155;
+      color: #cbd5e1;
+    }
+    .btn-mobile-grid-toggle {
+      display: none;
+      align-items: center;
+      gap: 5px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: 'Roboto', sans-serif;
+    }
+    body.theme-dark .btn-mobile-grid-toggle {
+      background: #2a2a3e;
+      border-color: #475569;
+      color: #e2e8f0;
+    }
+    .storefront-filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .storefront-filter-pills::-webkit-scrollbar {
+      display: none;
+    }
+    .sf-filter-pill {
+      padding: 6px 13px;
+      border-radius: 20px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s ease;
+      font-family: 'Roboto', sans-serif;
+    }
+    .sf-filter-pill:hover {
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .sf-filter-pill.active {
+      background: #0068ff;
+      border-color: #0068ff;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 104, 255, 0.25);
+    }
+    body.theme-dark .sf-filter-pill {
+      background: #2a2a3e;
+      border-color: #475569;
+      color: #cbd5e1;
+    }
+    body.theme-dark .sf-filter-pill.active {
+      background: #0068ff;
+      border-color: #3b82f6;
+      color: #ffffff;
+    }
+
+    /* Chế độ Lưới 2 Cột Gọn Đẹp Trên Điện Thoại */
+    @media (max-width: 640px) {
+      .btn-mobile-grid-toggle {
+        display: inline-flex;
+      }
+      .brand-hero-header h1 {
+        font-size: 19px;
+      }
+      .trust-badge-item {
+        font-size: 11.5px;
+        padding: 4px 10px;
+      }
+      body.mobile-grid-2col #view-products .container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      body.mobile-grid-2col #view-products .product-card {
+        width: 100%;
+        padding: 10px;
+        border-radius: 12px;
+      }
+      body.mobile-grid-2col #view-products .carousel {
+        height: 145px;
+      }
+      body.mobile-grid-2col #view-products .product-card h3 {
+        font-size: 13.5px;
+        margin: 8px 0 4px 0;
+        min-height: 34px;
+      }
+      body.mobile-grid-2col #view-products .product-card p {
+        font-size: 11.5px;
+        margin-bottom: 8px;
+        -webkit-line-clamp: 2;
+      }
+      body.mobile-grid-2col #view-products .current-price {
+        font-size: 1.1em;
+      }
+      body.mobile-grid-2col #view-products .btn-primary {
+        padding: 8px 8px;
+        font-size: 13px;
+      }
+      body.mobile-grid-2col #view-products .qty-wrapper {
+        gap: 5px;
+        margin-bottom: 8px;
+      }
+      body.mobile-grid-2col #view-products .qty-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 15px;
+      }
+      body.mobile-grid-2col #view-products .qty-input {
+        width: 38px;
+        height: 28px;
+        font-size: 13px;
+      }
+    }
+
+    /* Cải tiến Giỏ hàng 2 Bước & Thanh Floating Cart */
+    .cart-step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    body.theme-dark .cart-step-header {
+      border-bottom-color: #334155;
+    }
+    .cart-step-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    body.theme-dark .cart-step-badge {
+      color: #f8fafc;
+    }
+    .cart-step-num {
+      background: #ee4d2d;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+    .btn-clear-cart {
+      background: #fff1f2;
+      color: #e11d48;
+      border: 1px solid #fecdd3;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-clear-cart:hover {
+      background: #ffe4e6;
+    }
+    body.theme-dark .btn-clear-cart {
+      background: rgba(225, 29, 72, 0.15);
+      border-color: rgba(225, 29, 72, 0.4);
+      color: #fda4af;
+    }
   </style>
   
   <script defer src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
@@ -1377,7 +1703,16 @@
   </div>
 
   <main id="main-content">
-  <h1>CỬA HÀNG CỦA MINH HIẾU</h1>
+  <div class="brand-hero-header">
+    <div class="brand-title-row">
+      <div class="brand-logo-badge" aria-hidden="true">CH</div>
+      <h1>CỬA HÀNG CỦA MINH HIẾU</h1>
+    </div>
+    <div class="trust-badges-bar">
+      <span class="trust-badge-item">⚡ Linh kiện tuyển chọn, kiểm kỹ trước khi gửi</span>
+      <span class="trust-badge-item">🛠️ Hỗ trợ sơ đồ &amp; kỹ thuật 1-1</span>
+    </div>
+  </div>
   
   <!-- CÁC NÚT CHUYỂN TAB -->
   <div class="main-nav-tabs">
@@ -1399,6 +1734,33 @@
   
   <!-- KHU VỰC HIỂN THỊ SẢN PHẨM -->
   <div id="view-products">
+    <!-- THANH TÌM KIẾM TỨC THÌ 0MS & BỘ LỌC NHANH -->
+    <div id="storefront-filter-bar" class="storefront-toolbar">
+      <div class="storefront-search-row">
+        <div class="storefront-search-wrap">
+          <input type="text" id="storefront-search-input" class="storefront-search-input" placeholder="🔍 Tìm tên mạch, linh kiện, combo..." aria-label="Tìm kiếm sản phẩm" oninput="onStorefrontSearchInput(this.value)">
+          <button type="button" id="btn-clear-storefront-search" class="btn-clear-search" onclick="clearStorefrontSearch()" title="Xóa từ khóa" aria-label="Xóa từ khóa tìm kiếm">✕</button>
+        </div>
+        <button type="button" id="btn-toggle-mobile-grid" class="btn-mobile-grid-toggle" onclick="toggleMobileGridMode()" title="Đổi chế độ hiển thị 1 cột / 2 cột trên điện thoại">
+          <span id="mobile-grid-toggle-label">⊞ 2 cột</span>
+        </button>
+      </div>
+      <div class="storefront-filter-pills">
+        <button type="button" id="sf-pill-all" class="sf-filter-pill active" onclick="setStorefrontFilterPill('all')">Tất cả</button>
+        <button type="button" id="sf-pill-discount" class="sf-filter-pill" onclick="setStorefrontFilterPill('discount')">🔥 Đang giảm giá</button>
+        <button type="button" id="sf-pill-combo" class="sf-filter-pill" onclick="setStorefrontFilterPill('combo')">📦 Combo trọn bộ</button>
+        <button type="button" id="sf-pill-price-asc" class="sf-filter-pill" onclick="setStorefrontFilterPill('price-asc')">↑ Giá thấp → cao</button>
+        <button type="button" id="sf-pill-price-desc" class="sf-filter-pill" onclick="setStorefrontFilterPill('price-desc')">↓ Giá cao → thấp</button>
+      </div>
+    </div>
+
+    <div id="storefront-empty-search" style="display: none; text-align: center; padding: 35px 20px; background: rgba(255,255,255,0.85); border-radius: 14px; max-width: 520px; margin: 10px auto 25px auto; border: 1px dashed #cbd5e1;">
+      <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+      <div style="font-weight: 700; font-size: 16px; color: #334155; margin-bottom: 6px;">Không tìm thấy sản phẩm phù hợp</div>
+      <div style="font-size: 13.5px; color: #64748b; margin-bottom: 14px;">Thử tìm với từ khóa khác hoặc xem toàn bộ danh sách sản phẩm của Shop.</div>
+      <button type="button" class="btn-primary" style="max-width: 200px; margin: 0 auto;" onclick="clearStorefrontSearch()">Xem tất cả sản phẩm</button>
+    </div>
+
     <!-- KỆ FLASH DEAL KÈM QUÀ TẶNG (RIÊNG BIỆT TRÊN CÙNG) -->
     <div id="flash-deal-section" style="display: none; margin-bottom: 25px;">
       <div class="flash-deal-header-banner">
@@ -1461,14 +1823,19 @@
   </div>
 
   <div class="cart-section" id="cart-section">
-    <h2>Giỏ hàng của bạn</h2>
+    <div class="cart-step-header">
+      <div class="cart-step-badge"><span class="cart-step-num">BƯỚC 1</span> Giỏ hàng của bạn</div>
+      <button type="button" id="btn-clear-cart" class="btn-clear-cart" style="display: none;" onclick="clearAllCartItems()">🗑️ Xóa giỏ hàng</button>
+    </div>
     <div id="cart-items">
       <div style="text-align:center; padding: 20px; color:#888; font-size: 15px; font-weight: 500;">Hãy thêm sản phẩm vào giỏ hàng</div>
     </div>
     <div class="total-price" id="total-price" style="display: none;">Tổng cộng: 0đ</div>
 
-    <div id="checkout-form" style="margin-top: 30px;">
-      <h3>Thông tin nhận hàng</h3>
+    <div id="checkout-form" style="margin-top: 28px;">
+      <div class="cart-step-header">
+        <div class="cart-step-badge"><span class="cart-step-num" style="background: #0068ff;">BƯỚC 2</span> Thông tin nhận hàng</div>
+      </div>
       <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" aria-label="Tên người nhận" oninput="onCustomerFormInput()" required></div>
       <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" aria-label="Số điện thoại Zalo" oninput="onCustomerFormInput()" required></div>
       <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value); updateAddressPreview(); onCustomerFormInput();" aria-label="Chọn Tỉnh hoặc Thành phố" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
@@ -1548,7 +1915,7 @@
   <div id="image-modal" class="image-modal">
     <span class="close-modal" onclick="closeModal()">&times;</span>
     <button class="modal-nav prev" onclick="changeModalImg(-1)">&#10094;</button>
-    <img class="image-modal-content" id="modal-img" alt="Ảnh chi tiết sản phẩm">
+    <img class="image-modal-content" id="modal-img" alt="Ảnh chi tiết sản phẩm" referrerpolicy="no-referrer" onerror="handleImgError(this)">
     
     <!-- Phần hiển thị chú thích ảnh lớn -->
     <div id="modal-caption"></div>
@@ -1589,7 +1956,8 @@
     document.addEventListener("DOMContentLoaded", function() {
       let savedTheme = localStorage.getItem('userSelectedTheme');
       if (savedTheme) applyTheme(savedTheme);
-      
+      initMobileGridMode();
+      restoreCustomerDraft();
       loadProducts(); fetchTinh(); setupModalSwipe();
     });
     
@@ -2766,7 +3134,19 @@
         data.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
       }
       let tinhEl = document.getElementById('tinh');
-      if (tinhEl) tinhEl.innerHTML = html;
+      if (tinhEl) {
+        tinhEl.innerHTML = html;
+        try {
+          let rawDraft = typeof localStorage !== 'undefined' ? localStorage.getItem('chuhieu_customer_draft_v1') : null;
+          if (rawDraft) {
+            let draft = JSON.parse(rawDraft);
+            if (draft && draft.tinh && !tinhEl.value) {
+              tinhEl.value = String(draft.tinh);
+              if (tinhEl.value) fetchPhuong(tinhEl.value);
+            }
+          }
+        } catch (e) {}
+      }
     }
 
     async function fetchTinh() {
@@ -2798,6 +3178,15 @@
         wards.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
       }
       phuongSelect.innerHTML = html;
+      try {
+        let rawDraft = typeof localStorage !== 'undefined' ? localStorage.getItem('chuhieu_customer_draft_v1') : null;
+        if (rawDraft) {
+          let draft = JSON.parse(rawDraft);
+          if (draft && draft.phuong && !phuongSelect.value) {
+            phuongSelect.value = String(draft.phuong);
+          }
+        }
+      } catch (e) {}
       updateAddressPreview();
     }
 
@@ -2985,6 +3374,53 @@
 
     function formatMoney(amount) { return Number(amount).toLocaleString('vi-VN') + "đ"; }
     function escapeHtml(str) { return (str || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+    // --- BẢO VỆ HIỂN THỊ ẢNH 2 LỚP (LỚP 1: NO-REFERRER + LỚP 2: CLOUDFLARE CDN FALLBACK CHO IMGBB) ---
+    function resolveSafeImgUrl(rawUrl) {
+      let u = String(rawUrl || '').trim();
+      if (!u) return '';
+      if (u.startsWith('https://wsrv.nl/')) return u;
+      if (/^https?:\/\/([a-z0-9-]+\.)?ibb\.co\//i.test(u)) {
+        return 'https://wsrv.nl/?url=' + encodeURIComponent(u);
+      }
+      return u;
+    }
+
+    function handleImgError(imgEl) {
+      if (!imgEl) return;
+      let step = parseInt(imgEl.getAttribute('data-fallback-step') || '0', 10);
+      let origUrl = imgEl.getAttribute('data-orig-src') || '';
+      if (!origUrl) {
+        let currentSrc = imgEl.getAttribute('src') || '';
+        if (currentSrc.includes('wsrv.nl/?url=')) {
+          try {
+            let match = currentSrc.match(/[?&]url=([^&]+)/);
+            if (match && match[1]) origUrl = decodeURIComponent(match[1]);
+          } catch (e) {}
+        } else {
+          origUrl = currentSrc;
+        }
+        if (origUrl) imgEl.setAttribute('data-orig-src', origUrl);
+      }
+      if (!origUrl) return;
+
+      imgEl.referrerPolicy = 'no-referrer';
+      let currentSrc = imgEl.getAttribute('src') || '';
+      if (step === 0) {
+        imgEl.setAttribute('data-fallback-step', '1');
+        if (currentSrc.includes('wsrv.nl/')) {
+          imgEl.src = origUrl;
+        } else {
+          imgEl.src = 'https://wsrv.nl/?url=' + encodeURIComponent(origUrl);
+        }
+      } else if (step === 1) {
+        imgEl.setAttribute('data-fallback-step', '2');
+        let sep = origUrl.includes('?') ? '&' : '?';
+        imgEl.src = origUrl + sep + 't=' + Date.now();
+      } else {
+        imgEl.onerror = null;
+      }
+    }
     
     function scrollCarousel(id, direction) { 
       const c = document.getElementById(`slides-${id}`); 
@@ -3051,7 +3487,12 @@
       // Sửa để Modal nhận dạng được cả Bài viết/Sơ đồ
       let p = [...productsData, ...combosData, ...postsData].find(p => p.id === currentModalProductId);
       if (p && p.images[currentModalImgIndex]) {
-        document.getElementById('modal-img').src = p.images[currentModalImgIndex];
+        const modalImgEl = document.getElementById('modal-img');
+        const rawImg = p.images[currentModalImgIndex];
+        modalImgEl.removeAttribute('data-fallback-step');
+        modalImgEl.setAttribute('data-orig-src', rawImg);
+        modalImgEl.referrerPolicy = 'no-referrer';
+        modalImgEl.src = resolveSafeImgUrl(rawImg);
         document.getElementById('modal-indicator').innerText = (currentModalImgIndex + 1) + " / " + p.images.length;
         
         let capEl = document.getElementById('modal-caption');
@@ -3193,13 +3634,15 @@
         if (totalImgs > 0) {
           let postAlt = escapeHtml(post.title || 'Sơ đồ hướng dẫn');
           if (totalImgs > 1) {
-            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[totalImgs-1])}" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
+            let lastImg = post.images[totalImgs-1];
+            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(resolveSafeImgUrl(lastImg))}" data-orig-src="${escapeHtml(lastImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${totalImgs-1})"></div>`; 
           }
           post.images.forEach((img, idx) => { 
-            imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(img)}" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${idx})"></div>`; 
+            imagesHtml += `<div class="carousel-item-wrap"><img src="${escapeHtml(resolveSafeImgUrl(img))}" data-orig-src="${escapeHtml(img)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', ${idx})"></div>`; 
           });
           if (totalImgs > 1) {
-            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(post.images[0])}" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', 0)"></div>`; 
+            let firstImg = post.images[0];
+            imagesHtml += `<div class="carousel-item-wrap" data-clone="true"><img src="${escapeHtml(resolveSafeImgUrl(firstImg))}" data-orig-src="${escapeHtml(firstImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${postAlt}" loading="lazy" decoding="async" onclick="openModal('${post.id}', 0)"></div>`; 
           }
 
           let arrowsHtml = buildCarouselOverlayHtml(post.id, totalImgs, false);
@@ -3318,6 +3761,85 @@
     }
     setInterval(updateAllCountdowns, 1000);
 
+    // ==========================================
+    // 🔍 TÌM KIẾM TỨC THÌ 0MS, BỘ LỌC & CHẾ ĐỘ XEM LƯỚI TRÊN DI ĐỘNG
+    // ==========================================
+    let currentStorefrontSearchQuery = '';
+    let currentStorefrontFilterMode = 'all';
+
+    function initMobileGridMode() {
+      try {
+        let savedGrid = typeof localStorage !== 'undefined' ? localStorage.getItem('chuhieu_mobile_grid_mode') : null;
+        let is2Col = (savedGrid === null || savedGrid === '2col');
+        if (typeof document !== 'undefined' && document.body) {
+          document.body.classList.toggle('mobile-grid-2col', is2Col);
+        }
+        let lbl = document.getElementById('mobile-grid-toggle-label');
+        if (lbl) lbl.innerText = is2Col ? '☰ 1 cột' : '⊞ 2 cột';
+      } catch (e) {}
+    }
+
+    function toggleMobileGridMode() {
+      if (typeof document === 'undefined' || !document.body) return;
+      let isNow2Col = !document.body.classList.contains('mobile-grid-2col');
+      document.body.classList.toggle('mobile-grid-2col', isNow2Col);
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('chuhieu_mobile_grid_mode', isNow2Col ? '2col' : '1col');
+        }
+      } catch (e) {}
+      let lbl = document.getElementById('mobile-grid-toggle-label');
+      if (lbl) lbl.innerText = isNow2Col ? '☰ 1 cột' : '⊞ 2 cột';
+      setTimeout(() => { initCarouselInfiniteScroll(document.getElementById('view-products')); }, 50);
+    }
+
+    function doesTextMatchStorefrontQuery(name, desc, qNorm) {
+      if (!qNorm) return true;
+      let haystack = removeDiacritics(`${name || ''} ${desc || ''}`).toLowerCase();
+      let rawHaystack = `${name || ''} ${desc || ''}`.toLowerCase();
+      return haystack.includes(qNorm) || rawHaystack.includes(qNorm);
+    }
+
+    function onStorefrontSearchInput(val) {
+      currentStorefrontSearchQuery = (val || '').trim();
+      let clearBtn = document.getElementById('btn-clear-storefront-search');
+      if (clearBtn) {
+        clearBtn.style.display = currentStorefrontSearchQuery.length > 0 ? 'inline-flex' : 'none';
+      }
+      renderData();
+    }
+
+    function clearStorefrontSearch() {
+      currentStorefrontSearchQuery = '';
+      currentStorefrontFilterMode = 'all';
+      let input = document.getElementById('storefront-search-input');
+      if (input) input.value = '';
+      let clearBtn = document.getElementById('btn-clear-storefront-search');
+      if (clearBtn) clearBtn.style.display = 'none';
+      const pillIds = ['sf-pill-all', 'sf-pill-discount', 'sf-pill-combo', 'sf-pill-price-asc', 'sf-pill-price-desc'];
+      pillIds.forEach(pid => {
+        let el = document.getElementById(pid);
+        if (el) el.classList.toggle('active', pid === 'sf-pill-all');
+      });
+      renderData();
+    }
+
+    function setStorefrontFilterPill(mode) {
+      currentStorefrontFilterMode = mode || 'all';
+      const pillMap = {
+        'all': 'sf-pill-all',
+        'discount': 'sf-pill-discount',
+        'combo': 'sf-pill-combo',
+        'price-asc': 'sf-pill-price-asc',
+        'price-desc': 'sf-pill-price-desc'
+      };
+      Object.keys(pillMap).forEach(k => {
+        let el = document.getElementById(pillMap[k]);
+        if (el) el.classList.toggle('active', k === currentStorefrontFilterMode);
+      });
+      renderData();
+    }
+
     function renderData() {
       document.getElementById('loading').classList.add('hidden');
       
@@ -3331,13 +3853,24 @@
 
       let visibleFlashDealsCount = 0;
       let visibleCombosCount = 0;
+      let visibleProductsCount = 0;
       let priorityCardCount = 0;
+
+      const qNorm = removeDiacritics(currentStorefrontSearchQuery).toLowerCase().trim();
+      const filterMode = currentStorefrontFilterMode || 'all';
 
       const fdFrag = document.createDocumentFragment();
       const comboFrag = document.createDocumentFragment();
 
-      if(combosData && combosData.length > 0) {
-        combosData.forEach(c => {
+      let combosToRender = (combosData && combosData.length > 0) ? combosData.slice() : [];
+      if (filterMode === 'price-asc') {
+        combosToRender.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+      } else if (filterMode === 'price-desc') {
+        combosToRender.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+      }
+
+      if (combosToRender.length > 0) {
+        combosToRender.forEach(c => {
           let flashStatus = getComboFlashDealStatus(c);
 
           // Nếu hết hạn và chọn hide -> Ẩn
@@ -3346,6 +3879,11 @@
           }
           // Nếu chưa tới giờ mở bán và chọn hide -> Ẩn
           if (flashStatus.isUpcoming && c.expireAction === "hide") {
+            return;
+          }
+
+          let rawItemsNames = Array.isArray(c.rawItems) ? c.rawItems.map(i => i.name).join(' ') : '';
+          if (qNorm && !doesTextMatchStorefrontQuery(c.name, `${c.desc || ''} ${rawItemsNames}`, qNorm)) {
             return;
           }
 
@@ -3361,9 +3899,10 @@
           if (totalImgs > 1) {
             let cap = c.imageCaptions && c.imageCaptions[totalImgs-1] ? c.imageCaptions[totalImgs-1] : "";
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
+            let lastComboImg = c.images[totalImgs-1];
             imagesHtml += `
               <div class="carousel-item-wrap" data-clone="true">
-                <img src="${escapeHtml(c.images[totalImgs-1])}" alt="${comboAlt}" loading="lazy" decoding="async" onclick="openModal('${c.id}', ${totalImgs-1})">
+                <img src="${escapeHtml(resolveSafeImgUrl(lastComboImg))}" data-orig-src="${escapeHtml(lastComboImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${comboAlt}" loading="lazy" decoding="async" onclick="openModal('${c.id}', ${totalImgs-1})">
                 ${capHtml}
               </div>`; 
           }
@@ -3374,7 +3913,7 @@
             let imgLoadAttr = (isPriorityCard && idx === 0) ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
             imagesHtml += `
               <div class="carousel-item-wrap">
-                <img src="${escapeHtml(img)}" alt="${comboAlt}" ${imgLoadAttr} onclick="openModal('${c.id}', ${idx})">
+                <img src="${escapeHtml(resolveSafeImgUrl(img))}" data-orig-src="${escapeHtml(img)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${comboAlt}" ${imgLoadAttr} onclick="openModal('${c.id}', ${idx})">
                 ${capHtml}
               </div>`; 
           });
@@ -3382,9 +3921,10 @@
           if (totalImgs > 1) {
             let cap = c.imageCaptions && c.imageCaptions[0] ? c.imageCaptions[0] : "";
             let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
+            let firstComboImg = c.images[0];
             imagesHtml += `
               <div class="carousel-item-wrap" data-clone="true">
-                <img src="${escapeHtml(c.images[0])}" alt="${comboAlt}" loading="lazy" decoding="async" onclick="openModal('${c.id}', 0)">
+                <img src="${escapeHtml(resolveSafeImgUrl(firstComboImg))}" data-orig-src="${escapeHtml(firstComboImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${comboAlt}" loading="lazy" decoding="async" onclick="openModal('${c.id}', 0)">
                 ${capHtml}
               </div>`; 
           }
@@ -3413,7 +3953,7 @@
             if (flashStatus.activeGifts && flashStatus.activeGifts.length > 0) {
               let giftItemsHtml = flashStatus.activeGifts.map(g => {
                 let gThumb = g.image
-                  ? `<img src="${escapeHtml(g.image)}" alt="${escapeHtml(g.name || 'Quà tặng kèm')}" loading="lazy" decoding="async" class="gift-thumb">`
+                  ? `<img src="${escapeHtml(resolveSafeImgUrl(g.image))}" data-orig-src="${escapeHtml(g.image)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${escapeHtml(g.name || 'Quà tặng kèm')}" loading="lazy" decoding="async" class="gift-thumb">`
                   : `<div class="gift-thumb" style="display:flex;align-items:center;justify-content:center;font-size:22px;">🎁</div>`;
                 
                 let origValHtml = '';
@@ -3501,14 +4041,25 @@
       if (comboSection) comboSection.style.display = visibleCombosCount > 0 ? 'block' : 'none';
 
       let hasAnyCombos = (visibleFlashDealsCount > 0 || visibleCombosCount > 0);
-      document.getElementById('regular-title').style.display = hasAnyCombos ? 'block' : 'none';
       updateAllCountdowns();
 
       const pList = document.getElementById('product-list'); pList.innerHTML = '';
       const prodFrag = document.createDocumentFragment();
-      productsData.forEach(p => {
+      let prodsToRender = (filterMode === 'combo') ? [] : (productsData || []).slice();
+      if (filterMode === 'price-asc') {
+        prodsToRender.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+      } else if (filterMode === 'price-desc') {
+        prodsToRender.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+      }
+
+      prodsToRender.forEach(p => {
         let st = (p.status || "").toLowerCase();
         if (st === "ẩn" || st === "an" || st === "hết hàng" || st === "" || p.stock <= 0) return;
+
+        let varNamesText = (p.variants && p.variants.length > 0) ? p.variants.map(v => v.name).join(' ') : '';
+        if (qNorm && !doesTextMatchStorefrontQuery(p.name, `${p.desc || ''} ${varNamesText}`, qNorm)) {
+          return;
+        }
 
         // Bổ sung ảnh biến thể vào danh sách ảnh sản phẩm (nếu chưa có)
         if (p.variants && p.variants.length > 0) {
@@ -3530,6 +4081,14 @@
         let curr = activeVar ? (Number(activeVar.price) || 0) : (Number(p.price) || 0);
         let currentStock = activeVar ? (Number(activeVar.stock) || 0) : (Number(p.stock) || 0);
         let isOos = currentStock <= 0;
+
+        let hasAnyVariantDiscount = (p.variants && p.variants.length > 0)
+          ? p.variants.some(v => (Number(v.originalPrice) || 0) > (Number(v.price) || 0) && (Number(v.price) || 0) > 0)
+          : (orig > curr && curr > 0);
+        if (filterMode === 'discount' && !hasAnyVariantDiscount) {
+          return;
+        }
+        visibleProductsCount++;
 
         let badgeHtml = ''; let priceHtml = '';
         if (orig > curr && curr > 0) {
@@ -3563,9 +4122,10 @@
         let prodAlt = escapeHtml(p.name || 'Sản phẩm');
         
         if (totalImgs > 1) {
+          let lastProdImg = p.images[totalImgs-1];
           imagesHtml += `
             <div class="carousel-item-wrap" data-clone="true">
-              <img src="${escapeHtml(p.images[totalImgs-1])}" alt="${prodAlt}" loading="lazy" decoding="async" onclick="openModal('${p.id}', ${totalImgs-1})">
+              <img src="${escapeHtml(resolveSafeImgUrl(lastProdImg))}" data-orig-src="${escapeHtml(lastProdImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${prodAlt}" loading="lazy" decoding="async" onclick="openModal('${p.id}', ${totalImgs-1})">
             </div>`; 
         }
 
@@ -3573,14 +4133,15 @@
           let imgLoadAttr = (isPriorityProdCard && idx === 0) ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
           imagesHtml += `
             <div class="carousel-item-wrap">
-              <img src="${escapeHtml(img)}" alt="${prodAlt}" ${imgLoadAttr} onclick="openModal('${p.id}', ${idx})">
+              <img src="${escapeHtml(resolveSafeImgUrl(img))}" data-orig-src="${escapeHtml(img)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${prodAlt}" ${imgLoadAttr} onclick="openModal('${p.id}', ${idx})">
             </div>`; 
         });
 
         if (totalImgs > 1) {
+          let firstProdImg = p.images[0];
           imagesHtml += `
             <div class="carousel-item-wrap" data-clone="true">
-              <img src="${escapeHtml(p.images[0])}" alt="${prodAlt}" loading="lazy" decoding="async" onclick="openModal('${p.id}', 0)">
+              <img src="${escapeHtml(resolveSafeImgUrl(firstProdImg))}" data-orig-src="${escapeHtml(firstProdImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${prodAlt}" loading="lazy" decoding="async" onclick="openModal('${p.id}', 0)">
             </div>`; 
         }
 
@@ -3608,6 +4169,18 @@
         prodFrag.appendChild(card);
       });
       pList.appendChild(prodFrag);
+
+      const regTitleEl = document.getElementById('regular-title');
+      if (regTitleEl) {
+        regTitleEl.style.display = (hasAnyCombos && visibleProductsCount > 0) ? 'block' : 'none';
+      }
+
+      const emptySearchEl = document.getElementById('storefront-empty-search');
+      if (emptySearchEl) {
+        let totalVisibleAny = visibleFlashDealsCount + visibleCombosCount + visibleProductsCount;
+        let hasActiveFilterOrSearch = (qNorm.length > 0 || filterMode !== 'all');
+        emptySearchEl.style.display = (hasActiveFilterOrSearch && totalVisibleAny === 0) ? 'block' : 'none';
+      }
 
       // Chỉ render ngay tab Sơ đồ (chứa iframe YouTube/TikTok/Google Drive nặng) nếu tab đó đang mở;
       // nếu đang ẩn thì hoãn tới khi người dùng bấm vào tab "Sơ đồ & Hướng dẫn" để không chiếm băng thông lúc đầu.
@@ -3878,7 +4451,17 @@
         document.getElementById('floating-total-price').innerText = "0đ";
       }
       document.getElementById('cart-count').innerText = totalQty;
+      let clearCartBtn = document.getElementById('btn-clear-cart');
+      if (clearCartBtn) {
+        clearCartBtn.style.display = cart.length > 0 ? 'inline-block' : 'none';
+      }
       updateCheckoutSubmittedUI();
+    }
+
+    function clearAllCartItems() {
+      cart = [];
+      updateCart();
+      showToast('🗑️ Đã xóa toàn bộ sản phẩm trong giỏ hàng!');
     }
 
     function removeItem(index) { cart.splice(index, 1); updateCart(); }
@@ -3962,7 +4545,40 @@
       }
     }
 
+    const CUSTOMER_DRAFT_STORAGE_KEY = 'chuhieu_customer_draft_v1';
+
+    function saveCustomerDraft() {
+      try {
+        if (typeof localStorage === 'undefined') return;
+        const draft = {
+          name: document.getElementById('customer-name')?.value || '',
+          phone: document.getElementById('customer-phone')?.value || '',
+          tinh: document.getElementById('tinh')?.value || '',
+          phuong: document.getElementById('phuong')?.value || '',
+          addressDetail: document.getElementById('customer-address-detail')?.value || ''
+        };
+        localStorage.setItem(CUSTOMER_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      } catch (e) {}
+    }
+
+    function restoreCustomerDraft() {
+      try {
+        if (typeof localStorage === 'undefined') return;
+        let raw = localStorage.getItem(CUSTOMER_DRAFT_STORAGE_KEY);
+        if (!raw) return;
+        let draft = JSON.parse(raw);
+        if (!draft) return;
+        let nameEl = document.getElementById('customer-name');
+        let phoneEl = document.getElementById('customer-phone');
+        let detailEl = document.getElementById('customer-address-detail');
+        if (nameEl && draft.name && !nameEl.value) nameEl.value = draft.name;
+        if (phoneEl && draft.phone && !phoneEl.value) phoneEl.value = draft.phone;
+        if (detailEl && draft.addressDetail && !detailEl.value) detailEl.value = draft.addressDetail;
+      } catch (e) {}
+    }
+
     function onCustomerFormInput() {
+      saveCustomerDraft();
       updateCheckoutSubmittedUI();
     }
 

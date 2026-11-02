@@ -32,11 +32,12 @@
     .header { background: #1a2935; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
     .header h1 { margin: 0; font-family: 'Montserrat', sans-serif; font-size: 20px; }
     .header-actions { display: flex; gap: 10px; }
-    .nav-tabs { display: flex; background: #2c3e50; padding: 0 30px; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none;}
+    .nav-tabs { display: flex; background: #2c3e50; padding: 0 30px; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; position: sticky; top: 0; z-index: 950; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     .nav-tabs::-webkit-scrollbar { display: none; }
-    .tab { padding: 15px 25px; color: #a4b0be; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: 0.3s; }
+    .tab { padding: 15px 25px; color: #a4b0be; cursor: pointer; font-weight: 500; border-bottom: 3px solid transparent; transition: 0.3s; display: inline-flex; align-items: center; gap: 6px; }
     .tab:hover { color: white; }
     .tab.active { color: white; border-bottom: 3px solid #0068ff; background: rgba(0,0,0,0.2); }
+    .nav-tab-badge { display: inline-flex; align-items: center; justify-content: center; background: #ef4444; color: #ffffff; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 999px; line-height: 1.3; box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4); }
     .content { padding: 30px; max-width: 1200px; margin: 0 auto; display: none; }
     .content.active { display: block; }
     
@@ -563,8 +564,8 @@
       .header { flex-direction: column; padding: 15px; text-align: center; gap: 15px; }
       .header-actions { width: 100%; justify-content: center; }
       .content { padding: 12px; }
-      .nav-tabs { padding: 0; justify-content: space-between; }
-      .tab { padding: 15px 5px; font-size: 12px; text-align: center; flex: 1; }
+      .nav-tabs { padding: 0 6px; justify-content: flex-start; gap: 2px; -webkit-overflow-scrolling: touch; }
+      .tab { padding: 13px 14px; font-size: 13px; text-align: center; flex: 0 0 auto; }
       table { width: 100%; display: block; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; border: none !important; }
       thead tr { position: absolute; top: -9999px; left: -9999px; }
       tbody { display: block; width: 100%; }
@@ -1253,6 +1254,28 @@
       color: white;
       border-color: #2b6cb0;
     }
+    .order-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .order-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.08);
+      color: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      min-width: 18px;
+      line-height: 1.3;
+    }
+    .order-pill.active .order-pill-badge, .order-pill:hover .order-pill-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
     .bulk-toolbar {
       display: none;
       align-items: center;
@@ -1262,6 +1285,96 @@
       padding: 12px 18px;
       border-radius: 8px;
       animation: fadeInDown 0.25s ease-out;
+      position: sticky;
+      top: 52px;
+      z-index: 900;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    }
+    /* Thanh công cụ tìm kiếm & lọc nhanh tồn kho */
+    .inventory-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .inventory-search-wrap {
+      position: relative;
+      flex: 1 1 260px;
+      max-width: 420px;
+    }
+    .inventory-search-input {
+      width: 100%;
+      padding: 9px 34px 9px 14px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .inventory-search-input:focus {
+      border-color: #0068ff;
+      box-shadow: 0 0 0 3px rgba(0, 104, 255, 0.12);
+    }
+    .inventory-search-clear {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: #e2e8f0;
+      color: #4a5568;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 11px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .inv-filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .inv-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #4a5568;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .inv-pill:hover, .inv-pill.active {
+      background: #0068ff;
+      color: #ffffff;
+      border-color: #0068ff;
+    }
+    .inv-pill-badge {
+      background: rgba(0, 0, 0, 0.08);
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .inv-pill.active .inv-pill-badge, .inv-pill:hover .inv-pill-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
     }
     .bulk-toolbar-batch {
       background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
@@ -1559,7 +1672,7 @@
     </div>
 
     <div class="nav-tabs">
-      <div class="tab active" onclick="switchTab('orders', this)">📦 ĐƠN HÀNG</div>
+      <div class="tab active" onclick="switchTab('orders', this)">📦 ĐƠN HÀNG <span id="nav-badge-orders" class="nav-tab-badge" style="display:none;">0</span></div>
       <div class="tab" onclick="switchTab('inventory', this)">🏬 SẢN PHẨM</div>
       <div class="tab" onclick="switchTab('combos', this)">🎁 COMBO</div>
       <div class="tab" onclick="switchTab('posts', this)">📐 BÀI VIẾT / SƠ ĐỒ</div>
@@ -1580,11 +1693,11 @@
         <div class="orders-filter-row">
           <input type="text" id="orders-search-input" class="orders-search-input" placeholder="🔍 Tìm theo mã ĐH, tên khách, số điện thoại, địa chỉ..." oninput="onOrderSearchInput(this.value)">
           <div class="orders-status-filter-pills">
-            <div class="order-pill active" onclick="filterOrdersByStatus('all', this)">Tất cả</div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Khách đặt hàng', this)">Khách đặt hàng</div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Chưa đặt cọc', this)">Chưa đặt cọc</div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Đã giao cho đơn vị vận chuyển', this)">Đã giao ĐVVC</div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành</div>
+            <div class="order-pill active" onclick="filterOrdersByStatus('all', this)">Tất cả <span id="pill-count-all" class="order-pill-badge">0</span></div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Khách đặt hàng', this)">Khách đặt hàng <span id="pill-count-new" class="order-pill-badge">0</span></div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Chưa đặt cọc', this)">Chưa đặt cọc <span id="pill-count-pending" class="order-pill-badge">0</span></div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Đã giao cho đơn vị vận chuyển', this)">Đã giao ĐVVC <span id="pill-count-shipping" class="order-pill-badge">0</span></div>
+            <div class="order-pill" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành <span id="pill-count-completed" class="order-pill-badge">0</span></div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
             <button type="button" id="btn-export-spx-toolbar" class="btn-update" onclick="openSpxExportModal(false)" style="background: #ea580c; color: #fff; font-weight: 700; padding: 7px 13px; border-radius: 6px; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25);" title="Xuất danh sách đơn hàng đang hiển thị sang file Excel SPX">
@@ -1749,6 +1862,20 @@
         <span style="font-size: 16px;">💡</span>
         <div><b>Tùy chỉnh vị trí hiển thị:</b> Kéo biểu tượng <b>☰</b> để thả sản phẩm vào vị trí mong muốn, hoặc bấm <b>▲ / ▼</b> để di chuyển từng nấc. Thứ tự sắp xếp sẽ hiển thị chính xác trên trang chủ khách hàng và tự động lưu lại.</div>
         <div id="order-save-status" class="order-status-pill"></div>
+      </div>
+
+      <!-- Thanh tìm kiếm & bộ lọc nhanh tồn kho -->
+      <div id="inventory-toolbar" class="inventory-toolbar">
+        <div class="inventory-search-wrap">
+          <input type="text" id="inventory-search-input" class="inventory-search-input" placeholder="🔍 Tìm nhanh theo tên sản phẩm, mã ID, phân loại..." oninput="onInventorySearchInput(this.value)">
+          <button type="button" id="btn-clear-inventory-search" class="inventory-search-clear" onclick="clearInventorySearch()" title="Xóa tìm kiếm">✕</button>
+        </div>
+        <div class="inv-filter-pills">
+          <button type="button" id="inv-pill-all" class="inv-pill active" onclick="filterInventoryByStatus('all', this)">Tất cả <span id="inv-count-all" class="inv-pill-badge">0</span></button>
+          <button type="button" id="inv-pill-low" class="inv-pill" onclick="filterInventoryByStatus('low_stock', this)">⚠️ Sắp hết / Hết <span id="inv-count-low" class="inv-pill-badge">0</span></button>
+          <button type="button" id="inv-pill-active" class="inv-pill" onclick="filterInventoryByStatus('active', this)">👀 Đang bán <span id="inv-count-active" class="inv-pill-badge">0</span></button>
+          <button type="button" id="inv-pill-hidden" class="inv-pill" onclick="filterInventoryByStatus('hidden', this)">👻 Đang ẩn <span id="inv-count-hidden" class="inv-pill-badge">0</span></button>
+        </div>
       </div>
 
       <table id="inventory-table">
@@ -2698,6 +2825,53 @@
     }
     function escapeHtml(str) { return (str || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
     function formatMoney(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ"; }
+
+    // --- BẢO VỆ HIỂN THỊ ẢNH 2 LỚP (LỚP 1: NO-REFERRER + LỚP 2: CLOUDFLARE CDN FALLBACK CHO IMGBB) ---
+    function resolveSafeImgUrl(rawUrl) {
+      let u = String(rawUrl || '').trim();
+      if (!u) return '';
+      if (u.startsWith('https://wsrv.nl/')) return u;
+      if (/^https?:\/\/([a-z0-9-]+\.)?ibb\.co\//i.test(u)) {
+        return 'https://wsrv.nl/?url=' + encodeURIComponent(u);
+      }
+      return u;
+    }
+
+    function handleImgError(imgEl) {
+      if (!imgEl) return;
+      let step = parseInt(imgEl.getAttribute('data-fallback-step') || '0', 10);
+      let origUrl = imgEl.getAttribute('data-orig-src') || '';
+      if (!origUrl) {
+        let currentSrc = imgEl.getAttribute('src') || '';
+        if (currentSrc.includes('wsrv.nl/?url=')) {
+          try {
+            let match = currentSrc.match(/[?&]url=([^&]+)/);
+            if (match && match[1]) origUrl = decodeURIComponent(match[1]);
+          } catch (e) {}
+        } else {
+          origUrl = currentSrc;
+        }
+        if (origUrl) imgEl.setAttribute('data-orig-src', origUrl);
+      }
+      if (!origUrl) return;
+
+      imgEl.referrerPolicy = 'no-referrer';
+      let currentSrc = imgEl.getAttribute('src') || '';
+      if (step === 0) {
+        imgEl.setAttribute('data-fallback-step', '1');
+        if (currentSrc.includes('wsrv.nl/')) {
+          imgEl.src = origUrl;
+        } else {
+          imgEl.src = 'https://wsrv.nl/?url=' + encodeURIComponent(origUrl);
+        }
+      } else if (step === 1) {
+        imgEl.setAttribute('data-fallback-step', '2');
+        let sep = origUrl.includes('?') ? '&' : '?';
+        imgEl.src = origUrl + sep + 't=' + Date.now();
+      } else {
+        imgEl.onerror = null;
+      }
+    }
     function formatOrderDate(rawDate) {
       if (!rawDate) return '';
       let str = rawDate.toString().trim();
@@ -3989,6 +4163,7 @@
         selectedOrderRows.delete(rowIdx);
       }
       updateOrderToolbars();
+      updateOrderStatusCounts(globalOrdersData);
     }
 
     function toggleSelectAllOrders(checked) {
@@ -4070,6 +4245,7 @@
         pendingOrderChanges.delete(rowIdx);
       }
       updateOrderToolbars();
+      updateOrderStatusCounts(globalOrdersData);
 
       let rowEl = selectEl.closest('tr');
       if (rowEl) {
@@ -4103,10 +4279,56 @@
       }
     }
 
+    // --- CẬP NHẬT SỐ LƯỢNG ĐƠN HÀNG TRỰC TIẾP TRÊN CÁC NÚT LỌC & TAB MENU ---
+    function updateOrderStatusCounts(ordersList) {
+      let source = Array.isArray(ordersList) ? ordersList : (globalOrdersData || []);
+      let countAll = 0;
+      let countNew = 0;
+      let countPending = 0;
+      let countShipping = 0;
+      let countCompleted = 0;
+
+      source.forEach(order => {
+        if (isDuplicateFilterActive && order.isDuplicateCopy) return;
+        countAll++;
+        let hasPending = pendingOrderChanges.has(order.row);
+        let normalizedStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
+        let st = hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus;
+        if (st === 'Hoàn thành') countCompleted++;
+        else if (st === 'Đã giao cho đơn vị vận chuyển') countShipping++;
+        else if (st === 'Chưa đặt cọc') countPending++;
+        else countNew++;
+      });
+
+      const elAll = document.getElementById('pill-count-all');
+      const elNew = document.getElementById('pill-count-new');
+      const elPending = document.getElementById('pill-count-pending');
+      const elShipping = document.getElementById('pill-count-shipping');
+      const elCompleted = document.getElementById('pill-count-completed');
+      const navBadge = document.getElementById('nav-badge-orders');
+
+      if (elAll) elAll.innerText = String(countAll);
+      if (elNew) elNew.innerText = String(countNew);
+      if (elPending) elPending.innerText = String(countPending);
+      if (elShipping) elShipping.innerText = String(countShipping);
+      if (elCompleted) elCompleted.innerText = String(countCompleted);
+
+      if (navBadge) {
+        let attentionCount = countNew + countPending;
+        if (attentionCount > 0) {
+          navBadge.innerText = String(attentionCount);
+          navBadge.style.display = 'inline-flex';
+        } else {
+          navBadge.style.display = 'none';
+        }
+      }
+    }
+
     // --- CĂN LỀ PHẢI "SỐ LƯỢNG" VÀ BỐ CỤC ĐẸP MẮT (BATCH DOM + SMART PAGINATION) ---
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body');
       let filtered = getFilteredOrders();
+      updateOrderStatusCounts(globalOrdersData);
 
       if (!filtered || filtered.length === 0) {
         tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding:25px; color:#718096;'>Không tìm thấy đơn hàng nào.</td></tr>";
@@ -4287,6 +4509,34 @@
     }
 
     let draggedProductIndex = null;
+    let currentInventorySearchQuery = '';
+    let currentInventoryStatusFilter = 'all';
+
+    function onInventorySearchInput(val) {
+      currentInventorySearchQuery = String(val || '').trim().toLowerCase();
+      const clearBtn = document.getElementById('btn-clear-inventory-search');
+      if (clearBtn) {
+        clearBtn.style.display = currentInventorySearchQuery.length > 0 ? 'inline-flex' : 'none';
+      }
+      renderInventory(globalProductsData);
+    }
+
+    function clearInventorySearch() {
+      const inp = document.getElementById('inventory-search-input');
+      if (inp) inp.value = '';
+      onInventorySearchInput('');
+    }
+
+    function filterInventoryByStatus(mode, pillEl) {
+      currentInventoryStatusFilter = mode || 'all';
+      const pills = ['inv-pill-all', 'inv-pill-low', 'inv-pill-active', 'inv-pill-hidden'];
+      pills.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      if (pillEl) pillEl.classList.add('active');
+      renderInventory(globalProductsData);
+    }
 
     function renderInventory(products) {
       const tbody = document.getElementById('inventory-body');
@@ -4294,8 +4544,59 @@
         tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:30px; color:#718096;'>Chưa có sản phẩm nào. Bạn hãy bấm '+ TẠO SẢN PHẨM MỚI' nhé!</td></tr>";
         return;
       }
+
+      let countAll = products.length;
+      let countLow = 0;
+      let countActive = 0;
+      let countHidden = 0;
+
+      products.forEach(p => {
+        let st = (p.status || "").toLowerCase();
+        let isHidden = (st === "ẩn" || st === "an");
+        let isLow = (Number(p.stock) <= 2 || st === "hết hàng");
+        if (isLow) countLow++;
+        if (isHidden) countHidden++;
+        else countActive++;
+      });
+
+      const elCountAll = document.getElementById('inv-count-all');
+      const elCountLow = document.getElementById('inv-count-low');
+      const elCountActive = document.getElementById('inv-count-active');
+      const elCountHidden = document.getElementById('inv-count-hidden');
+      if (elCountAll) elCountAll.innerText = String(countAll);
+      if (elCountLow) elCountLow.innerText = String(countLow);
+      if (elCountActive) elCountActive.innerText = String(countActive);
+      if (elCountHidden) elCountHidden.innerText = String(countHidden);
+
+      let indexedProducts = products.map((p, index) => ({ product: p, originalIndex: index })).filter(item => {
+        let p = item.product;
+        let st = (p.status || "").toLowerCase();
+        let isHidden = (st === "ẩn" || st === "an");
+        let isLow = (Number(p.stock) <= 2 || st === "hết hàng");
+
+        if (currentInventoryStatusFilter === 'low_stock' && !isLow) return false;
+        if (currentInventoryStatusFilter === 'active' && isHidden) return false;
+        if (currentInventoryStatusFilter === 'hidden' && !isHidden) return false;
+
+        if (currentInventorySearchQuery) {
+          let q = currentInventorySearchQuery;
+          let matchId = String(p.id || '').toLowerCase().includes(q);
+          let matchName = String(p.name || '').toLowerCase().includes(q);
+          let matchVars = Array.isArray(p.variants) && p.variants.some(v => String(v.name || '').toLowerCase().includes(q));
+          if (!matchId && !matchName && !matchVars) return false;
+        }
+        return true;
+      });
+
+      if (indexedProducts.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:30px; color:#718096;'>Không tìm thấy sản phẩm nào khớp với bộ lọc hiện tại.</td></tr>";
+        return;
+      }
+
       let rowsHtml = [];
-      products.forEach((p, index) => {
+      indexedProducts.forEach(item => {
+        let p = item.product;
+        let index = item.originalIndex;
         let hasVars = p.variants && p.variants.length > 0;
         let variantBadge = hasVars ? `<span class="variant-badge">🏷️ ${p.variants.length} loại</span>` : '';
         let stockHtml = p.stock <= 2 ? `<span class="stock-warning">${p.stock} (Sắp hết)</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${p.stock}</span>`;
@@ -4344,7 +4645,7 @@
               </div>
             </td>
             <td data-label="ID" style="color:#718096; font-size: 13px;">${escapeHtml(p.id)}</td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" loading="lazy" decoding="async" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(resolveSafeImgUrl(firstImg))}" data-orig-src="${escapeHtml(firstImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Sản phẩm">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:15px;">${escapeHtml(p.name)}</b>
@@ -4548,7 +4849,7 @@
 
         rowsHtml.push(`<tr>
             <td data-label="ID Combo" style="color:#718096; font-size: 13px;">${escapeHtml(c.id)}</td>
-            <td data-label="Ảnh Nội Suy"><img src="${escapeHtml(firstImg)}" loading="lazy" decoding="async" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Ảnh Nội Suy"><img src="${escapeHtml(resolveSafeImgUrl(firstImg))}" data-orig-src="${escapeHtml(firstImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên & Thành Phần">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:15px; color:#c53030;">[COMBO] ${escapeHtml(c.name)}</b>
@@ -4592,7 +4893,7 @@
 
         rowsHtml.push(`<tr>
             <td data-label="STT"><b>${index + 1}</b></td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(firstImg)}" loading="lazy" decoding="async" style="width:100px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(resolveSafeImgUrl(firstImg))}" data-orig-src="${escapeHtml(firstImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async" style="width:100px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e0;"></td>
             <td data-label="Tiêu đề & Nội dung">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:15px; color:#2b6cb0;">${escapeHtml(post.title)}</b>
@@ -4628,7 +4929,7 @@
       const c = document.getElementById(targetDivId);
       if (imagesArray.length === 0) { c.innerHTML = "<span style='color:#a0aec0; font-size: 13px;'>Chưa có ảnh đính kèm.</span>"; return; }
       let htmlList = imagesArray.map((url, idx) =>
-        `<div class="img-preview-box"><img src="${escapeHtml(url)}" loading="lazy" decoding="async"><button type="button" class="img-preview-remove" onclick="${removeFuncStr}(${idx})">✕</button></div>`
+        `<div class="img-preview-box"><img src="${escapeHtml(resolveSafeImgUrl(url))}" data-orig-src="${escapeHtml(url)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async"><button type="button" class="img-preview-remove" onclick="${removeFuncStr}(${idx})">✕</button></div>`
       );
       c.innerHTML = htmlList.join('');
     }
@@ -4945,7 +5246,7 @@
           row.innerHTML = `
             <div class="combo-item-left">
               <input type="checkbox" class="combo-item-checkbox" id="combo-chk-${item.key}" ${isSelected ? "checked" : ""} onchange="onComboItemCheck('${item.prodId}', this.checked, '${item.variantId}')">
-              <img src="${escapeHtml(item.image)}" class="combo-item-thumb" alt="${escapeHtml(item.name)}" onclick="toggleComboProductClick('${item.prodId}', '${item.variantId}')">
+              <img src="${escapeHtml(resolveSafeImgUrl(item.image))}" data-orig-src="${escapeHtml(item.image)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" class="combo-item-thumb" alt="${escapeHtml(item.name)}" onclick="toggleComboProductClick('${item.prodId}', '${item.variantId}')">
               <div class="combo-item-details" onclick="toggleComboProductClick('${item.prodId}', '${item.variantId}')" style="cursor:pointer;">
                 <div class="combo-item-title">${escapeHtml(item.name)}${variantTag}${hiddenBadge}</div>
                 <div class="combo-item-sub">
@@ -5439,7 +5740,7 @@
         let row = document.createElement('div');
         row.className = 'variant-row';
 
-        let imgThumb = v.image ? `<img src="${escapeHtml(v.image)}" class="variant-thumb" alt="Ảnh loại">` : `<div class="variant-thumb" style="display:flex;align-items:center;justify-content:center;font-size:11px;color:#a0aec0;">Chưa có</div>`;
+        let imgThumb = v.image ? `<img src="${escapeHtml(resolveSafeImgUrl(v.image))}" data-orig-src="${escapeHtml(v.image)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" class="variant-thumb" alt="Ảnh loại">` : `<div class="variant-thumb" style="display:flex;align-items:center;justify-content:center;font-size:11px;color:#a0aec0;">Chưa có</div>`;
         let removeImgBtn = v.image ? `<button type="button" class="variant-img-btn" style="color:#e53e3e;" onclick="removeVariantImage(${idx})">✕ Xóa ảnh</button>` : '';
 
         row.innerHTML = `
@@ -6403,7 +6704,7 @@
         rowsHtml.push(`
           <tr>
             <td data-label="#" style="text-align:center;"><span class="rank-badge ${rankCls}">${rankIcon}</span></td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" loading="lazy" decoding="async" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(resolveSafeImgUrl(p.image || 'https://via.placeholder.com/60?text=No+Img'))}" data-orig-src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên mặt hàng">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 ${comboTag}<b style="font-size:14px; color:#1a202c;">${escapeHtml(p.name)}</b>
@@ -7290,7 +7591,7 @@
         rowsHtml.push(`
           <tr>
             <td data-label="#" style="text-align:center;"><span class="rank-badge ${rankCls}">${rankIcon}</span></td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" loading="lazy" decoding="async" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(resolveSafeImgUrl(p.image || 'https://via.placeholder.com/60?text=No+Img'))}" data-orig-src="${escapeHtml(p.image || 'https://via.placeholder.com/60?text=No+Img')}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async" style="width:55px; height:55px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên mặt hàng">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:14px; color:#1a202c;">${escapeHtml(p.name)}</b>
@@ -7368,7 +7669,7 @@
         rowsHtml.push(`
           <tr>
             <td data-label="#" style="text-align:center; color:#718096;">${idx + 1}</td>
-            <td data-label="Hình ảnh"><img src="${escapeHtml(r.image || 'https://via.placeholder.com/60?text=No+Img')}" loading="lazy" decoding="async" style="width:45px; height:45px; object-fit:cover; border-radius:4px; border:1px solid #e2e8f0;"></td>
+            <td data-label="Hình ảnh"><img src="${escapeHtml(resolveSafeImgUrl(r.image || 'https://via.placeholder.com/60?text=No+Img'))}" data-orig-src="${escapeHtml(r.image || 'https://via.placeholder.com/60?text=No+Img')}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async" style="width:45px; height:45px; object-fit:cover; border-radius:4px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên sản phẩm"><b style="color:#1a202c;">${escapeHtml(r.name)}</b></td>
             <td data-label="Phân loại">${r.varName ? `<span class="variant-badge">🏷️ ${escapeHtml(r.varName)}</span>` : '<span style="color:#a0aec0; font-size:12px;">Tiêu chuẩn</span>'}</td>
             <td data-label="Giá bán" style="font-weight:600; color:#4a5568;">${formatMoney(r.price)}</td>
