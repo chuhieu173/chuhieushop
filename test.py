@@ -2483,6 +2483,7 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('class="brand-logo-badge"', index_content)
         self.assertIn('⚡ Linh kiện tuyển chọn, kiểm kỹ trước khi gửi', index_content)
         self.assertIn('🛠️ Hỗ trợ sơ đồ &amp; kỹ thuật 1-1', index_content)
+        self.assertIn('id="btn-hero-zalo-quick"', index_content)
         self.assertNotIn('🚚 Ship COD toàn quốc (Phí ship chỉ 18k)', index_content,
                          "YÊU CẦU: Phải bỏ dòng chữ '🚚 Ship COD toàn quốc (Phí ship chỉ 18k)' khỏi index.html")
 
