@@ -2486,6 +2486,8 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('id="btn-hero-zalo-quick"', index_content)
         self.assertNotIn('🚚 Ship COD toàn quốc (Phí ship chỉ 18k)', index_content,
                          "YÊU CẦU: Phải bỏ dòng chữ '🚚 Ship COD toàn quốc (Phí ship chỉ 18k)' khỏi index.html")
+        self.assertIn('tận tâm và nhiệt tình', index_content)
+        self.assertNotIn('bảo hành uy tín', index_content, "YÊU CẦU: Đã bỏ cụm từ 'bảo hành uy tín'")
 
         # 2. Thanh Tìm Kiếm & Bộ Lọc Nhanh 0ms + Nút chuyển đổi 1 cột / 2 cột Mobile
         for dom_id in [
