@@ -2500,6 +2500,7 @@ class TestBusinessLogic(unittest.TestCase):
             'setStorefrontFilterPill', 'toggleMobileGridMode', 'initMobileGridMode'
         ]:
             self.assertIn(f'function {fn_name}', index_content, f"Thiếu hàm {fn_name} trong index.html")
+        self.assertIn("let is2Col = (savedGrid === '2col');", index_content, "Mặc định trên mobile phải là 1 cột (is2Col = false khi chưa chọn)")
 
         # 3. Giỏ hàng 2 Bước (Step 1 & Step 2), nút Xóa tất cả & tự động lưu nháp thông tin nhận hàng
         self.assertIn('id="btn-clear-cart"', index_content)
