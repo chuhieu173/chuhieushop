@@ -3788,12 +3788,10 @@
     let currentStorefrontSearchQuery = '';
     let currentStorefrontFilterMode = 'all';
 
-    const MOBILE_GRID_STORAGE_KEY = 'chuhieu_mobile_grid_mode_v2';
-
     function initMobileGridMode() {
       try {
-        let savedGrid = typeof localStorage !== 'undefined' ? localStorage.getItem(MOBILE_GRID_STORAGE_KEY) : null;
-        let is2Col = (savedGrid === '2col');
+        let savedGrid = typeof localStorage !== 'undefined' ? localStorage.getItem('chuhieu_mobile_grid_mode') : null;
+        let is2Col = (savedGrid === null || savedGrid === '2col');
         if (typeof document !== 'undefined' && document.body) {
           document.body.classList.toggle('mobile-grid-2col', is2Col);
         }
@@ -3808,7 +3806,7 @@
       document.body.classList.toggle('mobile-grid-2col', isNow2Col);
       try {
         if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(MOBILE_GRID_STORAGE_KEY, isNow2Col ? '2col' : '1col');
+          localStorage.setItem('chuhieu_mobile_grid_mode', isNow2Col ? '2col' : '1col');
         }
       } catch (e) {}
       let lbl = document.getElementById('mobile-grid-toggle-label');
