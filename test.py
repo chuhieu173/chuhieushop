@@ -2648,9 +2648,11 @@ class TestBusinessLogic(unittest.TestCase):
                 f"NGUY HIỂM BẢO MẬT: Phát hiện ADMIN_PASS_HASH thật bị lộ trong file public '{fname}'!"
             )
 
-        # 2. Kiểm tra sự hiện diện của Modal đổi mật khẩu trong admin.html và hàm bảo mật trong Code.gs
+        # 2. Kiểm tra sự hiện diện của Modal đổi mật khẩu trong admin.html (phải ẩn mặc định với class edit-modal) và hàm bảo mật trong Code.gs
         for dom_id in ['btn-open-change-password', 'change-password-modal', 'old-admin-pass', 'new-admin-pass', 'confirm-admin-pass', 'btn-submit-change-password']:
             self.assertIn(f'id="{dom_id}"', admin, f"Thiếu phần tử #{dom_id} trong admin.html")
+        self.assertIn('id="change-password-modal" class="edit-modal" style="display: none;"', admin,
+                      "LỖI: Modal đổi mật khẩu phải có class='edit-modal' và style='display: none;' để ẩn mặc định khi tải trang!")
         self.assertIn('function submitChangeAdminPassword(', admin)
         self.assertIn('function getServerSessionSecret(', codegs)
         self.assertIn('function computeDoubleHashBackend(', codegs)
