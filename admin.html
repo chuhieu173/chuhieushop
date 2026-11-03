@@ -8454,11 +8454,15 @@
       return '';
     }
 
+    function isOrderEligibleForLeaderboard(status) {
+      let st = (status || '').toString().trim().toLowerCase();
+      return st === 'hoàn thành' || st === 'đã giao cho đơn vị vận chuyển';
+    }
+
     function calculateLeaderboardGroup(ordersList) {
       let custMap = {};
       ordersList.forEach(o => {
-        let st = (o.status || '').toLowerCase();
-        if (st === 'đã hủy' || st === 'hủy đơn') return;
+        if (!isOrderEligibleForLeaderboard(o.status)) return;
         let phone = (o.phone || '').trim();
         let name = (o.name || 'Khách').trim();
         let addr = (o.address || '').trim();
@@ -8513,9 +8517,9 @@
 
       let dayOrders = [];
       let thirtyDaysOrders = [];
-      let allOrders = globalOrdersData;
+      let allOrders = globalOrdersData.filter(o => isOrderEligibleForLeaderboard(o.status));
 
-      globalOrdersData.forEach(o => {
+      allOrders.forEach(o => {
         let d = parseOrderDate(o.date);
         if (!d) return;
         if (d >= thirtyDaysAgo) {
@@ -8532,7 +8536,7 @@
 
       autoGenerateMarqueeText();
       renderAdminLeaderboardTab();
-      alert("⚡ Đã tính toán xong bảng xếp hạng từ " + globalOrdersData.length + " đơn hàng (30 ngày gần đây có " + thirtyDaysOrders.length + " đơn)!\nVui lòng kiểm tra và ấn 'Lưu & Xuất Bản' để áp dụng.");
+      alert("⚡ Đã tính toán xong bảng xếp hạng từ " + allOrders.length + " đơn hàng đã xác nhận (30 ngày gần đây có " + thirtyDaysOrders.length + " đơn)!\nVui lòng kiểm tra và ấn 'Lưu & Xuất Bản' để áp dụng.");
     }
 
     function autoGenerateMarqueeText() {

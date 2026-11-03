@@ -1955,6 +1955,10 @@
       </div>
       <!-- Tạm thời ẩn phần ghi chú đặt hàng -->
       <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)" aria-label="Ghi chú đơn hàng" oninput="onCustomerFormInput()"></div>
+      <!-- Ô bẫy bot tự động (Honeypot - ẩn hoàn toàn với người dùng thật) -->
+      <div aria-hidden="true" style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none;">
+        <input type="text" id="customer-website-hp" name="website" tabindex="-1" autocomplete="off" value="">
+      </div>
 
       <!-- Cảnh báo bắt buộc nhắn Zalo để đơn hàng được thực hiện -->
       <div id="zalo-mandatory-warning-box" class="zalo-mandatory-warning">
@@ -4577,8 +4581,17 @@
     // === GIẢI PHÁP CHỐNG TẠO ĐƠN TRÙNG LẶP (IDEMPOTENCY FINGERPRINT + MODAL HƯỚNG DẪN ZALO) ===
     const ORDER_DEDUP_WINDOW_MS = 15 * 60 * 1000; // 15 phút
     const ORDER_DEDUP_STORAGE_KEY = 'chuhieu_last_submitted_order_v1';
+    const checkoutFormLoadedAt = Date.now();
     let isSubmittingOrder = false;
     let lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: '' };
+
+    function normalizeVnPhoneClient(rawPhone) {
+      let digits = String(rawPhone || '').replace(/\D+/g, '');
+      if (digits.startsWith('84') && digits.length === 11) {
+        digits = '0' + digits.substring(2);
+      }
+      return digits;
+    }
 
     try {
       const savedOrderState = sessionStorage.getItem(ORDER_DEDUP_STORAGE_KEY);
@@ -4784,10 +4797,15 @@
       const phuongName = (phuongSelect && phuongSelect.selectedIndex >= 0) ? (phuongSelect.options[phuongSelect.selectedIndex]?.text || '') : '';
 
       if (!name || !phone || !detailAddress || !tinhValue || !phuongValue) { alert("Vui lòng điền đủ Thông tin cá nhân và Địa chỉ!"); return; }
+      const normPhone = normalizeVnPhoneClient(phone);
+      if (!/^0[35789]\d{8}$/.test(normPhone)) {
+        alert("Số điện thoại chưa đúng định dạng (vui lòng nhập đúng 10 chữ số di động Việt Nam, ví dụ: 0912345678)!");
+        return;
+      }
 
       let cleanDetail = cleanDetailAddress(detailAddress, phuongName, tinhName);
       let fullAddress = cleanDetail ? `${cleanDetail}, ${phuongName}, ${tinhName}` : `${detailAddress}, ${phuongName}, ${tinhName}`;
-      let orderText = "ĐƠN ĐẶT HÀNG MỚI\nNgười nhận: " + name + "\nSđt: " + phone + "\nĐịa chỉ: " + fullAddress + "\n";
+      let orderText = "ĐƠN ĐẶT HÀNG MỚI\nNgười nhận: " + name + "\nSđt: " + normPhone + "\nĐịa chỉ: " + fullAddress + "\n";
       if(note) orderText += "Ghi chú: " + note + "\n";
       orderText += "------------------------\n\n"; 
       
@@ -4847,7 +4865,19 @@
       }
 
       // Đơn hàng mới -> Ghi nhận trạng thái & gửi API lên Google Sheets
-      let orderData = { action: "createOrder", name: name, phone: phone, address: fullAddress, note: note, itemsText: itemsForSheet.join('\n'), total: formatMoney(finalTotal), cartJSON: JSON.stringify(cart) };
+      const hpValue = (document.getElementById('customer-website-hp')?.value || '').trim();
+      let orderData = {
+        action: "createOrder",
+        name: name,
+        phone: normPhone,
+        address: fullAddress,
+        note: note,
+        itemsText: itemsForSheet.join('\n'),
+        total: formatMoney(finalTotal),
+        cartJSON: JSON.stringify(cart),
+        website: hpValue,
+        formTs: checkoutFormLoadedAt
+      };
       isSubmittingOrder = true;
       setTimeout(() => { isSubmittingOrder = false; }, 3500);
       lastSubmittedOrderState = {
@@ -4863,7 +4893,6 @@
 
       updateCheckoutSubmittedUI();
       openOrderSuccessModal(orderText, false);
-      setTimeout(syncLeaderboardRealtime, 2500);
 
       if (openZalo === true) {
         window.open("https://zalo.me/" + zaloPhone, "_blank");

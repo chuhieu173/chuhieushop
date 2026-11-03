@@ -2534,6 +2534,99 @@ class TestBusinessLogic(unittest.TestCase):
             self.assertIn('referrerpolicy="no-referrer"', page_html, f"Thiếu referrerpolicy='no-referrer' trong {page_name}")
             self.assertIn('https://wsrv.nl/?url=', page_html, f"Thiếu CDN dự phòng wsrv.nl trong {page_name}")
 
+    def test_anti_spam_5_layer_security_and_leaderboard_protection(self):
+        """Kiểm tra: 5 lớp phòng thủ chống Spam, ẩn totalAmount ở API công khai và chặn đơn giả leo Bảng Vinh Danh"""
+        codegs = read_file('Code.gs')
+        index = read_file('index.html')
+        admin = read_file('admin.html')
+
+        # 1. Kiểm tra sự hiện diện của các hàm bảo mật trong Code.gs, index.html, admin.html
+        self.assertIn('function sanitizePublicLeaderboardList(', codegs)
+        self.assertIn('function getPublicLeaderboardConfig(', codegs)
+        self.assertIn('function handleGetPublicLeaderboard(', codegs)
+        self.assertIn('function isOrderEligibleForLeaderboardBackend(', codegs)
+        self.assertIn('function normalizeVnPhoneBackend(', codegs)
+        self.assertIn('rate_phone_cd_', codegs)
+        self.assertIn('rate_phone_15m_', codegs)
+        self.assertIn('rate_global_min_', codegs)
+        self.assertIn('id="customer-website-hp"', index, "Thiếu bẫy bot Honeypot #customer-website-hp trong index.html")
+        self.assertIn('function normalizeVnPhoneClient(', index, "Thiếu hàm kiểm tra SĐT normalizeVnPhoneClient trong index.html")
+        self.assertIn('function isOrderEligibleForLeaderboard(', admin, "Thiếu hàm isOrderEligibleForLeaderboard trong admin.html")
+
+        # 2. Đảm bảo handleCreateOrder KHÔNG gọi recomputeLeaderboardBackend (giữ nguyên Cache 15 phút & chặn đơn chưa duyệt)
+        create_order_block = codegs[codegs.find("function handleCreateOrder"):codegs.find("function handleLogin")]
+        self.assertNotIn("recomputeLeaderboardBackend(doc);", create_order_block,
+                         "BẢO MẬT & HIỆU NĂNG: handleCreateOrder không được gọi recomputeLeaderboardBackend khi đơn mới chưa xác nhận!")
+
+        # 3. Kiểm thử thực thi logic bằng Node.js
+        lb_block = codegs[codegs.find("function sanitizePublicLeaderboardList"):codegs.find("function handleUpdateLeaderboardConfig")]
+        calc_block = codegs[codegs.find("function extractProvinceNameBackend"):codegs.find("function recomputeLeaderboardBackend")]
+        phone_block = codegs[codegs.find("function normalizeVnPhoneBackend"):codegs.find("function handleCreateOrder")]
+
+        test_js = """
+        const assert = require('assert');
+        const DEFAULT_LEADERBOARD_CONFIG = { enabled: true, marqueeEnabled: true, autoRealtime: true, marqueeText: "", topDay: [], topMonth: [], topAll: [], updatedAt: "" };
+        let mockRawCfg = {
+          enabled: true,
+          marqueeEnabled: true,
+          autoRealtime: true,
+          marqueeText: "Chữ chạy tri ân",
+          updatedAt: "03/11/2026 15:00",
+          topDay: [
+            { rank: 1, name: "A Hùng", province: "Hà Nội", totalAmount: 5500000, orderCount: 3, visible: true },
+            { rank: 2, name: "Khách Ẩn", province: "Đà Nẵng", totalAmount: 4200000, orderCount: 2, visible: false },
+            { rank: 3, name: "Chị Mai", province: "TP.HCM", totalAmount: 1800000, orderCount: 1, visible: true }
+          ],
+          topMonth: [],
+          topAll: []
+        };
+        function getLeaderboardConfig() { return mockRawCfg; }
+        const CacheService = { getScriptCache: () => ({ get: () => null, put: () => {} }) };
+        const ContentService = { MimeType: { JSON: 'json' }, createTextOutput: (s) => ({ setMimeType: () => s }) };
+        """ + lb_block + "\n" + calc_block + "\n" + phone_block + """
+
+        // A. Kiểm tra getPublicLeaderboardConfig lọc bỏ visible: false và xóa sạch totalAmount
+        const pubCfg = getPublicLeaderboardConfig({});
+        assert.strictEqual(pubCfg.topDay.length, 2, "Phải loại bỏ khách có visible: false khỏi API công khai");
+        assert.strictEqual(pubCfg.topDay[0].name, "A Hùng");
+        assert.strictEqual(pubCfg.topDay[0].rank, 1);
+        assert.strictEqual(pubCfg.topDay[0].totalAmount, undefined, "BẢO MẬT: Không được lộ totalAmount trong JSON công khai!");
+        assert.strictEqual(pubCfg.topDay[1].name, "Chị Mai");
+        assert.strictEqual(pubCfg.topDay[1].rank, 2, "Thứ hạng phải được đánh số lại liên tục sau khi ẩn");
+        assert.strictEqual(pubCfg.topDay[1].totalAmount, undefined, "BẢO MẬT: Không được lộ totalAmount!");
+
+        // B. Kiểm tra calculateLeaderboardGroupBackend CHỈ tính đơn 'Hoàn thành' và 'Đã giao cho đơn vị vận chuyển'
+        const mixedOrders = [
+          { name: "Spammer Đơn Giả", phone: "0911222333", address: "Hà Nội", rawTotal: 99000000, status: "Khách đặt hàng" },
+          { name: "Chưa Cọc", phone: "0922333444", address: "Hà Nội", rawTotal: 50000000, status: "Chưa đặt cọc" },
+          { name: "Khách Thật 1", phone: "0933444555", address: "Tỉnh Bắc Ninh", rawTotal: 1200000, status: "Đã giao cho đơn vị vận chuyển" },
+          { name: "Khách Thật 2", phone: "0944555666", address: "TP. Hải Phòng", rawTotal: 2500000, status: "Hoàn thành" }
+        ];
+        const topList = calculateLeaderboardGroupBackend(mixedOrders);
+        assert.strictEqual(topList.length, 2, "Chỉ tính đơn Đã giao ĐVVC và Hoàn thành, chặn tuyệt đối đơn Khách đặt hàng & Chưa đặt cọc");
+        assert.strictEqual(topList[0].name, "Khách Thật 2");
+        assert.strictEqual(topList[1].name, "Khách Thật 1");
+
+        // C. Kiểm tra chuẩn hóa và lọc SĐT di động Việt Nam
+        assert.strictEqual(normalizeVnPhoneBackend("+84 912 345 678"), "0912345678");
+        assert.strictEqual(normalizeVnPhoneBackend("0355-967-766"), "0355967766");
+        assert.strictEqual(/^0[35789]\\d{8}$/.test(normalizeVnPhoneBackend("+84 912 345 678")), true);
+        assert.strictEqual(/^0[35789]\\d{8}$/.test(normalizeVnPhoneBackend("0123456789")), false, "Đầu 01 cũ không hợp lệ");
+        assert.strictEqual(/^0[35789]\\d{8}$/.test(normalizeVnPhoneBackend("12345")), false, "SĐT ngắn không hợp lệ");
+
+        console.log("ANTI_SPAM_5_LAYER_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("ANTI_SPAM_5_LAYER_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 if __name__ == '__main__':
