@@ -1370,12 +1370,22 @@
       flex-shrink: 0;
       user-select: none;
       position: relative;
+      /* Hiệu ứng hào quang phát sáng vàng kim quanh viền */
+      box-shadow: 0 0 16px rgba(245, 185, 35, 0.45), 0 0 32px rgba(234, 88, 12, 0.22);
+      transition: all 0.3s ease;
+    }
+    .brand-logo-badge:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 25px rgba(245, 185, 35, 0.7), 0 0 45px rgba(234, 88, 12, 0.35);
+    }
+    body.theme-dark .brand-logo-badge {
+      box-shadow: 0 0 22px rgba(250, 204, 21, 0.65), 0 0 48px rgba(234, 88, 12, 0.4), inset 0 0 12px rgba(250, 204, 21, 0.2);
     }
     .brand-logo-badge svg {
       width: 100%;
       height: 100%;
       display: block;
-      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
+      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
     }
     .brand-hero-header h1 {
       margin: 0;
@@ -1733,29 +1743,66 @@
       <div class="brand-logo-badge" aria-hidden="true" title="Minh Hiếu Tech">
         <svg viewBox="0 0 400 400" width="100%" height="100%">
           <defs>
+            <!-- Dải Gradient Vàng Kim Loại Hoàng Kim -->
             <linearGradient id="htGoldGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#fff1a8"/>
-              <stop offset=".3" stop-color="#e8b923"/>
-              <stop offset=".55" stop-color="#a8740f"/>
-              <stop offset=".78" stop-color="#f7d567"/>
-              <stop offset="1" stop-color="#c18a14"/>
+              <stop offset="0%" stop-color="#fff6b8"/>
+              <stop offset="25%" stop-color="#f5c531"/>
+              <stop offset="50%" stop-color="#b88214"/>
+              <stop offset="75%" stop-color="#fde482"/>
+              <stop offset="100%" stop-color="#c9951c"/>
             </linearGradient>
-            <filter id="htGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+
+            <!-- Dải Gradient Chữ HT: Đỉnh Bạch Kim sáng chói, chân mạ vàng óng ả -->
+            <linearGradient id="htTextGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="55%" stop-color="#fff9e6"/>
+              <stop offset="100%" stop-color="#f3c444"/>
+            </linearGradient>
+
+            <!-- Nền Đĩa Kính Titan Sapphire 3D: Tạo chiều sâu, không bị chìm ở Dark Mode -->
+            <radialGradient id="htBgGrad" cx="50%" cy="40%" r="65%">
+              <stop offset="0%" stop-color="#1c2638"/>
+              <stop offset="55%" stop-color="#0c121c"/>
+              <stop offset="100%" stop-color="#04060a"/>
+            </radialGradient>
+
+            <!-- Bộ lọc Hào Quang Phát Sáng Mạnh Mẽ (Aura Glow) quanh viền ngoài khi xoay -->
+            <filter id="htAuraGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="glowWide"/>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glowMid"/>
+              <feMerge>
+                <feMergeNode in="glowWide"/>
+                <feMergeNode in="glowWide"/>
+                <feMergeNode in="glowMid"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+
+            <!-- Bộ lọc bóng nổi 3D tách biệt chữ HT khỏi nền tối -->
+            <filter id="htText3D" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.95"/>
+              <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#f59e0b" flood-opacity="0.45"/>
             </filter>
           </defs>
-          <circle cx="200" cy="200" r="188" fill="#0a0e14"/>
-          <!-- Vòng viền tĩnh bên trong -->
-          <circle cx="200" cy="200" r="158" fill="none" stroke="url(#htGoldGrad)" stroke-opacity=".35" stroke-width="2"/>
-          <!-- Vòng viền chạy động nằm ngoài cùng -->
-          <circle cx="200" cy="200" r="188" fill="none" stroke="url(#htGoldGrad)" stroke-opacity=".25" stroke-width="3"/>
+
+          <!-- Nền đĩa tròn kính Titan Sapphire 3D -->
+          <circle cx="200" cy="200" r="188" fill="url(#htBgGrad)"/>
+
+          <!-- Vòng chỉ viền tĩnh kim loại bên trong -->
+          <circle cx="200" cy="200" r="158" fill="none" stroke="url(#htGoldGrad)" stroke-opacity=".4" stroke-width="2"/>
+
+          <!-- Rãnh viền tĩnh ngoài cùng -->
+          <circle cx="200" cy="200" r="188" fill="none" stroke="url(#htGoldGrad)" stroke-opacity=".3" stroke-width="3"/>
+
+          <!-- VÒNG VIỀN CHẠY PHÁT SÁNG NẰM NGOÀI CÙNG VỚI HÀO QUANG QUAY 360 ĐỘ -->
           <g>
             <animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="3.2s" repeatCount="indefinite"/>
-            <circle cx="200" cy="200" r="188" fill="none" stroke="url(#htGoldGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="332 849" filter="url(#htGlow)"/>
-            <circle cx="200" cy="200" r="188" fill="none" stroke="#fff4c2" stroke-width="7" stroke-linecap="round" stroke-dasharray="77 1104" stroke-dashoffset="-254" filter="url(#htGlow)"/>
+            <circle cx="200" cy="200" r="188" fill="none" stroke="url(#htGoldGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="332 849" filter="url(#htAuraGlow)"/>
+            <circle cx="200" cy="200" r="188" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-dasharray="77 1104" stroke-dashoffset="-254" filter="url(#htAuraGlow)"/>
           </g>
-          <g fill="#ffffff" filter="url(#htGlow)" transform="translate(200 200) scale(0.38) translate(-595 -1396)">
+
+          <!-- BIỂU TƯỢNG HT MẠ VÀNG 3D NỔI BẬT TRÊN NỀN TỐI -->
+          <g fill="url(#htTextGrad)" filter="url(#htText3D)" transform="translate(200 200) scale(0.39) translate(-595 -1396)">
             <polygon points="343,1100 577,1100 493,1162 460,1282 968,1283 912,1385 700,1385 640,1640 685,1692 451,1692 535,1640 600,1385 437,1385 410,1472 457,1528 222,1528 308,1470 388,1150"/>
             <polygon points="616,1100 851,1100 765,1162 738,1256 637,1256 668,1160"/>
           </g>
