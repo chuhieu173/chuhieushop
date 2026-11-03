@@ -1667,7 +1667,39 @@
       <h1>Cửa Hàng Của Minh Hiếu</h1>
       <div class="header-actions">
         <button onclick="loadData()" class="btn-update">🔄 Làm mới</button>
+        <button type="button" id="btn-open-change-password" onclick="openChangePasswordModal()" class="btn-update" style="background: #475569;">🔑 Đổi Mật Khẩu</button>
         <button onclick="logout()" class="btn-update btn-logout">Đăng xuất</button>
+      </div>
+    </div>
+
+    <!-- MODAL ĐỔI MẬT KHẨU ADMIN (MÃ HÓA 2 TẦNG) -->
+    <div id="change-password-modal" class="modal-overlay" onclick="if(event.target===this) closeChangePasswordModal()">
+      <div class="modal-content" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3 style="margin:0; color:#1e293b;">🔑 Đổi Mật Khẩu Quản Trị</h3>
+          <button class="close-btn" onclick="closeChangePasswordModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #166534; margin-bottom: 14px; line-height: 1.45;">
+            🛡️ Mật khẩu mới sẽ được <b>băm 2 tầng kèm muối ngẫu nhiên (Double-Hash)</b> và lưu trực tiếp vào vùng nhớ bí mật của Google Server, vô hiệu hóa hoàn toàn mọi mã hash cũ.
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu hiện tại *</label>
+            <input type="password" id="old-admin-pass" placeholder="Nhập mật khẩu hiện tại...">
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu mới (tối thiểu 6 ký tự) *</label>
+            <input type="password" id="new-admin-pass" placeholder="Nhập mật khẩu mới...">
+          </div>
+          <div class="form-group">
+            <label>Nhập lại mật khẩu mới *</label>
+            <input type="password" id="confirm-admin-pass" placeholder="Xác nhận mật khẩu mới...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeChangePasswordModal()">Hủy</button>
+          <button type="button" id="btn-submit-change-password" class="btn-save" onclick="submitChangeAdminPassword()">💾 Lưu Mật Khẩu Mới</button>
+        </div>
       </div>
     </div>
 
@@ -2949,10 +2981,90 @@
           res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "login", password: hashedPass }) });
           data = await res.json();
         }
-        if (data.status === "success") { setAdminToken(data.token); document.getElementById("login-overlay").style.display = "none"; document.getElementById("admin-app").style.display = "block"; loadData(); } 
-        else { document.getElementById("login-error").style.display = "block"; }
+        if (data.status === "success") {
+          setAdminToken(data.token);
+          document.getElementById("login-overlay").style.display = "none";
+          document.getElementById("admin-app").style.display = "block";
+          loadData();
+        } else {
+          let errEl = document.getElementById("login-error");
+          if (errEl) {
+            errEl.innerText = data.msg || "Mật khẩu không chính xác!";
+            errEl.style.display = "block";
+          }
+        }
       } catch (e) { alert("Lỗi mạng!"); }
       btn.innerText = "ĐĂNG NHẬP"; btn.disabled = false;
+    }
+
+    function openChangePasswordModal() {
+      const m = document.getElementById("change-password-modal");
+      const oldEl = document.getElementById("old-admin-pass");
+      const newEl = document.getElementById("new-admin-pass");
+      const cfEl = document.getElementById("confirm-admin-pass");
+      if (oldEl) oldEl.value = "";
+      if (newEl) newEl.value = "";
+      if (cfEl) cfEl.value = "";
+      if (m) m.style.display = "flex";
+    }
+
+    function closeChangePasswordModal() {
+      const m = document.getElementById("change-password-modal");
+      if (m) m.style.display = "none";
+    }
+
+    async function submitChangeAdminPassword() {
+      const token = getAdminToken();
+      if (!token) return logout();
+      const oldPass = (document.getElementById("old-admin-pass")?.value || "").trim();
+      const newPass = (document.getElementById("new-admin-pass")?.value || "").trim();
+      const confirmPass = (document.getElementById("confirm-admin-pass")?.value || "").trim();
+
+      if (!oldPass || !newPass || !confirmPass) {
+        alert("Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới!");
+        return;
+      }
+      if (newPass.length < 6) {
+        alert("Mật khẩu mới phải có tối thiểu 6 ký tự!");
+        return;
+      }
+      if (newPass !== confirmPass) {
+        alert("Mật khẩu mới nhập lại không khớp!");
+        return;
+      }
+      if (newPass === oldPass) {
+        alert("Mật khẩu mới phải khác mật khẩu hiện tại!");
+        return;
+      }
+
+      const btn = document.getElementById("btn-submit-change-password");
+      if (btn) { btn.innerText = "Đang mã hóa & lưu..."; btn.disabled = true; }
+      try {
+        const oldHash = await sha256(oldPass);
+        const newHash = await sha256(newPass);
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "changeAdminPassword",
+            token: token,
+            oldPassword: oldHash,
+            newPassword: newHash
+          })
+        });
+        const data = await res.json();
+        if (data && data.status === "success") {
+          if (data.token) setAdminToken(data.token);
+          closeChangePasswordModal();
+          showToast("✅ " + (data.msg || "Đã đổi mật khẩu Admin thành công!"));
+        } else {
+          if (data && data.code === "AUTH") { logout(); return; }
+          alert("❌ " + (data?.msg || "Không thể đổi mật khẩu"));
+        }
+      } catch (e) {
+        alert("❌ Lỗi kết nối máy chủ: " + e.message);
+      } finally {
+        if (btn) { btn.innerText = "💾 Lưu Mật Khẩu Mới"; btn.disabled = false; }
+      }
     }
 
     async function logout() {

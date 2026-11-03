@@ -4797,6 +4797,7 @@
       const phuongName = (phuongSelect && phuongSelect.selectedIndex >= 0) ? (phuongSelect.options[phuongSelect.selectedIndex]?.text || '') : '';
 
       if (!name || !phone || !detailAddress || !tinhValue || !phuongValue) { alert("Vui lòng điền đủ Thông tin cá nhân và Địa chỉ!"); return; }
+      if (name.length < 2) { alert("Vui lòng nhập Tên người nhận hợp lệ (tối thiểu 2 ký tự)!"); return; }
       const normPhone = normalizeVnPhoneClient(phone);
       if (!/^0[35789]\d{8}$/.test(normPhone)) {
         alert("Số điện thoại chưa đúng định dạng (vui lòng nhập đúng 10 chữ số di động Việt Nam, ví dụ: 0912345678)!");
@@ -4866,6 +4867,7 @@
 
       // Đơn hàng mới -> Ghi nhận trạng thái & gửi API lên Google Sheets
       const hpValue = (document.getElementById('customer-website-hp')?.value || '').trim();
+      const formDurationMs = Math.max(0, Date.now() - checkoutFormLoadedAt);
       let orderData = {
         action: "createOrder",
         name: name,
@@ -4876,7 +4878,7 @@
         total: formatMoney(finalTotal),
         cartJSON: JSON.stringify(cart),
         website: hpValue,
-        formTs: checkoutFormLoadedAt
+        formDurationMs: formDurationMs
       };
       isSubmittingOrder = true;
       setTimeout(() => { isSubmittingOrder = false; }, 3500);
@@ -4889,7 +4891,24 @@
         sessionStorage.setItem(ORDER_DEDUP_STORAGE_KEY, JSON.stringify(lastSubmittedOrderState));
       } catch (e) {}
 
-      fetch(API_URL, { method: 'POST', body: JSON.stringify(orderData) }).catch(err => console.error(err));
+      fetch(API_URL, { method: 'POST', body: JSON.stringify(orderData) })
+        .then(r => (r && typeof r.json === 'function') ? r.json() : null)
+        .then(res => {
+          if (res && res.status === 'error') {
+            lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: orderText };
+            try { sessionStorage.removeItem(ORDER_DEDUP_STORAGE_KEY); } catch (e) {}
+            updateCheckoutSubmittedUI();
+            const badge = document.getElementById('order-success-badge');
+            const copyStatus = document.getElementById('order-success-copy-status');
+            if (badge) {
+              badge.innerHTML = '⚠️ CHƯA LƯU TỰ ĐỘNG - HÃY GỬI QUA ZALO';
+            }
+            if (copyStatus) {
+              copyStatus.innerText = '⚠️ ' + (res.msg || 'Hệ thống đang bận') + '. Nội dung đơn ĐÃ ĐƯỢC COPY sẵn, bạn hãy DÁN gửi trực tiếp vào Zalo của Shop nhé!';
+            }
+          }
+        })
+        .catch(err => console.error(err));
 
       updateCheckoutSubmittedUI();
       openOrderSuccessModal(orderText, false);
@@ -4984,6 +5003,18 @@
 
       if (updatedAtEl && currentStorefrontLeaderboardConfig.updatedAt) {
         updatedAtEl.textContent = '🕒 Cập nhật: ' + currentStorefrontLeaderboardConfig.updatedAt;
+      }
+
+      const dayBtn = document.getElementById('btn-lead-tab-day');
+      const hasDayItems = (currentStorefrontLeaderboardConfig.topDay || []).some(item => item && item.visible !== false);
+      if (dayBtn) {
+        dayBtn.style.display = hasDayItems ? '' : 'none';
+      }
+      if (currentStorefrontLeadTab === 'day' && !hasDayItems) {
+        currentStorefrontLeadTab = 'month';
+        const monthBtn = document.getElementById('btn-lead-tab-month');
+        if (dayBtn) dayBtn.classList.remove('active');
+        if (monthBtn) monthBtn.classList.add('active');
       }
 
       let list = [];

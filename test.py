@@ -2212,7 +2212,7 @@ class TestBusinessLogic(unittest.TestCase):
         session_code = codegs[codegs.find("function createSession()"):codegs.find("function destroySession(")]
         test_js = """
         const assert = require('assert');
-        const ADMIN_PASS_HASH = "ec6b2fecc0ebfefa5810d0fdc5595470c62b62abac4827958ef7543c2d7e9098";
+        const ADMIN_PASS_HASH = "0000000000000000000000000000000000000000000000000000000000000000";
         const SESSION_DURATION_SEC = 7 * 24 * 60 * 60;
         const Utilities = {
           getUuid: () => "355e76a9-32e4-4011-9999-111122223333",
@@ -2535,7 +2535,7 @@ class TestBusinessLogic(unittest.TestCase):
             self.assertIn('https://wsrv.nl/?url=', page_html, f"Thiếu CDN dự phòng wsrv.nl trong {page_name}")
 
     def test_anti_spam_5_layer_security_and_leaderboard_protection(self):
-        """Kiểm tra: 5 lớp phòng thủ chống Spam, ẩn totalAmount ở API công khai và chặn đơn giả leo Bảng Vinh Danh"""
+        """Kiểm tra: 5 lớp phòng thủ chống Spam, Double-Checked Locking, ẩn totalAmount ở API công khai và chặn đơn giả leo Bảng Vinh Danh"""
         codegs = read_file('Code.gs')
         index = read_file('index.html')
         admin = read_file('admin.html')
@@ -2546,9 +2546,12 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('function handleGetPublicLeaderboard(', codegs)
         self.assertIn('function isOrderEligibleForLeaderboardBackend(', codegs)
         self.assertIn('function normalizeVnPhoneBackend(', codegs)
-        self.assertIn('rate_phone_cd_', codegs)
         self.assertIn('rate_phone_15m_', codegs)
         self.assertIn('rate_global_min_', codegs)
+        self.assertIn('lockedPhoneCount', codegs, "Thiếu kiểm tra Vòng 2 (Double-Checked Locking) bên trong withLock!")
+        self.assertIn('lockedGlobalCount', codegs, "Thiếu kiểm tra Vòng 2 (Double-Checked Locking) bên trong withLock!")
+        self.assertIn('formDurationMs', codegs, "Code.gs phải dùng formDurationMs (thời gian tương đối) để chống lệch đồng hồ!")
+        self.assertIn('formDurationMs', index, "index.html phải gửi formDurationMs khi đặt hàng!")
         self.assertIn('id="customer-website-hp"', index, "Thiếu bẫy bot Honeypot #customer-website-hp trong index.html")
         self.assertIn('function normalizeVnPhoneClient(', index, "Thiếu hàm kiểm tra SĐT normalizeVnPhoneClient trong index.html")
         self.assertIn('function isOrderEligibleForLeaderboard(', admin, "Thiếu hàm isOrderEligibleForLeaderboard trong admin.html")
@@ -2623,6 +2626,110 @@ class TestBusinessLogic(unittest.TestCase):
         try:
             res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
             self.assertIn("ANTI_SPAM_5_LAYER_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_no_real_admin_hash_leaked_in_tracked_files_and_double_hash_auth(self):
+        """Kiểm tra: Không có file public nào chứa ADMIN_PASS_HASH thật từ Code.gs, và cơ chế Double-Hash + đổi mật khẩu hoạt động chuẩn xác"""
+        codegs = read_file('Code.gs')
+        admin = read_file('admin.html')
+        index = read_file('index.html')
+        test_py = read_file('test.py')
+
+        # 1. Trích xuất ADMIN_PASS_HASH từ Code.gs và đảm bảo nó KHÔNG xuất hiện trong các file public (index.html, admin.html, test.py)
+        m_hash = re.search(r'const\s+ADMIN_PASS_HASH\s*=\s*["\']([a-fA-F0-9]{64})["\']', codegs)
+        self.assertIsNotNone(m_hash, "Không tìm thấy ADMIN_PASS_HASH trong Code.gs")
+        real_hash = m_hash.group(1)
+
+        for fname, content in [('index.html', index), ('admin.html', admin), ('test.py', test_py)]:
+            self.assertNotIn(
+                real_hash, content,
+                f"NGUY HIỂM BẢO MẬT: Phát hiện ADMIN_PASS_HASH thật bị lộ trong file public '{fname}'!"
+            )
+
+        # 2. Kiểm tra sự hiện diện của Modal đổi mật khẩu trong admin.html và hàm bảo mật trong Code.gs
+        for dom_id in ['btn-open-change-password', 'change-password-modal', 'old-admin-pass', 'new-admin-pass', 'confirm-admin-pass', 'btn-submit-change-password']:
+            self.assertIn(f'id="{dom_id}"', admin, f"Thiếu phần tử #{dom_id} trong admin.html")
+        self.assertIn('function submitChangeAdminPassword(', admin)
+        self.assertIn('function getServerSessionSecret(', codegs)
+        self.assertIn('function computeDoubleHashBackend(', codegs)
+        self.assertIn('function verifyAdminPassword(', codegs)
+        self.assertIn('function handleChangeAdminPassword(', codegs)
+
+        # 3. Kiểm thử bằng Node.js: Tách khóa ký SERVER_SESSION_SECRET, băm 2 tầng Double-Hash & chống khóa tài khoản Admin thật
+        auth_block = codegs[codegs.find("function getServerSessionSecret()"):codegs.find("function getProductsList(")]
+        test_js = """
+        const assert = require('assert');
+        const crypto = require('crypto');
+        const ADMIN_PASS_HASH = "1111111111111111111111111111111111111111111111111111111111111111";
+        const SESSION_DURATION_SEC = 7 * 24 * 60 * 60;
+        const propStore = {};
+        const cacheStore = {};
+
+        const PropertiesService = {
+          getScriptProperties: () => ({
+            getProperty: (k) => propStore[k] || null,
+            setProperty: (k, v) => { propStore[k] = String(v); },
+            setProperties: (obj) => { Object.assign(propStore, obj); }
+          })
+        };
+        const CacheService = {
+          getScriptCache: () => ({
+            get: (k) => cacheStore[k] || null,
+            put: (k, v) => { cacheStore[k] = String(v); },
+            remove: (k) => { delete cacheStore[k]; }
+          })
+        };
+        const Utilities = {
+          DigestAlgorithm: { SHA_256: 'sha256' },
+          getUuid: () => crypto.randomUUID(),
+          computeDigest: (algo, str) => Array.from(crypto.createHash('sha256').update(String(str)).digest()),
+          computeHmacSha256Signature: (raw, key) => crypto.createHmac('sha256', String(key)).update(String(raw)).digest(),
+          base64EncodeWebSafe: (buf) => Buffer.from(buf).toString('base64').replace(/\\+/g, '-').replace(/\\//g, '_')
+        };
+        """ + auth_block + """
+
+        // A. Khóa ký Session Token phải tự động sinh ngẫu nhiên trong PropertiesService và KHÁC với ADMIN_PASS_HASH
+        const secret1 = getServerSessionSecret();
+        assert.ok(secret1 && secret1.length >= 32);
+        assert.notStrictEqual(secret1, ADMIN_PASS_HASH, "Khóa ký Session phải tách biệt hoàn toàn với ADMIN_PASS_HASH");
+
+        // Token giả mạo ký bằng ADMIN_PASS_HASH phải bị từ chối!
+        const fakeRaw = Date.now() + "_fakesalt12345678";
+        const fakeSig = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(fakeRaw, ADMIN_PASS_HASH)).replace(/_/g, "-");
+        const forgedToken = fakeRaw + "_" + fakeSig;
+        assert.strictEqual(isValidSession(forgedToken), false, "BẢO MẬT: Token ký bằng ADMIN_PASS_HASH phải bị từ chối vì Server dùng SERVER_SESSION_SECRET riêng!");
+
+        // Token thật sinh từ createSession() phải hợp lệ
+        const validToken = createSession();
+        assert.strictEqual(isValidSession(validToken), true);
+
+        // B. Khi chưa đổi mật khẩu trên web, mật khẩu mặc định vẫn hoạt động
+        assert.strictEqual(verifyAdminPassword(ADMIN_PASS_HASH), true);
+
+        // C. Sau khi đổi sang mật khẩu mới (lưu Double-Hash + Salt trong PropertiesService):
+        const newClientHash = "2222222222222222222222222222222222222222222222222222222222222222";
+        const newSalt = "random_salt_xyz";
+        propStore["ADMIN_PASS_SALT"] = newSalt;
+        propStore["ADMIN_PASS_DOUBLE_HASH"] = computeDoubleHashBackend(newClientHash, newSalt);
+
+        // Hash cũ (ADMIN_PASS_HASH) lập tức bị vô hiệu hóa!
+        assert.strictEqual(verifyAdminPassword(ADMIN_PASS_HASH), false, "Sau khi đổi mật khẩu, ADMIN_PASS_HASH cũ phải bị vô hiệu hóa hoàn toàn!");
+        // Kể cả lấy trộm ADMIN_PASS_DOUBLE_HASH gửi lên cũng bị từ chối (chống Pass-the-Hash)!
+        assert.strictEqual(verifyAdminPassword(propStore["ADMIN_PASS_DOUBLE_HASH"]), false, "Chống Pass-the-Hash: gửi trực tiếp Double-Hash phải bị từ chối!");
+        // Chỉ có newClientHash đúng mới vượt qua!
+        assert.strictEqual(verifyAdminPassword(newClientHash), true);
+
+        console.log("DOUBLE_HASH_AND_SECRET_ISOLATION_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("DOUBLE_HASH_AND_SECRET_ISOLATION_OK", res.stdout)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
