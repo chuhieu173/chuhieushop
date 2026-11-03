@@ -10,7 +10,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://chuhieu173.github.io/chuhieushop/">
   <title>Cửa Hàng Của Minh Hiếu</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='chGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ff5722'/%3E%3Cstop offset='100%25' stop-color='%23c53030'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23chGrad)'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='central' text-anchor='middle' font-family='-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif' font-weight='900' font-size='50' fill='%23ffffff' letter-spacing='-1.5'%3ECH%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff1a8%22/%3E%3Cstop%20offset%3D%22.3%22%20stop-color%3D%22%23e8b923%22/%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23a8740f%22/%3E%3Cstop%20offset%3D%22.78%22%20stop-color%3D%22%23f7d567%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c18a14%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22250%22%20fill%3D%22%230a0e14%22/%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22228%22%20fill%3D%22none%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%2228%22/%3E%3Cg%20fill%3D%22%23ffffff%22%20transform%3D%22translate%28256%20256%29%20scale%280.52%29%20translate%28-595%20-1396%29%22%3E%3Cpolygon%20points%3D%22343%2C1100%20577%2C1100%20493%2C1162%20460%2C1282%20968%2C1283%20912%2C1385%20700%2C1385%20640%2C1640%20685%2C1692%20451%2C1692%20535%2C1640%20600%2C1385%20437%2C1385%20410%2C1472%20457%2C1528%20222%2C1528%20308%2C1470%20388%2C1150%22/%3E%3Cpolygon%20points%3D%22616%2C1100%20851%2C1100%20765%2C1162%20738%2C1256%20637%2C1256%20668%2C1160%22/%3E%3C/g%3E%3C/svg%3E">
   <link rel="alternate icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
@@ -1360,21 +1360,23 @@
       flex-wrap: wrap;
     }
     .brand-logo-badge {
-      width: 42px;
-      height: 42px;
-      border-radius: 11px;
-      background: linear-gradient(135deg, #ff5722 0%, #c53030 100%);
-      color: #fff;
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 900;
-      font-size: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #0a0e14;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      letter-spacing: -1px;
-      box-shadow: 0 4px 10px rgba(229, 62, 62, 0.35);
+      box-shadow: 0 4px 14px rgba(232, 185, 35, 0.28);
       flex-shrink: 0;
       user-select: none;
+      overflow: hidden;
+      position: relative;
+    }
+    .brand-logo-badge svg {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
     .brand-hero-header h1 {
       margin: 0;
@@ -1729,7 +1731,34 @@
   <main id="main-content">
   <div class="brand-hero-header">
     <div class="brand-title-row">
-      <div class="brand-logo-badge" aria-hidden="true">CH</div>
+      <div class="brand-logo-badge" aria-hidden="true" title="Minh Hiếu Tech">
+        <svg viewBox="0 0 400 400" width="100%" height="100%">
+          <defs>
+            <linearGradient id="htGoldGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#fff1a8"/>
+              <stop offset=".3" stop-color="#e8b923"/>
+              <stop offset=".55" stop-color="#a8740f"/>
+              <stop offset=".78" stop-color="#f7d567"/>
+              <stop offset="1" stop-color="#c18a14"/>
+            </linearGradient>
+            <filter id="htGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <circle cx="200" cy="200" r="196" fill="#0a0e14"/>
+          <circle cx="200" cy="200" r="170" fill="none" stroke="url(#htGoldGrad)" stroke-opacity=".35" stroke-width="3"/>
+          <g>
+            <animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="3.2s" repeatCount="indefinite"/>
+            <circle cx="200" cy="200" r="170" fill="none" stroke="url(#htGoldGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="300 768" filter="url(#htGlow)"/>
+            <circle cx="200" cy="200" r="170" fill="none" stroke="#fff4c2" stroke-width="7" stroke-linecap="round" stroke-dasharray="70 998" stroke-dashoffset="-230" filter="url(#htGlow)"/>
+          </g>
+          <g fill="#ffffff" filter="url(#htGlow)" transform="translate(200 200) scale(0.38) translate(-595 -1396)">
+            <polygon points="343,1100 577,1100 493,1162 460,1282 968,1283 912,1385 700,1385 640,1640 685,1692 451,1692 535,1640 600,1385 437,1385 410,1472 457,1528 222,1528 308,1470 388,1150"/>
+            <polygon points="616,1100 851,1100 765,1162 738,1256 637,1256 668,1160"/>
+          </g>
+        </svg>
+      </div>
       <h1>CỬA HÀNG CỦA MINH HIẾU</h1>
     </div>
     <div class="trust-badges-bar">

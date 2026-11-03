@@ -1,13 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <linearGradient id="chGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff5722"/>
-      <stop offset="100%" stop-color="#c53030"/>
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-    </filter>
-  </defs>
-  <rect width="100" height="100" rx="22" fill="url(#chGrad)"/>
-  <text x="50%" y="54%" dominant-baseline="central" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="50" fill="#ffffff" letter-spacing="-1.5" filter="url(#shadow)">CH</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<title>HT Favicon</title>
+<defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#fff1a8"/>
+<stop offset=".3" stop-color="#e8b923"/>
+<stop offset=".55" stop-color="#a8740f"/>
+<stop offset=".78" stop-color="#f7d567"/>
+<stop offset="1" stop-color="#c18a14"/>
+</linearGradient>
+</defs>
+<circle cx="256" cy="256" r="250" fill="#0a0e14"/>
+<circle cx="256" cy="256" r="228" fill="none" stroke="url(#gold)" stroke-width="28"/>
+<g fill="#ffffff" transform="translate(256 256) scale(0.52) translate(-595 -1396)">
+<polygon points="343,1100 577,1100 493,1162 460,1282 968,1283 912,1385 700,1385 640,1640 685,1692 451,1692 535,1640 600,1385 437,1385 410,1472 457,1528 222,1528 308,1470 388,1150"/>
+<polygon points="616,1100 851,1100 765,1162 738,1256 637,1256 668,1160"/>
+</g>
 </svg>
