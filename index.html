@@ -763,6 +763,104 @@
     .form-group input:focus, .form-group select:focus { border-color: #ee4d2d; }
     .form-group select { appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;}
 
+    /* Bộ chọn Tỉnh/Thành phố & Phường/Xã chuẩn SPX kèm ô tìm kiếm nhanh */
+    .address-picker-group { position: relative; }
+    .address-search-bar { position: relative; margin-bottom: 6px; }
+    .form-group .address-search-input {
+      padding: 9px 34px 9px 12px;
+      font-size: 13.5px;
+      border: 1px dashed #cbd5e0;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    .form-group .address-search-input:focus {
+      border-style: solid;
+      border-color: #ee4d2d;
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.12);
+    }
+    .form-group .address-search-input:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+    .address-search-clear {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: #e2e8f0;
+      color: #475569;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 11px;
+      line-height: 20px;
+      text-align: center;
+      cursor: pointer;
+      padding: 0;
+    }
+    .address-search-clear:hover { background: #cbd5e0; color: #0f172a; }
+    .address-search-dropdown {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 40px;
+      max-height: 230px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1.5px solid #ee4d2d;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+      z-index: 60;
+    }
+    .address-search-group-header {
+      padding: 6px 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #475569;
+      background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+    }
+    .address-search-item {
+      padding: 9px 12px;
+      font-size: 14px;
+      color: #1e293b;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .address-search-item:last-child { border-bottom: none; }
+    .address-search-item:hover, .address-search-item.active {
+      background: #fff5f5;
+      color: #c53030;
+      font-weight: 600;
+    }
+    .address-search-empty {
+      padding: 12px;
+      font-size: 13px;
+      color: #64748b;
+      text-align: center;
+    }
+    body.theme-dark .form-group .address-search-input { background: #1e2235; color: #e2e8f0; border-color: #4a5568; }
+    body.theme-dark .address-search-dropdown { background: #232336; border-color: #e53e3e; }
+    body.theme-dark .address-search-group-header { background: #1a1a2a; color: #94a3b8; border-bottom-color: #334155; }
+    body.theme-dark .address-search-item { color: #e2e8f0; border-bottom-color: #2d3748; }
+    body.theme-dark .address-search-item:hover, body.theme-dark .address-search-item.active { background: #2d3748; color: #feb2b2; }
+    body.theme-halloween .form-group .address-search-input { background: #160724 !important; color: #fed7aa !important; border-color: rgba(255, 119, 0, 0.4) !important; }
+    body.theme-halloween .address-search-dropdown { background: #1f0b30 !important; border-color: #ea580c !important; }
+    body.theme-halloween .address-search-group-header { background: #140520 !important; color: #fdba74 !important; border-bottom-color: rgba(255, 119, 0, 0.25) !important; }
+    body.theme-halloween .address-search-item { color: #fed7aa !important; border-bottom-color: rgba(255, 119, 0, 0.15) !important; }
+    body.theme-halloween .address-search-item:hover, body.theme-halloween .address-search-item.active { background: rgba(234, 88, 12, 0.25) !important; color: #fff !important; }
+
     /* Cảnh báo bắt buộc nhắn Zalo & Trạng thái đã ghi nhận đơn chống tạo đơn trùng */
     .zalo-mandatory-warning {
       margin-top: 14px;
@@ -1941,8 +2039,22 @@
       </div>
       <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" aria-label="Tên người nhận" oninput="onCustomerFormInput()" required></div>
       <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" aria-label="Số điện thoại Zalo" oninput="onCustomerFormInput()" required></div>
-      <div class="form-group"><select id="tinh" onchange="fetchPhuong(this.value); updateAddressPreview(); onCustomerFormInput();" aria-label="Chọn Tỉnh hoặc Thành phố" required><option value="">Chọn Tỉnh / Thành phố *</option></select></div>
-      <div class="form-group"><select id="phuong" onchange="updateAddressPreview(); onCustomerFormInput();" aria-label="Chọn Phường hoặc Xã" required disabled><option value="">Chọn Phường / Xã *</option></select></div>
+      <div class="form-group address-picker-group" id="tinh-picker-group">
+        <div class="address-search-bar">
+          <input type="text" id="tinh-search" class="address-search-input" placeholder="🔍 Gõ tìm nhanh Tỉnh / Thành phố (VD: Hồ Chí Minh, Hà Nội...)" autocomplete="off" oninput="onProvinceSearchInput(this.value)" onfocus="onProvinceSearchFocus()" onkeydown="onAddressSearchKeydown(event, 'tinh')" aria-label="Tìm nhanh Tỉnh hoặc Thành phố">
+          <button type="button" id="tinh-search-clear" class="address-search-clear" style="display: none;" onclick="clearAddressSearch('tinh')" aria-label="Xóa tìm kiếm Tỉnh">✕</button>
+        </div>
+        <div id="tinh-search-dropdown" class="address-search-dropdown" style="display: none;"></div>
+        <select id="tinh" onchange="fetchPhuong(this.value); updateAddressPreview(); onCustomerFormInput();" aria-label="Chọn Tỉnh hoặc Thành phố" required><option value="">Chọn Tỉnh / Thành phố *</option></select>
+      </div>
+      <div class="form-group address-picker-group" id="phuong-picker-group">
+        <div class="address-search-bar">
+          <input type="text" id="phuong-search" class="address-search-input" placeholder="🔍 Gõ tìm nhanh Phường / Xã (chọn Tỉnh/TP trước)..." autocomplete="off" oninput="onWardSearchInput(this.value)" onfocus="onWardSearchFocus()" onkeydown="onAddressSearchKeydown(event, 'phuong')" aria-label="Tìm nhanh Phường hoặc Xã" disabled>
+          <button type="button" id="phuong-search-clear" class="address-search-clear" style="display: none;" onclick="clearAddressSearch('phuong')" aria-label="Xóa tìm kiếm Phường">✕</button>
+        </div>
+        <div id="phuong-search-dropdown" class="address-search-dropdown" style="display: none;"></div>
+        <select id="phuong" onchange="updateAddressPreview(); onCustomerFormInput();" aria-label="Chọn Phường hoặc Xã" required disabled><option value="">Chọn Phường / Xã *</option></select>
+      </div>
       <div class="form-group">
         <input type="text" id="customer-address-detail" placeholder="Số nhà, tên đường, thôn/xóm (Không cần gõ Phường, Tỉnh/TP) *" aria-label="Số nhà, tên đường, thôn xóm" oninput="updateAddressPreview(); onCustomerFormInput();" required>
         <div style="font-size: 12px; color: #718096; margin-top: 4px; padding-left: 2px;">
@@ -3235,11 +3347,285 @@
       }
     }
 
-    function renderProvincesSelect(data) {
-      let html = '<option value="">Chọn Tỉnh / Thành phố *</option>';
-      if (Array.isArray(data)) {
-        data.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
+    const SPX_CENTRAL_CITIES = [
+      'Thành phố Cần Thơ',
+      'Thành phố Đà Nẵng',
+      'Thành phố Hà Nội',
+      'Thành phố Hải Phòng',
+      'Thành phố Hồ Chí Minh',
+      'Thành phố Huế'
+    ];
+    let allProvincesList = [];
+    let currentWardsList = [];
+
+    function normalizeProvinceNameForSPX(rawName) {
+      let s = String(rawName || '').trim();
+      if (!s) return '';
+      if (/^thành phố\s+/i.test(s)) {
+        let isCentralCity = SPX_CENTRAL_CITIES.some(c => c.toLowerCase() === s.toLowerCase());
+        if (!isCentralCity) {
+          return 'Tỉnh ' + s.replace(/^thành phố\s+/i, '').trim();
+        }
       }
+      return s;
+    }
+
+    function sortProvincesSPX(data) {
+      if (!Array.isArray(data)) return [];
+      let normalized = data.map(item => ({
+        ...item,
+        name: normalizeProvinceNameForSPX(item && item.name ? item.name : '')
+      }));
+      return normalized.sort((a, b) => {
+        let isCityA = /^thành phố\s+/i.test(a.name) ? 0 : 1;
+        let isCityB = /^thành phố\s+/i.test(b.name) ? 0 : 1;
+        if (isCityA !== isCityB) return isCityA - isCityB;
+        return a.name.localeCompare(b.name, 'vi', { numeric: true });
+      });
+    }
+
+    function getWardTypeRankSPX(wardName) {
+      let s = String(wardName || '').trim();
+      if (/^phường\b/i.test(s)) return 0;
+      if (/^xã\b/i.test(s)) return 1;
+      return 2;
+    }
+
+    function sortWardsSPX(wards) {
+      if (!Array.isArray(wards)) return [];
+      return wards.slice().sort((a, b) => {
+        let nameA = String((a && a.name) || '').trim();
+        let nameB = String((b && b.name) || '').trim();
+        let rankA = getWardTypeRankSPX(nameA);
+        let rankB = getWardTypeRankSPX(nameB);
+        if (rankA !== rankB) return rankA - rankB;
+        return nameA.localeCompare(nameB, 'vi', { numeric: true });
+      });
+    }
+
+    function matchesAddressKeyword(itemName, query) {
+      let q = removeDiacritics(String(query || '')).toLowerCase().trim();
+      if (!q) return true;
+      let normName = removeDiacritics(String(itemName || '')).toLowerCase().trim();
+      let extraAliases = '';
+      if (normName.includes('ho chi minh')) extraAliases = ' hcm tphcm tp.hcm sai gon saigon sg';
+      else if (normName.includes('ha noi')) extraAliases = ' hn tphn tp.hn';
+      else if (normName.includes('da nang')) extraAliases = ' dn tpdn';
+      else if (normName.includes('hai phong')) extraAliases = ' hp tphp';
+      else if (normName.includes('can tho')) extraAliases = ' ct tpct';
+      let haystack = normName + extraAliases;
+      let tokens = q.split(/\s+/).filter(Boolean);
+      return tokens.every(tok => haystack.includes(tok));
+    }
+
+    function buildProvinceOptionsHtml(list, currentSelectedValue) {
+      let html = '<option value="">Chọn Tỉnh / Thành phố *</option>';
+      let selectedStr = String(currentSelectedValue || '');
+      let hasSelectedInList = false;
+      if (Array.isArray(list)) {
+        list.forEach(item => {
+          if (String(item.code) === selectedStr) hasSelectedInList = true;
+          html += `<option value="${item.code}">${item.name}</option>`;
+        });
+      }
+      if (selectedStr && !hasSelectedInList && Array.isArray(allProvincesList)) {
+        let found = allProvincesList.find(p => String(p.code) === selectedStr);
+        if (found) html += `<option value="${found.code}">${found.name}</option>`;
+      }
+      return html;
+    }
+
+    function buildWardOptionsHtml(list, currentSelectedValue) {
+      let html = '<option value="">Chọn Phường / Xã *</option>';
+      let selectedStr = String(currentSelectedValue || '');
+      let hasSelectedInList = false;
+      if (Array.isArray(list)) {
+        list.forEach(item => {
+          if (String(item.code) === selectedStr) hasSelectedInList = true;
+          html += `<option value="${item.code}">${item.name}</option>`;
+        });
+      }
+      if (selectedStr && !hasSelectedInList && Array.isArray(currentWardsList)) {
+        let found = currentWardsList.find(w => String(w.code) === selectedStr);
+        if (found) html += `<option value="${found.code}">${found.name}</option>`;
+      }
+      return html;
+    }
+
+    function renderAddressSearchDropdown(type, filteredList, selectedVal) {
+      const dropdown = document.getElementById(type === 'tinh' ? 'tinh-search-dropdown' : 'phuong-search-dropdown');
+      if (!dropdown) return;
+      if (!Array.isArray(filteredList) || filteredList.length === 0) {
+        dropdown.innerHTML = `<div class="address-search-empty">Không tìm thấy ${type === 'tinh' ? 'Tỉnh / Thành phố' : 'Phường / Xã'} phù hợp</div>`;
+        dropdown.style.display = 'block';
+        return;
+      }
+      let html = '';
+      let lastGroup = '';
+      filteredList.forEach(item => {
+        let groupLabel = '';
+        if (type === 'tinh') {
+          groupLabel = /^thành phố\s+/i.test(item.name) ? '🏙️ Thành phố' : '🏞️ Tỉnh';
+        } else {
+          let r = getWardTypeRankSPX(item.name);
+          groupLabel = r === 0 ? '🏢 Phường' : (r === 1 ? '🏡 Xã' : '📍 Đặc khu / Thị trấn');
+        }
+        if (groupLabel !== lastGroup) {
+          html += `<div class="address-search-group-header">${groupLabel}</div>`;
+          lastGroup = groupLabel;
+        }
+        let isActive = String(item.code) === String(selectedVal || '') ? ' active' : '';
+        let fnName = type === 'tinh' ? 'selectProvinceFromSearch' : 'selectWardFromSearch';
+        html += `<div class="address-search-item${isActive}" onmousedown="${fnName}('${item.code}'); event.preventDefault();" onclick="${fnName}('${item.code}')"><span>${item.name}</span></div>`;
+      });
+      dropdown.innerHTML = html;
+      dropdown.style.display = 'block';
+    }
+
+    function onProvinceSearchFocus() {
+      const input = document.getElementById('tinh-search');
+      const q = input ? input.value : '';
+      const filtered = allProvincesList.filter(p => matchesAddressKeyword(p.name, q));
+      const tinhEl = document.getElementById('tinh');
+      renderAddressSearchDropdown('tinh', filtered, tinhEl ? tinhEl.value : '');
+    }
+
+    function onProvinceSearchInput(query) {
+      const clearBtn = document.getElementById('tinh-search-clear');
+      if (clearBtn && clearBtn.style) clearBtn.style.display = query ? 'block' : 'none';
+      const filtered = allProvincesList.filter(p => matchesAddressKeyword(p.name, query));
+      const tinhEl = document.getElementById('tinh');
+      if (tinhEl) {
+        const curVal = tinhEl.value;
+        tinhEl.innerHTML = buildProvinceOptionsHtml(filtered, curVal);
+        if (curVal) tinhEl.value = curVal;
+      }
+      renderAddressSearchDropdown('tinh', filtered, tinhEl ? tinhEl.value : '');
+    }
+
+    function selectProvinceFromSearch(code) {
+      const tinhEl = document.getElementById('tinh');
+      const searchEl = document.getElementById('tinh-search');
+      const clearBtn = document.getElementById('tinh-search-clear');
+      const dropdown = document.getElementById('tinh-search-dropdown');
+      if (searchEl) searchEl.value = '';
+      if (clearBtn && clearBtn.style) clearBtn.style.display = 'none';
+      if (dropdown && dropdown.style) dropdown.style.display = 'none';
+      if (tinhEl) {
+        tinhEl.innerHTML = buildProvinceOptionsHtml(allProvincesList, code);
+        tinhEl.value = String(code || '');
+      }
+      fetchPhuong(String(code || ''));
+      updateAddressPreview();
+      onCustomerFormInput();
+    }
+
+    function onWardSearchFocus() {
+      const input = document.getElementById('phuong-search');
+      if (!input || input.disabled) return;
+      const q = input.value || '';
+      const filtered = currentWardsList.filter(w => matchesAddressKeyword(w.name, q));
+      const phuongEl = document.getElementById('phuong');
+      renderAddressSearchDropdown('phuong', filtered, phuongEl ? phuongEl.value : '');
+    }
+
+    function onWardSearchInput(query) {
+      const clearBtn = document.getElementById('phuong-search-clear');
+      if (clearBtn && clearBtn.style) clearBtn.style.display = query ? 'block' : 'none';
+      const filtered = currentWardsList.filter(w => matchesAddressKeyword(w.name, query));
+      const phuongEl = document.getElementById('phuong');
+      if (phuongEl) {
+        const curVal = phuongEl.value;
+        phuongEl.innerHTML = buildWardOptionsHtml(filtered, curVal);
+        if (curVal) phuongEl.value = curVal;
+      }
+      renderAddressSearchDropdown('phuong', filtered, phuongEl ? phuongEl.value : '');
+    }
+
+    function selectWardFromSearch(code) {
+      const phuongEl = document.getElementById('phuong');
+      const searchEl = document.getElementById('phuong-search');
+      const clearBtn = document.getElementById('phuong-search-clear');
+      const dropdown = document.getElementById('phuong-search-dropdown');
+      if (searchEl) searchEl.value = '';
+      if (clearBtn && clearBtn.style) clearBtn.style.display = 'none';
+      if (dropdown && dropdown.style) dropdown.style.display = 'none';
+      if (phuongEl) {
+        phuongEl.innerHTML = buildWardOptionsHtml(currentWardsList, code);
+        phuongEl.value = String(code || '');
+      }
+      updateAddressPreview();
+      onCustomerFormInput();
+    }
+
+    function clearAddressSearch(type) {
+      if (type === 'tinh') {
+        const searchEl = document.getElementById('tinh-search');
+        const clearBtn = document.getElementById('tinh-search-clear');
+        const dropdown = document.getElementById('tinh-search-dropdown');
+        const tinhEl = document.getElementById('tinh');
+        if (searchEl) searchEl.value = '';
+        if (clearBtn && clearBtn.style) clearBtn.style.display = 'none';
+        if (dropdown && dropdown.style) dropdown.style.display = 'none';
+        if (tinhEl) {
+          const curVal = tinhEl.value;
+          tinhEl.innerHTML = buildProvinceOptionsHtml(allProvincesList, curVal);
+          if (curVal) tinhEl.value = curVal;
+        }
+      } else {
+        const searchEl = document.getElementById('phuong-search');
+        const clearBtn = document.getElementById('phuong-search-clear');
+        const dropdown = document.getElementById('phuong-search-dropdown');
+        const phuongEl = document.getElementById('phuong');
+        if (searchEl) searchEl.value = '';
+        if (clearBtn && clearBtn.style) clearBtn.style.display = 'none';
+        if (dropdown && dropdown.style) dropdown.style.display = 'none';
+        if (phuongEl) {
+          const curVal = phuongEl.value;
+          phuongEl.innerHTML = buildWardOptionsHtml(currentWardsList, curVal);
+          if (curVal) phuongEl.value = curVal;
+        }
+      }
+    }
+
+    function onAddressSearchKeydown(event, type) {
+      if (!event) return;
+      if (event.key === 'Escape') {
+        const dropdown = document.getElementById(type === 'tinh' ? 'tinh-search-dropdown' : 'phuong-search-dropdown');
+        if (dropdown && dropdown.style) dropdown.style.display = 'none';
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const q = event.target ? event.target.value : '';
+        if (type === 'tinh') {
+          const filtered = allProvincesList.filter(p => matchesAddressKeyword(p.name, q));
+          if (filtered.length > 0) selectProvinceFromSearch(filtered[0].code);
+        } else {
+          const filtered = currentWardsList.filter(w => matchesAddressKeyword(w.name, q));
+          if (filtered.length > 0) selectWardFromSearch(filtered[0].code);
+        }
+      }
+    }
+
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('click', function(e) {
+        const tinhGroup = document.getElementById('tinh-picker-group');
+        const phuongGroup = document.getElementById('phuong-picker-group');
+        if (tinhGroup && e.target && !tinhGroup.contains(e.target)) {
+          const d1 = document.getElementById('tinh-search-dropdown');
+          if (d1 && d1.style) d1.style.display = 'none';
+        }
+        if (phuongGroup && e.target && !phuongGroup.contains(e.target)) {
+          const d2 = document.getElementById('phuong-search-dropdown');
+          if (d2 && d2.style) d2.style.display = 'none';
+        }
+      });
+    }
+
+    function renderProvincesSelect(data) {
+      allProvincesList = sortProvincesSPX(data);
+      let html = buildProvinceOptionsHtml(allProvincesList, '');
       let tinhEl = document.getElementById('tinh');
       if (tinhEl) {
         tinhEl.innerHTML = html;
@@ -3278,12 +3664,10 @@
     }
 
     function renderWardsSelect(wards) {
+      currentWardsList = sortWardsSPX(wards);
       let phuongSelect = document.getElementById('phuong');
       if (!phuongSelect) return;
-      let html = '<option value="">Chọn Phường / Xã *</option>';
-      if (Array.isArray(wards)) {
-        wards.forEach(item => { html += `<option value="${item.code}">${item.name}</option>`; });
-      }
+      let html = buildWardOptionsHtml(currentWardsList, '');
       phuongSelect.innerHTML = html;
       try {
         let rawDraft = typeof localStorage !== 'undefined' ? localStorage.getItem('chuhieu_customer_draft_v1') : null;
@@ -3299,13 +3683,28 @@
 
     async function fetchPhuong(idTinh) {
       let phuongSelect = document.getElementById('phuong');
+      let phuongSearch = document.getElementById('phuong-search');
+      let phuongClear = document.getElementById('phuong-search-clear');
+      let phuongDropdown = document.getElementById('phuong-search-dropdown');
+      currentWardsList = [];
       if (phuongSelect) phuongSelect.innerHTML = '<option value="">Chọn Phường / Xã *</option>';
+      if (phuongSearch) phuongSearch.value = '';
+      if (phuongClear && phuongClear.style) phuongClear.style.display = 'none';
+      if (phuongDropdown && phuongDropdown.style) phuongDropdown.style.display = 'none';
       if (!idTinh) {
         if (phuongSelect) phuongSelect.disabled = true;
+        if (phuongSearch) {
+          phuongSearch.disabled = true;
+          phuongSearch.placeholder = '🔍 Gõ tìm nhanh Phường / Xã (chọn Tỉnh/TP trước)...';
+        }
         updateAddressPreview();
         return;
       }
       if (phuongSelect) phuongSelect.disabled = false;
+      if (phuongSearch) {
+        phuongSearch.disabled = false;
+        phuongSearch.placeholder = '🔍 Gõ tìm nhanh Phường / Xã (VD: Bến Nghé, Cầu Giấy...)';
+      }
 
       // Kiểm tra cache Phường/Xã theo mã Tỉnh (0ms)
       const cacheKey = WARDS_CACHE_PREFIX + idTinh;

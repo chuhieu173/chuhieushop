@@ -2745,6 +2745,101 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_spx_province_ward_sorting_and_searchable_picker(self):
+        """Kiểm tra Tỉnh/Thành phố & Phường/Xã xếp đúng thứ tự SPX (Thành phố A-Z -> Tỉnh A-Z, Phường A-Z -> Xã A-Z) và ô tìm kiếm nhanh"""
+        with open('index.html', 'r', encoding='utf-8') as f:
+            index_content = f.read()
+
+        self.assertIn('id="tinh-search"', index_content)
+        self.assertIn('id="phuong-search"', index_content)
+        self.assertIn('id="tinh-search-dropdown"', index_content)
+        self.assertIn('id="phuong-search-dropdown"', index_content)
+
+        start_idx = index_content.find('const SPX_CENTRAL_CITIES = [')
+        end_idx = index_content.find('function cleanDetailAddress(')
+        self.assertNotEqual(start_idx, -1, "Thiếu SPX_CENTRAL_CITIES trong index.html")
+        self.assertNotEqual(end_idx, -1, "Thiếu cleanDetailAddress trong index.html")
+        js_block = index_content[start_idx:end_idx]
+
+        test_js = """
+        const assert = require('assert');
+        const GEO_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+        const PROVINCES_CACHE_KEY = 'chuhieu_geo_provinces_v1';
+        const WARDS_CACHE_PREFIX = 'chuhieu_geo_wards_v1_';
+        function updateAddressPreview() {}
+        function onCustomerFormInput() {}
+        """ + js_block + """
+        // 1. Kiểm tra chuẩn hóa tên và sắp xếp Tỉnh / Thành phố theo chuẩn SPX:
+        // Thành phố xếp trước (A -> Z), Tỉnh xếp sau (A -> Z), và Bắc Ninh / Quảng Ninh / Đồng Nai chuẩn hóa thành Tỉnh
+        const rawProvs = [
+          { code: 96, name: 'Tỉnh Cà Mau' },
+          { code: 79, name: 'Thành phố Hồ Chí Minh' },
+          { code: 24, name: 'Thành phố Bắc Ninh' },
+          { code: 1, name: 'Thành phố Hà Nội' },
+          { code: 91, name: 'Tỉnh An Giang' },
+          { code: 48, name: 'Thành phố Đà Nẵng' },
+          { code: 75, name: 'Thành phố Đồng Nai' },
+          { code: 92, name: 'Thành phố Cần Thơ' }
+        ];
+        const sortedProvs = sortProvincesSPX(rawProvs);
+        assert.deepStrictEqual(
+          sortedProvs.map(p => p.name),
+          [
+            'Thành phố Cần Thơ',
+            'Thành phố Đà Nẵng',
+            'Thành phố Hà Nội',
+            'Thành phố Hồ Chí Minh',
+            'Tỉnh An Giang',
+            'Tỉnh Bắc Ninh',
+            'Tỉnh Cà Mau',
+            'Tỉnh Đồng Nai'
+          ]
+        );
+
+        // 2. Kiểm tra sắp xếp Phường / Xã: Phường xếp trước (A -> Z, hỗ trợ số tự nhiên), Xã xếp sau (A -> Z)
+        const rawWards = [
+          { code: 101, name: 'Xã Tân Thới' },
+          { code: 102, name: 'Phường 10' },
+          { code: 103, name: 'Xã An Khánh' },
+          { code: 104, name: 'Phường 2' },
+          { code: 105, name: 'Phường Bến Nghé' },
+          { code: 106, name: 'Phường 1' },
+          { code: 107, name: 'Phường An Đông' }
+        ];
+        const sortedWards = sortWardsSPX(rawWards);
+        assert.deepStrictEqual(
+          sortedWards.map(w => w.name),
+          [
+            'Phường 1',
+            'Phường 2',
+            'Phường 10',
+            'Phường An Đông',
+            'Phường Bến Nghé',
+            'Xã An Khánh',
+            'Xã Tân Thới'
+          ]
+        );
+
+        // 3. Kiểm tra tìm kiếm không dấu & từ khóa viết tắt (HCM, HN, ben nghe...)
+        assert.strictEqual(matchesAddressKeyword('Thành phố Hồ Chí Minh', 'hcm'), true);
+        assert.strictEqual(matchesAddressKeyword('Thành phố Hồ Chí Minh', 'sai gon'), true);
+        assert.strictEqual(matchesAddressKeyword('Thành phố Hà Nội', 'ha noi'), true);
+        assert.strictEqual(matchesAddressKeyword('Phường Bến Nghé', 'ben nghe'), true);
+        assert.strictEqual(matchesAddressKeyword('Phường Bến Nghé', 'an khanh'), false);
+
+        console.log("SPX_ADDRESS_SORT_AND_SEARCH_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("SPX_ADDRESS_SORT_AND_SEARCH_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 if __name__ == '__main__':
