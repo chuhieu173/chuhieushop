@@ -2659,6 +2659,15 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('function verifyAdminPassword(', codegs)
         self.assertIn('function handleChangeAdminPassword(', codegs)
 
+        # Đảm bảo handleLogin KHÔNG dùng withLock (để lệnh chờ Utilities.sleep không bao giờ khóa luồng khách đặt hàng)
+        login_block = codegs[codegs.find("function handleLogin"):codegs.find("function handleChangeAdminPassword")]
+        self.assertNotIn("withLock", login_block, "LỖI HIỆU NĂNG: handleLogin không được bọc trong withLock gây nghẽn luồng đặt hàng!")
+
+        # Đảm bảo handleChangeAdminPassword KHÔNG gọi recomputeLeaderboardBackend thừa
+        change_pw_block = codegs[codegs.find("function handleChangeAdminPassword"):codegs.find("function handleUploadImage")]
+        self.assertNotIn("recomputeLeaderboardBackend", change_pw_block, "handleChangeAdminPassword không cần gọi recomputeLeaderboardBackend!")
+        self.assertIn('id="order-step-1-text"', index, "index.html phải có #order-step-1-text để cập nhật đồng bộ khi server từ chối đơn!")
+
         # 3. Kiểm thử bằng Node.js: Tách khóa ký SERVER_SESSION_SECRET, băm 2 tầng Double-Hash & chống khóa tài khoản Admin thật
         auth_block = codegs[codegs.find("function getServerSessionSecret()"):codegs.find("function getProductsList(")]
         test_js = """

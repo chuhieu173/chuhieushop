@@ -1987,9 +1987,9 @@
       </div>
       <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #0f172a;">Chỉ còn 1 bước cuối để hoàn tất!</h3>
 
-      <div class="order-step-item order-step-done">
-        <span style="font-size: 18px;">✅</span>
-        <div><b>Bước 1 (Đã xong):</b> Đơn hàng đã được lưu lên hệ thống và <b>đã tự động COPY</b> vào bộ nhớ điện thoại/máy tính của bạn.</div>
+      <div id="order-step-1-box" class="order-step-item order-step-done">
+        <span id="order-step-1-icon" style="font-size: 18px;">✅</span>
+        <div id="order-step-1-text"><b>Bước 1 (Đã xong):</b> Đơn hàng đã được lưu lên hệ thống và <b>đã tự động COPY</b> vào bộ nhớ điện thoại/máy tính của bạn.</div>
       </div>
 
       <div class="order-step-item order-step-next">
@@ -4723,14 +4723,25 @@
     function openOrderSuccessModal(orderText, isRepeatClick) {
       const modal = document.getElementById('order-success-modal');
       const badge = document.getElementById('order-success-badge');
+      const step1Icon = document.getElementById('order-step-1-icon');
+      const step1Text = document.getElementById('order-step-1-text');
       const copyStatus = document.getElementById('order-success-copy-status');
       const preview = document.getElementById('order-success-preview-text');
       if (badge) {
+        if (badge.style) {
+          badge.style.background = '#dcfce7';
+          badge.style.color = '#166534';
+        }
         badge.innerHTML = isRepeatClick
           ? '✅ ĐÃ COPY LẠI ĐƠN HÀNG (KHÔNG TẠO ĐƠN TRÙNG)'
           : '✅ ĐÃ GHI NHẬN &amp; COPY ĐƠN HÀNG';
       }
+      if (step1Icon) step1Icon.innerText = '✅';
+      if (step1Text) {
+        step1Text.innerHTML = '<b>Bước 1 (Đã xong):</b> Đơn hàng đã được lưu lên hệ thống và <b>đã tự động COPY</b> vào bộ nhớ điện thoại/máy tính của bạn.';
+      }
       if (copyStatus) {
+        if (copyStatus.style) copyStatus.style.color = '#15803d';
         copyStatus.innerText = isRepeatClick
           ? '✅ Đã copy lại nội dung đơn hàng vào bộ nhớ tạm (Đơn đã lưu trước đó):'
           : '📋 Nội dung đơn hàng đã được copy sẵn:';
@@ -4899,11 +4910,22 @@
             try { sessionStorage.removeItem(ORDER_DEDUP_STORAGE_KEY); } catch (e) {}
             updateCheckoutSubmittedUI();
             const badge = document.getElementById('order-success-badge');
+            const step1Icon = document.getElementById('order-step-1-icon');
+            const step1Text = document.getElementById('order-step-1-text');
             const copyStatus = document.getElementById('order-success-copy-status');
             if (badge) {
+              if (badge.style) {
+                badge.style.background = '#fef3c7';
+                badge.style.color = '#92400e';
+              }
               badge.innerHTML = '⚠️ CHƯA LƯU TỰ ĐỘNG - HÃY GỬI QUA ZALO';
             }
+            if (step1Icon) step1Icon.innerText = '📋';
+            if (step1Text) {
+              step1Text.innerHTML = '<b>Bước 1 (Đã copy đơn):</b> Hệ thống chưa thể lưu tự động (' + escapeHtml(res.msg || 'đang bận') + '), nhưng nội dung đơn <b>ĐÃ ĐƯỢC COPY SẴN</b> vào bộ nhớ máy của bạn.';
+            }
             if (copyStatus) {
+              if (copyStatus.style) copyStatus.style.color = '#b45309';
               copyStatus.innerText = '⚠️ ' + (res.msg || 'Hệ thống đang bận') + '. Nội dung đơn ĐÃ ĐƯỢC COPY sẵn, bạn hãy DÁN gửi trực tiếp vào Zalo của Shop nhé!';
             }
           }
