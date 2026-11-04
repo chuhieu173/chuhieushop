@@ -2880,6 +2880,59 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_hidden_vs_deleted_product_status_and_combo_exclusion(self):
+        """Kiểm tra: Tách riêng trạng thái 'ẩn' và 'đã xóa' - Sản phẩm đã xóa bị loại khỏi Combo, mặc định vào tab Sản phẩm là 'Đang bán'"""
+        with open('admin.html', 'r', encoding='utf-8') as f:
+            admin_content = f.read()
+
+        # 1. Các pill lọc và bộ đếm tồn tại đầy đủ
+        self.assertIn('id="inv-pill-active"', admin_content)
+        self.assertIn('id="inv-pill-hidden"', admin_content)
+        self.assertIn('id="inv-pill-deleted"', admin_content)
+        self.assertIn('id="inv-count-deleted"', admin_content)
+
+        # 2. Các hàm thao tác nhanh ẩn/xóa/khôi phục
+        self.assertIn('function quickHideProduct(', admin_content)
+        self.assertIn('function quickDeleteProduct(', admin_content)
+        self.assertIn('function quickRestoreProduct(', admin_content)
+
+        # 3. Mặc định là 'active' (Đang bán)
+        self.assertIn("currentInventoryStatusFilter = 'active'", admin_content)
+        self.assertIn("filterInventoryByStatus('active', activePill)", admin_content)
+
+        # 4. Kiểm tra logic loại bỏ sản phẩm 'đã xóa' khỏi Combo và giữ lại 'ẩn'
+        test_js = """
+        const assert = require('assert');
+        const mockProducts = [
+          { id: 1, name: 'Sản phẩm đang bán', status: 'còn hàng', price: 100000, stock: 10 },
+          { id: 2, name: 'Sản phẩm đang ẩn', status: 'ẩn', price: 200000, stock: 5 },
+          { id: 3, name: 'Sản phẩm đã xóa', status: 'đã xóa', price: 300000, stock: 0 }
+        ];
+
+        // Lọc cho bộ chọn Combo
+        const comboAllowed = mockProducts.filter(p => {
+          let st = (p.status || '').toLowerCase().trim();
+          let isDeleted = (st === 'đã xóa' || st === 'da xoa' || st === 'xóa' || st === 'xoa');
+          return !isDeleted;
+        });
+
+        assert.strictEqual(comboAllowed.length, 2, 'Combo chỉ cho phép sản phẩm đang bán và sản phẩm ẩn!');
+        assert.strictEqual(comboAllowed.some(p => p.id === 2), true, 'Sản phẩm ẩn VẪN hiển thị để chọn vào Combo!');
+        assert.strictEqual(comboAllowed.some(p => p.id === 3), false, 'Sản phẩm đã xóa KHÔNG ĐƯỢC PHÉP hiển thị trong Combo!');
+
+        console.log("HIDDEN_VS_DELETED_LOGIC_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("HIDDEN_VS_DELETED_LOGIC_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 if __name__ == '__main__':

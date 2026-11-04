@@ -1898,10 +1898,11 @@
           <button type="button" id="btn-clear-inventory-search" class="inventory-search-clear" onclick="clearInventorySearch()" title="Xóa tìm kiếm">✕</button>
         </div>
         <div class="inv-filter-pills">
-          <button type="button" id="inv-pill-all" class="inv-pill active" onclick="filterInventoryByStatus('all', this)">Tất cả <span id="inv-count-all" class="inv-pill-badge">0</span></button>
+          <button type="button" id="inv-pill-active" class="inv-pill active" onclick="filterInventoryByStatus('active', this)">👀 Đang bán <span id="inv-count-active" class="inv-pill-badge">0</span></button>
+          <button type="button" id="inv-pill-all" class="inv-pill" onclick="filterInventoryByStatus('all', this)">Tất cả <span id="inv-count-all" class="inv-pill-badge">0</span></button>
           <button type="button" id="inv-pill-low" class="inv-pill" onclick="filterInventoryByStatus('low_stock', this)">⚠️ Sắp hết / Hết <span id="inv-count-low" class="inv-pill-badge">0</span></button>
-          <button type="button" id="inv-pill-active" class="inv-pill" onclick="filterInventoryByStatus('active', this)">👀 Đang bán <span id="inv-count-active" class="inv-pill-badge">0</span></button>
           <button type="button" id="inv-pill-hidden" class="inv-pill" onclick="filterInventoryByStatus('hidden', this)">👻 Đang ẩn <span id="inv-count-hidden" class="inv-pill-badge">0</span></button>
+          <button type="button" id="inv-pill-deleted" class="inv-pill" onclick="filterInventoryByStatus('deleted', this)">🗑️ Đã xóa <span id="inv-count-deleted" class="inv-pill-badge">0</span></button>
         </div>
       </div>
 
@@ -2392,8 +2393,9 @@
         <label>Trạng thái hiển thị (Bảo mật):</label>
         <select id="edit-status">
           <option value="còn hàng">👀 Còn hàng (Hiện trên web bán bình thường)</option>
-          <option value="ẩn">👻 Ẩn (Không hiện bán lẻ, CHỈ BÁN TRONG COMBO)</option>
+          <option value="ẩn">👻 Ẩn (Không hiện bán lẻ, VẪN BÁN TRONG COMBO ĐƯỢC)</option>
           <option value="hết hàng">❌ Hết hàng (Ngưng bán tạm thời)</option>
+          <option value="đã xóa">🗑️ Đã xóa (Ẩn khỏi web và KHÔNG hiển thị trong Combo)</option>
         </select>
       </div>
 
@@ -3075,7 +3077,10 @@
       document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       document.getElementById(tabId).classList.add('active');
-      if (tabId === 'analytics') {
+      if (tabId === 'inventory') {
+        const activePill = document.getElementById('inv-pill-active');
+        filterInventoryByStatus('active', activePill);
+      } else if (tabId === 'analytics') {
         renderAnalytics();
       } else if (tabId === 'profit') {
         renderProfitAnalytics();
@@ -4617,7 +4622,7 @@
 
     let draggedProductIndex = null;
     let currentInventorySearchQuery = '';
-    let currentInventoryStatusFilter = 'all';
+    let currentInventoryStatusFilter = 'active';
 
     function onInventorySearchInput(val) {
       currentInventorySearchQuery = String(val || '').trim().toLowerCase();
@@ -4635,8 +4640,8 @@
     }
 
     function filterInventoryByStatus(mode, pillEl) {
-      currentInventoryStatusFilter = mode || 'all';
-      const pills = ['inv-pill-all', 'inv-pill-low', 'inv-pill-active', 'inv-pill-hidden'];
+      currentInventoryStatusFilter = mode || 'active';
+      const pills = ['inv-pill-all', 'inv-pill-low', 'inv-pill-active', 'inv-pill-hidden', 'inv-pill-deleted'];
       pills.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
@@ -4656,34 +4661,46 @@
       let countLow = 0;
       let countActive = 0;
       let countHidden = 0;
+      let countDeleted = 0;
 
       products.forEach(p => {
-        let st = (p.status || "").toLowerCase();
+        let st = (p.status || "").toLowerCase().trim();
+        let isDeleted = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa");
         let isHidden = (st === "ẩn" || st === "an");
         let isLow = (Number(p.stock) <= 2 || st === "hết hàng");
-        if (isLow) countLow++;
-        if (isHidden) countHidden++;
+
+        if (isDeleted) countDeleted++;
+        else if (isHidden) countHidden++;
         else countActive++;
+
+        if (isLow && !isDeleted) countLow++;
       });
 
       const elCountAll = document.getElementById('inv-count-all');
       const elCountLow = document.getElementById('inv-count-low');
       const elCountActive = document.getElementById('inv-count-active');
       const elCountHidden = document.getElementById('inv-count-hidden');
+      const elCountDeleted = document.getElementById('inv-count-deleted');
       if (elCountAll) elCountAll.innerText = String(countAll);
       if (elCountLow) elCountLow.innerText = String(countLow);
       if (elCountActive) elCountActive.innerText = String(countActive);
       if (elCountHidden) elCountHidden.innerText = String(countHidden);
+      if (elCountDeleted) elCountDeleted.innerText = String(countDeleted);
 
       let indexedProducts = products.map((p, index) => ({ product: p, originalIndex: index })).filter(item => {
         let p = item.product;
-        let st = (p.status || "").toLowerCase();
+        let st = (p.status || "").toLowerCase().trim();
+        let isDeleted = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa");
         let isHidden = (st === "ẩn" || st === "an");
         let isLow = (Number(p.stock) <= 2 || st === "hết hàng");
 
-        if (currentInventoryStatusFilter === 'low_stock' && !isLow) return false;
-        if (currentInventoryStatusFilter === 'active' && isHidden) return false;
+        if (currentInventoryStatusFilter === 'active' && (isHidden || isDeleted)) return false;
         if (currentInventoryStatusFilter === 'hidden' && !isHidden) return false;
+        if (currentInventoryStatusFilter === 'deleted' && !isDeleted) return false;
+        if (currentInventoryStatusFilter === 'low_stock' && (!isLow || isDeleted)) return false;
+        if (currentInventoryStatusFilter === 'all') {
+          // 'Tất cả' hiển thị toàn bộ
+        }
 
         if (currentInventorySearchQuery) {
           let q = currentInventorySearchQuery;
@@ -4711,8 +4728,17 @@
           stockHtml += `<div style="font-size:11.5px; color:#718096; margin-top:2px;">(${p.variants.length} phân loại)</div>`;
         }
         let firstImg = p.images && p.images.length > 0 ? p.images[0] : "";
-        let st = (p.status || "").toLowerCase();
-        let statusLabel = st === "ẩn" || st === "an" ? `<span style="color:#d69e2e; font-size:12px; border:1px solid #d69e2e; padding:2px 4px; border-radius:4px;">👻 Đang Ẩn</span>` : (st === "hết hàng" ? `<span style="color:#e53e3e; font-size:12px; border:1px solid #e53e3e; padding:2px 4px; border-radius:4px;">❌ Hết Hàng</span>` : `<span style="color:#38a169; font-size:12px; border:1px solid #38a169; padding:2px 4px; border-radius:4px;">👀 Đang bán</span>`);
+        let st = (p.status || "").toLowerCase().trim();
+        let isDeleted = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa");
+        let isHidden = (st === "ẩn" || st === "an");
+
+        let statusLabel = isDeleted
+          ? `<span style="color:#e53e3e; font-size:12px; border:1px solid #e53e3e; padding:2px 4px; border-radius:4px; background:#fff5f5;">🗑️ Đã xóa (Không cho vào Combo)</span>`
+          : (isHidden
+              ? `<span style="color:#d69e2e; font-size:12px; border:1px solid #d69e2e; padding:2px 4px; border-radius:4px; background:#fffaf0;">👻 Đang Ẩn (Vẫn có trong Combo)</span>`
+              : (st === "hết hàng"
+                  ? `<span style="color:#e53e3e; font-size:12px; border:1px solid #e53e3e; padding:2px 4px; border-radius:4px;">❌ Hết Hàng</span>`
+                  : `<span style="color:#38a169; font-size:12px; border:1px solid #38a169; padding:2px 4px; border-radius:4px;">👀 Đang bán</span>`));
 
         let priceHtml = "";
         if (hasVars) {
@@ -4733,16 +4759,28 @@
         let upBtn = `<button type="button" class="btn-order-move" title="Di chuyển lên trên" ${isFirst ? 'disabled' : ''} onclick="moveProductOrder(${index}, -1)">▲</button>`;
         let downBtn = `<button type="button" class="btn-order-move" title="Di chuyển xuống dưới" ${isLast ? 'disabled' : ''} onclick="moveProductOrder(${index}, 1)">▼</button>`;
 
-        let isHidden = st === "ẩn" || st === "an";
-        let actionBtns = isHidden
-          ? `<div style="display:flex; flex-direction:column; gap:4px;">
-               <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button>
-               <button class="btn-update" style="background:#2b6cb0; padding:6px 10px; font-size:12px;" onclick="quickRestoreProduct('${p.id}')" title="Khôi phục mở bán lại ngoài website">👀 Mở bán lại</button>
-             </div>`
-          : `<div style="display:flex; flex-direction:column; gap:4px;">
-               <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button>
-               <button class="btn-update btn-delete" style="padding:6px 10px; font-size:12px;" onclick="quickHideProduct('${p.id}')" title="Ẩn sản phẩm khỏi web bán hàng và chuyển vào mục Đã ẩn">🗑️ Ẩn/Xóa</button>
-             </div>`;
+        let actionBtns = '';
+        if (isDeleted) {
+          actionBtns = `
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button>
+              <button class="btn-update" style="background:#2b6cb0; padding:6px 10px; font-size:12px;" onclick="quickRestoreProduct('${p.id}')" title="Khôi phục mở bán lại ngoài website">👀 Khôi phục bán</button>
+            </div>`;
+        } else if (isHidden) {
+          actionBtns = `
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button>
+              <button class="btn-update" style="background:#2b6cb0; padding:6px 10px; font-size:12px;" onclick="quickRestoreProduct('${p.id}')" title="Khôi phục mở bán lại ngoài website">👀 Mở bán lại</button>
+              <button class="btn-update btn-delete" style="padding:6px 10px; font-size:12px;" onclick="quickDeleteProduct('${p.id}')" title="Chuyển sang Đã xóa (Không cho chọn vào Combo)">🗑️ Xóa hẳn khỏi Combo</button>
+            </div>`;
+        } else {
+          actionBtns = `
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button>
+              <button class="btn-update" style="background:#d69e2e; padding:6px 10px; font-size:12px;" onclick="quickHideProduct('${p.id}')" title="Ẩn khỏi bán lẻ, vẫn có thể chọn thêm vào Combo">👻 Ẩn sản phẩm</button>
+              <button class="btn-update btn-delete" style="padding:6px 10px; font-size:12px;" onclick="quickDeleteProduct('${p.id}')" title="Xóa sản phẩm (Ẩn khỏi web và không cho chọn vào Combo)">🗑️ Xóa sản phẩm</button>
+            </div>`;
+        }
 
         rowsHtml.push(`
           <tr id="prod-row-${p.id}" class="product-row" draggable="true"
@@ -4946,7 +4984,7 @@
       const prod = globalProductsData.find(p => String(p.id) === String(productId));
       if (!prod) return;
 
-      const confirmMsg = `Bạn có chắc muốn ẩn sản phẩm "${prod.name}" không?\n\n• Sản phẩm sẽ lập tức ngừng bán ngoài website của khách.\n• Được chuyển vào mục "👻 Đang ẩn" trong Admin để bạn có thể mở bán lại bất kỳ lúc nào.\n• Lịch sử doanh thu và báo cáo lợi nhuận vẫn được giữ nguyên vẹn 100%.`;
+      const confirmMsg = `Bạn có chắc muốn ẨN sản phẩm "${prod.name}" không?\n\n• Sản phẩm sẽ ngừng bán lẻ ngoài website của khách.\n• BẠN VẪN CÓ THỂ CHỌN SẢN PHẨM NÀY ĐỂ TẠO COMBO.\n• Được chuyển vào mục "👻 Đang ẩn" trong Admin và có thể mở bán lại bất kỳ lúc nào.`;
       if (!confirm(confirmMsg)) return;
 
       showLoading(true);
@@ -4981,11 +5019,61 @@
 
         prod.status = "ẩn";
         renderInventory(globalProductsData);
+        updateComboSelectOptions();
         showLoading(false);
-        showToast(`🗑️ Đã ẩn "${prod.name}" khỏi danh sách bán hàng!`, "success");
+        showToast(`👻 Đã chuyển "${prod.name}" sang Đang Ẩn (vẫn chọn vào Combo được)!`, "success");
       } catch (e) {
         showLoading(false);
         alert("Lỗi kết nối khi cập nhật trạng thái ẩn sản phẩm!");
+      }
+    }
+
+    async function quickDeleteProduct(productId) {
+      if (!globalProductsData) return;
+      const prod = globalProductsData.find(p => String(p.id) === String(productId));
+      if (!prod) return;
+
+      const confirmMsg = `Bạn có chắc muốn XÓA sản phẩm "${prod.name}" không?\n\n• Sản phẩm sẽ ngừng bán ngoài website của khách.\n• SẼ KHÔNG CÒN HIỂN THỊ ĐỂ CHỌN THÊM VÀO COMBO NỮA.\n• Được chuyển vào mục "🗑️ Đã xóa" trong Admin (vẫn bảo toàn lịch sử doanh thu & báo cáo lợi nhuận).\n• Bạn có thể khôi phục mở bán lại bất cứ lúc nào.`;
+      if (!confirm(confirmMsg)) return;
+
+      showLoading(true);
+      try {
+        const hasVariants = prod.variants && prod.variants.length > 0;
+        const payload = {
+          action: "updateProduct",
+          token: getAdminToken(),
+          productId: prod.id,
+          name: prod.name,
+          originalPrice: prod.originalPrice || 0,
+          price: prod.price,
+          costPrice: prod.costPrice !== undefined ? Number(prod.costPrice) : 0,
+          images: Array.isArray(prod.images) ? prod.images.join('\n') : (prod.images || ''),
+          desc: prod.desc || '',
+          status: "đã xóa",
+          stock: parseInt(prod.stock, 10) || 0,
+          variants: hasVariants ? JSON.stringify(prod.variants) : ""
+        };
+
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg || "Không thể xóa sản phẩm!");
+          showLoading(false);
+          return;
+        }
+
+        prod.status = "đã xóa";
+        renderInventory(globalProductsData);
+        updateComboSelectOptions();
+        showLoading(false);
+        showToast(`🗑️ Đã xóa "${prod.name}" (không còn hiển thị trong Combo)!`, "success");
+      } catch (e) {
+        showLoading(false);
+        alert("Lỗi kết nối khi xóa sản phẩm!");
       }
     }
 
@@ -5411,6 +5499,11 @@
       }
 
       globalProductsData.forEach(p => {
+        let st = (p.status || "").toLowerCase().trim();
+        let isDeleted = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa");
+        // Sản phẩm đã xóa sẽ không hiển thị để chọn thêm vào Combo
+        if (isDeleted) return;
+
         let hasVars = p.variants && p.variants.length > 0;
         let itemsToRender = [];
         if (hasVars) {
@@ -5439,7 +5532,6 @@
           });
         }
 
-        let st = (p.status || "").toLowerCase();
         let hiddenBadge = (st === "ẩn" || st === "an") ? '<span style="color:#d69e2e; font-size:11px; margin-left:4px;">(Ẩn)</span>' : '';
 
         itemsToRender.forEach(item => {
@@ -5570,6 +5662,11 @@
     function toggleSelectAllComboProducts(isChecked) {
       currentComboItems = [];
       globalProductsData.forEach(p => {
+        let st = (p.status || "").toLowerCase().trim();
+        let isDeleted = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa");
+        // Sản phẩm đã xóa sẽ không hiển thị để chọn thêm vào Combo
+        if (isDeleted) return;
+
         let hasVars = p.variants && p.variants.length > 0;
         let itemsToToggle = hasVars ? p.variants.map(v => ({ variantId: v.id })) : [{ variantId: '' }];
         itemsToToggle.forEach(item => {
@@ -5710,6 +5807,11 @@
 
       globalProductsData.forEach(p => {
         if (p.isCombo) return;
+        let st = (p.status || "").toLowerCase().trim();
+        let isDeleted = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa");
+        // Bỏ qua sản phẩm đã xóa, không cho chọn làm quà tặng
+        if (isDeleted) return;
+
         if (p.variants && p.variants.length > 0) {
           p.variants.forEach(v => {
             const val = `${p.id}:::${v.id}`;
@@ -6065,8 +6167,11 @@
         document.getElementById("edit-desc").value = p.desc; 
         document.getElementById("edit-stock").value = p.stock;
         
-        let st = (p.status || "").toLowerCase();
-        document.getElementById("edit-status").value = (st === "ẩn" || st === "an") ? "ẩn" : (st === "hết hàng" ? "hết hàng" : "còn hàng");
+        let st = (p.status || "").toLowerCase().trim();
+        let isDel = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa");
+        let isHid = (st === "ẩn" || st === "an");
+        let isOos = (st === "hết hàng" || st === "het hang");
+        document.getElementById("edit-status").value = isDel ? "đã xóa" : (isHid ? "ẩn" : (isOos ? "hết hàng" : "còn hàng"));
         currentEditImages = p.rawImages.split('\n').map(i => i.trim()).filter(i => i !== ""); 
 
         if (p.variants && p.variants.length > 0) {
