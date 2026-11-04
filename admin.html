@@ -5060,7 +5060,6 @@
       try {
         const hasVariants = prod.variants && prod.variants.length > 0;
         const cleanDesc = cleanDeletedTagFromDesc(prod.desc);
-        const newDesc = cleanDesc ? `[ĐÃ XÓA]\n${cleanDesc}` : '[ĐÃ XÓA]';
         const payload = {
           action: "updateProduct",
           token: getAdminToken(),
@@ -5070,8 +5069,8 @@
           price: prod.price,
           costPrice: prod.costPrice !== undefined ? Number(prod.costPrice) : 0,
           images: Array.isArray(prod.images) ? prod.images.join('\n') : (prod.images || ''),
-          desc: newDesc,
-          status: "ẩn", // Giữ status 'ẩn' trên Sheets để tương thích 100% với Data Validation
+          desc: cleanDesc,
+          status: "đã xóa",
           stock: parseInt(prod.stock, 10) || 0,
           variants: hasVariants ? JSON.stringify(prod.variants) : ""
         };
@@ -5088,8 +5087,8 @@
           return;
         }
 
-        prod.status = "ẩn";
-        prod.desc = newDesc;
+        prod.status = "đã xóa";
+        prod.desc = cleanDesc;
         renderInventory(globalProductsData);
         updateComboSelectOptions();
         showLoading(false);
@@ -6256,13 +6255,6 @@
       let selectedStatus = document.getElementById("edit-status").value;
       let rawDesc = document.getElementById("edit-desc").value || "";
       let cleanDesc = cleanDeletedTagFromDesc(rawDesc);
-      let finalStatus = selectedStatus;
-      let finalDesc = cleanDesc;
-
-      if (selectedStatus === "đã xóa") {
-        finalStatus = "ẩn"; // Dùng status 'ẩn' trên Sheets để tương thích 100% với Data Validation
-        finalDesc = cleanDesc ? `[ĐÃ XÓA]\n${cleanDesc}` : '[ĐÃ XÓA]';
-      }
 
       let payload = {
         action: pId ? "updateProduct" : "createProduct",
@@ -6273,8 +6265,8 @@
         price: document.getElementById("edit-sell-price").value,
         costPrice: costPriceVal !== "" ? Number(costPriceVal) : 0,
         images: currentEditImages.join('\n'),
-        desc: finalDesc,
-        status: finalStatus,
+        desc: cleanDesc,
+        status: selectedStatus,
         stock: parseInt(document.getElementById("edit-stock").value) || 0,
         variants: hasVariants ? JSON.stringify(currentProductVariants) : ""
       };
