@@ -2901,24 +2901,42 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn("filterInventoryByStatus('active', activePill)", admin_content)
 
         # 4. Kiểm tra logic loại bỏ sản phẩm 'đã xóa' khỏi Combo và giữ lại 'ẩn'
-        test_js = """
+        test_js = r"""
         const assert = require('assert');
+
+        function isProductDeleted(p) {
+          if (!p) return false;
+          let st = (p.status || "").toLowerCase().trim();
+          let isDirectDeleted = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa");
+          let desc = String(p.desc || "").trim();
+          let isDescMarked = desc.startsWith("[ĐÃ XÓA]") || desc.startsWith("[DA XOA]") || desc.startsWith("[DELETED]") || desc.includes("<!--DELETED-->");
+          return Boolean(isDirectDeleted || (st === "ẩn" && isDescMarked));
+        }
+
+        function cleanDeletedTagFromDesc(desc) {
+          if (!desc) return "";
+          return String(desc)
+            .replace(/^\[(?:ĐÃ XÓA|DA XOA|DELETED)\]\s*/i, "")
+            .replace(/<!--DELETED-->\s*/gi, "")
+            .trim();
+        }
+
         const mockProducts = [
-          { id: 1, name: 'Sản phẩm đang bán', status: 'còn hàng', price: 100000, stock: 10 },
-          { id: 2, name: 'Sản phẩm đang ẩn', status: 'ẩn', price: 200000, stock: 5 },
-          { id: 3, name: 'Sản phẩm đã xóa', status: 'đã xóa', price: 300000, stock: 0 }
+          { id: 1, name: 'Sản phẩm đang bán', status: 'còn hàng', price: 100000, stock: 10, desc: 'Mô tả thường' },
+          { id: 2, name: 'Sản phẩm đang ẩn', status: 'ẩn', price: 200000, stock: 5, desc: 'Hàng ẩn cho combo' },
+          { id: 3, name: 'Sản phẩm đã xóa qua tag', status: 'ẩn', price: 300000, stock: 0, desc: '[ĐÃ XÓA]\nMô tả cũ' },
+          { id: 4, name: 'Sản phẩm đã xóa trực tiếp', status: 'đã xóa', price: 400000, stock: 0, desc: '' }
         ];
 
         // Lọc cho bộ chọn Combo
-        const comboAllowed = mockProducts.filter(p => {
-          let st = (p.status || '').toLowerCase().trim();
-          let isDeleted = (st === 'đã xóa' || st === 'da xoa' || st === 'xóa' || st === 'xoa');
-          return !isDeleted;
-        });
+        const comboAllowed = mockProducts.filter(p => !isProductDeleted(p));
 
         assert.strictEqual(comboAllowed.length, 2, 'Combo chỉ cho phép sản phẩm đang bán và sản phẩm ẩn!');
         assert.strictEqual(comboAllowed.some(p => p.id === 2), true, 'Sản phẩm ẩn VẪN hiển thị để chọn vào Combo!');
-        assert.strictEqual(comboAllowed.some(p => p.id === 3), false, 'Sản phẩm đã xóa KHÔNG ĐƯỢC PHÉP hiển thị trong Combo!');
+        assert.strictEqual(comboAllowed.some(p => p.id === 3), false, 'Sản phẩm gắn tag [ĐÃ XÓA] KHÔNG ĐƯỢC PHÉP hiển thị trong Combo!');
+        assert.strictEqual(comboAllowed.some(p => p.id === 4), false, 'Sản phẩm status đã xóa KHÔNG ĐƯỢC PHÉP hiển thị trong Combo!');
+
+        assert.strictEqual(cleanDeletedTagFromDesc('[ĐÃ XÓA]\nLinh kiện tốt'), 'Linh kiện tốt');
 
         console.log("HIDDEN_VS_DELETED_LOGIC_OK");
         """
