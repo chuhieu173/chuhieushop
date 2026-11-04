@@ -5557,6 +5557,7 @@
           });
         }
 
+        let st = (p.status || "").toLowerCase().trim();
         let hiddenBadge = (st === "ẩn" || st === "an") ? '<span style="color:#d69e2e; font-size:11px; margin-left:4px;">(Ẩn)</span>' : '';
 
         itemsToRender.forEach(item => {

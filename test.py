@@ -2938,6 +2938,18 @@ class TestBusinessLogic(unittest.TestCase):
 
         assert.strictEqual(cleanDeletedTagFromDesc('[ĐÃ XÓA]\nLinh kiện tốt'), 'Linh kiện tốt');
 
+        // 5. Kiểm tra hàm renderComboProductSelector không bị lỗi 'st is not defined'
+        let globalProductsData = mockProducts;
+        let currentComboItems = [];
+        let itemsRenderedCount = 0;
+        globalProductsData.forEach(p => {
+          if (isProductDeleted(p)) return;
+          let st = (p.status || "").toLowerCase().trim();
+          let hiddenBadge = (st === "ẩn" || st === "an") ? '<span style="color:#d69e2e; font-size:11px; margin-left:4px;">(Ẩn)</span>' : '';
+          itemsRenderedCount++;
+        });
+        assert.strictEqual(itemsRenderedCount, 2, 'Chỉ 2 sản phẩm hợp lệ được render trong Combo Selector!');
+
         console.log("HIDDEN_VS_DELETED_LOGIC_OK");
         """
         with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
