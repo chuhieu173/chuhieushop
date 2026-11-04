@@ -4733,6 +4733,17 @@
         let upBtn = `<button type="button" class="btn-order-move" title="Di chuyển lên trên" ${isFirst ? 'disabled' : ''} onclick="moveProductOrder(${index}, -1)">▲</button>`;
         let downBtn = `<button type="button" class="btn-order-move" title="Di chuyển xuống dưới" ${isLast ? 'disabled' : ''} onclick="moveProductOrder(${index}, 1)">▼</button>`;
 
+        let isHidden = st === "ẩn" || st === "an";
+        let actionBtns = isHidden
+          ? `<div style="display:flex; flex-direction:column; gap:4px;">
+               <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button>
+               <button class="btn-update" style="background:#2b6cb0; padding:6px 10px; font-size:12px;" onclick="quickRestoreProduct('${p.id}')" title="Khôi phục mở bán lại ngoài website">👀 Mở bán lại</button>
+             </div>`
+          : `<div style="display:flex; flex-direction:column; gap:4px;">
+               <button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button>
+               <button class="btn-update btn-delete" style="padding:6px 10px; font-size:12px;" onclick="quickHideProduct('${p.id}')" title="Ẩn sản phẩm khỏi web bán hàng và chuyển vào mục Đã ẩn">🗑️ Ẩn/Xóa</button>
+             </div>`;
+
         rowsHtml.push(`
           <tr id="prod-row-${p.id}" class="product-row" draggable="true"
               ondragstart="handleProdDragStart(event, ${index})"
@@ -4762,7 +4773,7 @@
             </td>
             <td data-label="Giá bán"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${priceHtml}</div></td>
             <td data-label="Tồn kho">${stockHtml}</td>
-            <td data-label="Thao tác"><button class="btn-update" onclick="openEditModal('${p.id}')">Sửa</button></td>
+            <td data-label="Thao tác">${actionBtns}</td>
           </tr>`);
       });
       tbody.innerHTML = rowsHtml.join('');
@@ -4927,6 +4938,100 @@
         if (statusEl) statusEl.style.display = 'none';
         alert("Lỗi kết nối khi lưu thứ tự sản phẩm!");
         loadData();
+      }
+    }
+
+    async function quickHideProduct(productId) {
+      if (!globalProductsData) return;
+      const prod = globalProductsData.find(p => String(p.id) === String(productId));
+      if (!prod) return;
+
+      const confirmMsg = `Bạn có chắc muốn ẩn sản phẩm "${prod.name}" không?\n\n• Sản phẩm sẽ lập tức ngừng bán ngoài website của khách.\n• Được chuyển vào mục "👻 Đang ẩn" trong Admin để bạn có thể mở bán lại bất kỳ lúc nào.\n• Lịch sử doanh thu và báo cáo lợi nhuận vẫn được giữ nguyên vẹn 100%.`;
+      if (!confirm(confirmMsg)) return;
+
+      showLoading(true);
+      try {
+        const hasVariants = prod.variants && prod.variants.length > 0;
+        const payload = {
+          action: "updateProduct",
+          token: getAdminToken(),
+          productId: prod.id,
+          name: prod.name,
+          originalPrice: prod.originalPrice || 0,
+          price: prod.price,
+          costPrice: prod.costPrice !== undefined ? Number(prod.costPrice) : 0,
+          images: Array.isArray(prod.images) ? prod.images.join('\n') : (prod.images || ''),
+          desc: prod.desc || '',
+          status: "ẩn",
+          stock: parseInt(prod.stock, 10) || 0,
+          variants: hasVariants ? JSON.stringify(prod.variants) : ""
+        };
+
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg || "Không thể ẩn sản phẩm!");
+          showLoading(false);
+          return;
+        }
+
+        prod.status = "ẩn";
+        renderInventory(globalProductsData);
+        showLoading(false);
+        showToast(`🗑️ Đã ẩn "${prod.name}" khỏi danh sách bán hàng!`, "success");
+      } catch (e) {
+        showLoading(false);
+        alert("Lỗi kết nối khi cập nhật trạng thái ẩn sản phẩm!");
+      }
+    }
+
+    async function quickRestoreProduct(productId) {
+      if (!globalProductsData) return;
+      const prod = globalProductsData.find(p => String(p.id) === String(productId));
+      if (!prod) return;
+
+      showLoading(true);
+      try {
+        const hasVariants = prod.variants && prod.variants.length > 0;
+        const newStatus = (Number(prod.stock) <= 0) ? "hết hàng" : "còn hàng";
+        const payload = {
+          action: "updateProduct",
+          token: getAdminToken(),
+          productId: prod.id,
+          name: prod.name,
+          originalPrice: prod.originalPrice || 0,
+          price: prod.price,
+          costPrice: prod.costPrice !== undefined ? Number(prod.costPrice) : 0,
+          images: Array.isArray(prod.images) ? prod.images.join('\n') : (prod.images || ''),
+          desc: prod.desc || '',
+          status: newStatus,
+          stock: parseInt(prod.stock, 10) || 0,
+          variants: hasVariants ? JSON.stringify(prod.variants) : ""
+        };
+
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg || "Không thể khôi phục sản phẩm!");
+          showLoading(false);
+          return;
+        }
+
+        prod.status = newStatus;
+        renderInventory(globalProductsData);
+        showLoading(false);
+        showToast(`👀 Đã mở bán lại "${prod.name}" thành công!`, "success");
+      } catch (e) {
+        showLoading(false);
+        alert("Lỗi kết nối khi mở bán lại sản phẩm!");
       }
     }
 

@@ -2530,6 +2530,8 @@ class TestBusinessLogic(unittest.TestCase):
             self.assertIn(f'id="{inv_id}"', admin_content, f"Thiếu #{inv_id} trong admin.html")
         self.assertIn('function onInventorySearchInput(', admin_content)
         self.assertIn('function filterInventoryByStatus(', admin_content)
+        self.assertIn('function quickHideProduct(', admin_content)
+        self.assertIn('function quickRestoreProduct(', admin_content)
 
         # --- BẢO VỆ HIỂN THỊ ẢNH 2 LỚP (LỚP 1: NO-REFERRER + LỚP 2: CLOUDFLARE CDN FALLBACK CHO IMGBB) ---
         for page_name, page_html in [('index.html', index_content), ('admin.html', admin_content)]:
