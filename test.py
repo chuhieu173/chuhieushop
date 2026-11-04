@@ -2763,6 +2763,8 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('id="spx-address-search"', index_content)
         self.assertIn('id="spx-address-stepper"', index_content)
         self.assertIn('id="spx-address-list"', index_content)
+        self.assertIn('.spx-step-row.has-next::after', index_content, "LỖI: Gạch nối stepper phải gắn vào .spx-step-row.has-next::after để phủ kín khoảng trống!")
+        self.assertIn('height: calc(100% + 1px)', index_content, "LỖI: Chiều cao gạch nối stepper phải nối liền chạm khít vào dot tiếp theo!")
 
         start_idx = index_content.find('const SPX_CENTRAL_CITIES = [')
         end_idx = index_content.find('function cleanDetailAddress(')
@@ -2860,6 +2862,14 @@ class TestBusinessLogic(unittest.TestCase):
         selectWardInSpxModal('105');
         assert.strictEqual(mockDom['spx-address-modal'].style.display, 'none');
         assert.strictEqual(mockDom['spx-address-trigger-text'].textContent, 'Thành phố Hà Nội / Phường Cầu Giấy');
+
+        // Khi ấn chọn lại Tỉnh (switchSpxModalStep('tinh')): cần ẩn phần Phường/Xã đã chọn lúc trước và reset phuong value
+        switchSpxModalStep('tinh');
+        assert.strictEqual(spxModalStep, 'tinh');
+        assert.strictEqual(mockDom['phuong'].value, '', 'Phải reset giá trị phường khi chọn lại Tỉnh');
+        assert.ok(!mockDom['spx-address-stepper'].innerHTML.includes('Phường Cầu Giấy'), 'Phải ẩn phường/xã đã chọn khỏi stepper');
+        assert.ok(!mockDom['spx-address-stepper'].innerHTML.includes('Chọn Phường/Xã'), 'Không hiển thị hàng Phường/Xã khi ở bước Tỉnh');
+        assert.ok(mockDom['spx-address-stepper'].innerHTML.includes('Thành phố Hà Nội'), 'Hiển thị tên Tỉnh đang chọn lại');
 
         // 4. Kiểm tra tìm kiếm không dấu & từ khóa viết tắt (HCM, HN, ben nghe...)
         assert.strictEqual(matchesAddressKeyword('Thành phố Hồ Chí Minh', 'hcm'), true);

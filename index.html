@@ -975,16 +975,17 @@
       position: relative;
       z-index: 2;
     }
-    .spx-step-row.has-next .spx-step-dot::after {
+    .spx-step-row.has-next::after {
       content: "";
       position: absolute;
-      left: 50%;
-      top: 7px;
+      left: 5.5px;
+      top: 50%;
       transform: translateX(-50%);
       width: 1.5px;
-      height: 27px;
+      height: calc(100% + 1px);
       background: #ee4d2d;
       z-index: 1;
+      pointer-events: none;
     }
     .spx-step-label {
       font-size: 14.5px;
@@ -1033,6 +1034,8 @@
     body.theme-dark .spx-address-modal-sheet { background: #1e2235; color: #f1f5f9; }
     body.theme-dark .spx-modal-title, body.theme-dark .spx-step-label, body.theme-dark .spx-modal-item { color: #f1f5f9; }
     body.theme-dark .spx-step-row.is-active .spx-step-label, body.theme-dark .spx-modal-item.is-selected { color: #ff6b4a; }
+    body.theme-dark .spx-step-dot { background: #ff6b4a; }
+    body.theme-dark .spx-step-row.has-next::after { background: #ff6b4a; }
     body.theme-dark .spx-modal-item:hover { background: #2a2f45; }
     body.theme-dark .spx-modal-item.is-selected { background: rgba(238, 77, 45, 0.15); }
     body.theme-dark .spx-modal-search-box { background: #2a2f45; }
@@ -1042,6 +1045,8 @@
     body.theme-halloween .spx-address-modal-sheet { background: #1a0929 !important; color: #fed7aa !important; border: 1px solid rgba(255, 119, 0, 0.4); }
     body.theme-halloween .spx-modal-title, body.theme-halloween .spx-step-label, body.theme-halloween .spx-modal-item { color: #fed7aa !important; }
     body.theme-halloween .spx-step-row.is-active .spx-step-label, body.theme-halloween .spx-modal-item.is-selected { color: #fb923c !important; }
+    body.theme-halloween .spx-step-dot { background: #fb923c !important; }
+    body.theme-halloween .spx-step-row.has-next::after { background: #fb923c !important; }
     body.theme-halloween .spx-modal-search-box { background: #2b1242 !important; }
     body.theme-halloween .spx-modal-search-input { color: #fed7aa !important; }
     body.theme-halloween .spx-modal-stepper { border-bottom-color: rgba(255, 119, 0, 0.25) !important; }
@@ -3730,6 +3735,16 @@
     function switchSpxModalStep(step) {
       if (step === 'phuong' && !getSelectedProvinceObj()) return;
       spxModalStep = step;
+      if (step === 'tinh') {
+        // Khi ấn chọn lại Tỉnh: ẩn và reset phần phường/xã đã chọn lúc trước
+        const phuongEl = document.getElementById('phuong');
+        if (phuongEl && phuongEl.value) {
+          phuongEl.value = '';
+          syncSpxAddressTriggerDisplay();
+          updateAddressPreview();
+          onCustomerFormInput();
+        }
+      }
       const searchEl = document.getElementById('spx-address-search');
       const clearBtn = document.getElementById('spx-address-search-clear');
       if (searchEl) searchEl.value = '';
@@ -3750,29 +3765,29 @@
       const query = searchEl ? searchEl.value : '';
 
       const spxChevronSvg = `<svg class="spx-step-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
-      if (!prov) {
-        spxModalStep = 'tinh';
+      if (spxModalStep === 'tinh') {
+        // Khi ở bước chọn Tỉnh (hoặc ấn chọn lại Tỉnh): chỉ hiển thị hàng Tỉnh, ẩn hoàn toàn phần Phường/Xã
+        const provLabel = prov ? prov.name : 'Vui lòng chọn';
         stepperEl.innerHTML = `
           <div class="spx-step-row is-active" onclick="switchSpxModalStep('tinh')">
             <div class="spx-step-left">
               <span class="spx-step-dot"></span>
-              <span class="spx-step-label">Vui lòng chọn</span>
+              <span class="spx-step-label">${provLabel}</span>
             </div>
             ${spxChevronSvg}
           </div>`;
       } else {
-        const isTinhActive = spxModalStep === 'tinh' ? ' is-active' : '';
-        const isPhuongActive = spxModalStep === 'phuong' ? ' is-active' : '';
+        // Khi ở bước chọn Phường/Xã: hiển thị Tỉnh (có gạch nối liền mạch) và Phường/Xã (đang active)
         const wardLabel = ward ? ward.name : 'Chọn Phường/Xã';
         stepperEl.innerHTML = `
-          <div class="spx-step-row has-next${isTinhActive}" onclick="switchSpxModalStep('tinh')">
+          <div class="spx-step-row has-next" onclick="switchSpxModalStep('tinh')">
             <div class="spx-step-left">
               <span class="spx-step-dot"></span>
-              <span class="spx-step-label">${prov.name}</span>
+              <span class="spx-step-label">${prov ? prov.name : 'Vui lòng chọn'}</span>
             </div>
             ${spxChevronSvg}
           </div>
-          <div class="spx-step-row${isPhuongActive}" onclick="switchSpxModalStep('phuong')">
+          <div class="spx-step-row is-active" onclick="switchSpxModalStep('phuong')">
             <div class="spx-step-left">
               <span class="spx-step-dot"></span>
               <span class="spx-step-label">${wardLabel}</span>
