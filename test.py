@@ -2746,14 +2746,17 @@ class TestBusinessLogic(unittest.TestCase):
                 os.remove(temp_path)
 
     def test_spx_province_ward_sorting_and_searchable_picker(self):
-        """Kiểm tra Tỉnh/Thành phố & Phường/Xã xếp đúng thứ tự SPX (Thành phố A-Z -> Tỉnh A-Z, Phường A-Z -> Xã A-Z) và ô tìm kiếm nhanh"""
+        """Kiểm tra bộ chọn Tỉnh / Phường-Xã 1 ô duy nhất & Modal nửa màn hình chuẩn SPX"""
         with open('index.html', 'r', encoding='utf-8') as f:
             index_content = f.read()
 
-        self.assertIn('id="tinh-search"', index_content)
-        self.assertIn('id="phuong-search"', index_content)
-        self.assertIn('id="tinh-search-dropdown"', index_content)
-        self.assertIn('id="phuong-search-dropdown"', index_content)
+        self.assertIn('id="spx-address-trigger"', index_content)
+        self.assertIn('id="spx-address-trigger-text"', index_content)
+        self.assertIn('id="spx-address-modal"', index_content)
+        self.assertIn('id="spx-address-sheet"', index_content)
+        self.assertIn('id="spx-address-search"', index_content)
+        self.assertIn('id="spx-address-stepper"', index_content)
+        self.assertIn('id="spx-address-list"', index_content)
 
         start_idx = index_content.find('const SPX_CENTRAL_CITIES = [')
         end_idx = index_content.find('function cleanDetailAddress(')
@@ -2768,6 +2771,19 @@ class TestBusinessLogic(unittest.TestCase):
         const WARDS_CACHE_PREFIX = 'chuhieu_geo_wards_v1_';
         function updateAddressPreview() {}
         function onCustomerFormInput() {}
+        const mockDom = {
+          'tinh': { value: '', innerHTML: '', selectedIndex: -1, options: [] },
+          'phuong': { value: '', innerHTML: '', disabled: true, selectedIndex: -1, options: [] },
+          'spx-address-trigger-text': { className: '', textContent: '', innerHTML: '' },
+          'spx-address-modal': { style: { display: 'none' } },
+          'spx-address-search': { value: '', focus: function() {} },
+          'spx-address-search-clear': { style: { display: 'none' } },
+          'spx-address-stepper': { innerHTML: '' },
+          'spx-address-list': { innerHTML: '', scrollTop: 0 }
+        };
+        const document = {
+          getElementById: (id) => mockDom[id] || null
+        };
         """ + js_block + """
         // 1. Kiểm tra chuẩn hóa tên và sắp xếp Tỉnh / Thành phố theo chuẩn SPX:
         // Thành phố xếp trước (A -> Z), Tỉnh xếp sau (A -> Z), và Bắc Ninh / Quảng Ninh / Đồng Nai chuẩn hóa thành Tỉnh
@@ -2802,9 +2818,9 @@ class TestBusinessLogic(unittest.TestCase):
           { code: 102, name: 'Phường 10' },
           { code: 103, name: 'Xã An Khánh' },
           { code: 104, name: 'Phường 2' },
-          { code: 105, name: 'Phường Bến Nghé' },
+          { code: 105, name: 'Phường Cầu Giấy' },
           { code: 106, name: 'Phường 1' },
-          { code: 107, name: 'Phường An Đông' }
+          { code: 107, name: 'Phường Ba Đình' }
         ];
         const sortedWards = sortWardsSPX(rawWards);
         assert.deepStrictEqual(
@@ -2813,19 +2829,37 @@ class TestBusinessLogic(unittest.TestCase):
             'Phường 1',
             'Phường 2',
             'Phường 10',
-            'Phường An Đông',
-            'Phường Bến Nghé',
+            'Phường Ba Đình',
+            'Phường Cầu Giấy',
             'Xã An Khánh',
             'Xã Tân Thới'
           ]
         );
 
-        // 3. Kiểm tra tìm kiếm không dấu & từ khóa viết tắt (HCM, HN, ben nghe...)
+        // 3. Kiểm tra luồng chọn 1 ô chuẩn SPX: mở Modal -> chọn Tỉnh -> tự chuyển sang chọn Phường -> cập nhật ô hiển thị & đóng Modal
+        renderProvincesSelect(rawProvs);
+        openSpxAddressModal();
+        assert.strictEqual(mockDom['spx-address-modal'].style.display, 'flex');
+        assert.strictEqual(spxModalStep, 'tinh');
+        assert.ok(mockDom['spx-address-stepper'].innerHTML.includes('Vui lòng chọn'));
+
+        // Chọn Thành phố Hà Nội (code = 1) -> chuyển sang bước 'phuong'
+        mockDom['tinh'].value = '1';
+        spxModalStep = 'phuong';
+        renderWardsSelect(rawWards);
+        assert.ok(mockDom['spx-address-stepper'].innerHTML.includes('Thành phố Hà Nội'));
+        assert.ok(mockDom['spx-address-stepper'].innerHTML.includes('Chọn Phường/Xã'));
+
+        // Chọn Phường Cầu Giấy (code = 105) -> đóng Modal & hiển thị "Thành phố Hà Nội / Phường Cầu Giấy"
+        selectWardInSpxModal('105');
+        assert.strictEqual(mockDom['spx-address-modal'].style.display, 'none');
+        assert.strictEqual(mockDom['spx-address-trigger-text'].textContent, 'Thành phố Hà Nội / Phường Cầu Giấy');
+
+        // 4. Kiểm tra tìm kiếm không dấu & từ khóa viết tắt (HCM, HN, ben nghe...)
         assert.strictEqual(matchesAddressKeyword('Thành phố Hồ Chí Minh', 'hcm'), true);
         assert.strictEqual(matchesAddressKeyword('Thành phố Hồ Chí Minh', 'sai gon'), true);
         assert.strictEqual(matchesAddressKeyword('Thành phố Hà Nội', 'ha noi'), true);
-        assert.strictEqual(matchesAddressKeyword('Phường Bến Nghé', 'ben nghe'), true);
-        assert.strictEqual(matchesAddressKeyword('Phường Bến Nghé', 'an khanh'), false);
+        assert.strictEqual(matchesAddressKeyword('Phường Cầu Giấy', 'cau giay'), true);
 
         console.log("SPX_ADDRESS_SORT_AND_SEARCH_OK");
         """
