@@ -3433,7 +3433,11 @@
     function applyStorefrontPayload(resData) {
       if (!resData) return false;
       if (resData.products) {
-        productsData = resData.products.slice();
+        // Lọc bỏ triệt để sản phẩm đã xóa khỏi storefront ngay từ tầng dữ liệu
+        productsData = (resData.products || []).filter(p => {
+          let st = (p.status || "").toLowerCase().trim();
+          return !(st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa" || st.includes("xóa") || st.includes("xoa"));
+        });
         // Sắp xếp sản phẩm theo thứ tự hiển thị tùy chỉnh (từ Google Sheets Column 10)
         productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
         combosData = (resData.combos || []).slice();
@@ -3487,7 +3491,10 @@
 
         return true;
       } else if (Array.isArray(resData)) {
-        productsData = resData.slice();
+        productsData = resData.filter(p => {
+          let st = (p.status || "").toLowerCase().trim();
+          return !(st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa" || st.includes("xóa") || st.includes("xoa"));
+        });
         productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
         currentServerTheme = 'default';
         currentServerThemeVideo = '';
@@ -4823,8 +4830,10 @@
       }
 
       prodsToRender.forEach(p => {
-        let st = (p.status || "").toLowerCase();
-        if (st === "ẩn" || st === "an" || st === "hết hàng" || st === "" || p.stock <= 0) return;
+        let st = (p.status || "").toLowerCase().trim();
+        let isDel = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa" || st.includes("xóa") || st.includes("xoa"));
+        let isHid = (st === "ẩn" || st === "an");
+        if (isDel || isHid || st === "hết hàng" || st === "" || p.stock <= 0) return;
 
         let varNamesText = (p.variants && p.variants.length > 0) ? p.variants.map(v => v.name).join(' ') : '';
         if (qNorm && !doesTextMatchStorefrontQuery(p.name, `${p.desc || ''} ${varNamesText}`, qNorm)) {
@@ -5105,6 +5114,13 @@
 
       let product = productsData.find(p => p.id === id);
       if (!product) return;
+      let st = (product.status || "").toLowerCase().trim();
+      let isDel = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa" || st.includes("xóa") || st.includes("xoa"));
+      let isHid = (st === "ẩn" || st === "an");
+      if (isDel || isHid) {
+        alert("Sản phẩm này hiện đã ngừng kinh doanh!");
+        return;
+      }
       let qtyInput = document.getElementById('qty-' + id);
       let qtyToAdd = parseInt(qtyInput ? qtyInput.value : 1) || 1;
 

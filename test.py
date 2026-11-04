@@ -2963,6 +2963,72 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_storefront_never_renders_deleted_products(self):
+        """Kiểm tra: index.html và Code.gs tuyệt đối không hiển thị sản phẩm đã xóa ra trang chủ Storefront"""
+        index_html = read_file('index.html')
+        code_gs = read_file('Code.gs')
+
+        # 1. Kiểm tra Code.gs lọc sản phẩm đã xóa khi !isAdmin
+        self.assertIn("var isDeleted = (stLower === \"đã xóa\" || stLower === \"da xoa\" || stLower === \"xóa\" || stLower === \"xoa\"", code_gs,
+                      "LỖI: Code.gs getProductsList phải lọc bỏ sản phẩm đã xóa khi !isAdmin!")
+        self.assertIn("if (!isAdmin && isDeleted) {", code_gs,
+                      "LỖI: Code.gs phải bỏ qua sản phẩm đã xóa khi không phải admin!")
+
+        # 2. Kiểm tra index.html lọc trong applyStorefrontPayload
+        self.assertIn("let isDel = (st === \"đã xóa\" || st === \"da xoa\" || st === \"xóa\" || st === \"xoa\" || st.includes(\"xóa\") || st.includes(\"xoa\"));", index_html,
+                      "LỖI: index.html renderData phải nhận diện cờ isDel cho sản phẩm đã xóa!")
+        self.assertIn("if (isDel || isHid || st === \"hết hàng\" || st === \"\" || p.stock <= 0) return;", index_html,
+                      "LỖI: index.html renderData phải bỏ qua sản phẩm có cờ isDel!")
+
+        # 3. Test logic lọc bằng Node.js với kịch bản sản phẩm có tồn kho > 0 nhưng mang trạng thái 'đã xóa'
+        test_js = """
+        const assert = require('assert');
+        const rawProducts = [
+          { id: 'SP1', name: 'Sản phẩm đang bán', status: 'còn hàng', stock: 10, price: 100000 },
+          { id: 'SP2', name: 'Sản phẩm đã ẩn', status: 'ẩn', stock: 5, price: 200000 },
+          { id: 'SP3', name: 'Sản phẩm đã xóa nhưng còn tồn kho', status: 'đã xóa', stock: 15, price: 300000 },
+          { id: 'SP4', name: 'Sản phẩm xóa không dấu', status: 'da xoa', stock: 2, price: 150000 },
+          { id: 'SP5', name: 'Sản phẩm hết hàng', status: 'hết hàng', stock: 0, price: 50000 }
+        ];
+
+        // Giả lập logic applyStorefrontPayload
+        const filteredStorefrontProducts = rawProducts.filter(p => {
+          let st = (p.status || "").toLowerCase().trim();
+          return !(st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa" || st.includes("xóa") || st.includes("xoa"));
+        });
+
+        // SP3 và SP4 phải bị loại bỏ hoàn toàn
+        assert.strictEqual(filteredStorefrontProducts.length, 3, 'Chỉ còn SP1, SP2, SP5 trong productsData');
+        assert.ok(!filteredStorefrontProducts.find(p => p.id === 'SP3'), 'SP3 không được có trong productsData');
+        assert.ok(!filteredStorefrontProducts.find(p => p.id === 'SP4'), 'SP4 không được có trong productsData');
+
+        // Giả lập logic renderData
+        const renderedIds = [];
+        filteredStorefrontProducts.forEach(p => {
+          let st = (p.status || "").toLowerCase().trim();
+          let isDel = (st === "đã xóa" || st === "da xoa" || st === "xóa" || st === "xoa" || st.includes("xóa") || st.includes("xoa"));
+          let isHid = (st === "ẩn" || st === "an");
+          if (isDel || isHid || st === "hết hàng" || st === "" || p.stock <= 0) return;
+          renderedIds.push(p.id);
+        });
+
+        // Chỉ SP1 được render ra storefront
+        assert.deepStrictEqual(renderedIds, ['SP1'], 'Chỉ duy nhất SP1 được render lên trang chủ');
+
+        console.log("STOREFRONT_DELETED_FILTER_PASSED");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("STOREFRONT_DELETED_FILTER_PASSED", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+
 
 
 if __name__ == '__main__':
