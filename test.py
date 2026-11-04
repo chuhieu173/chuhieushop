@@ -2503,9 +2503,13 @@ class TestBusinessLogic(unittest.TestCase):
         ]:
             self.assertIn(f'function {fn_name}', index_content, f"Thiếu hàm {fn_name} trong index.html")
 
-        # 3. Giỏ hàng 2 Bước (Step 1 & Step 2), nút Xóa tất cả & tự động lưu nháp thông tin nhận hàng
+        # 3. Giỏ hàng 2 Bước (Step 1 & Step 2), nút Xóa tất cả, nút Xóa nhập lại & tự động lưu nháp thông tin nhận hàng
         self.assertIn('id="btn-clear-cart"', index_content)
         self.assertIn('function clearAllCartItems()', index_content)
+        self.assertIn('id="btn-clear-customer-info"', index_content)
+        self.assertIn('function clearAllCustomerInfo()', index_content)
+        self.assertIn('function highlightCustomerInputError(', index_content)
+        self.assertIn('function clearCustomerInputErrors()', index_content)
         self.assertIn("CUSTOMER_DRAFT_STORAGE_KEY = 'chuhieu_customer_draft_v1'", index_content)
         self.assertIn('function saveCustomerDraft()', index_content)
         self.assertIn('function restoreCustomerDraft()', index_content)

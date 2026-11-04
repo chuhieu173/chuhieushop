@@ -763,6 +763,29 @@
     .form-group input:focus, .form-group select:focus { border-color: #ee4d2d; }
     .form-group select { appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;}
 
+    /* Highlight ô nhập thiếu thông tin khi bấm đặt hàng */
+    .input-error-highlight {
+      border-color: #ef4444 !important;
+      background-color: #fef2f2 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+      animation: fieldErrorShake 0.35s ease-in-out;
+    }
+    @keyframes fieldErrorShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+    body.theme-dark .input-error-highlight {
+      border-color: #f87171 !important;
+      background-color: rgba(239, 68, 68, 0.18) !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35) !important;
+    }
+    body.theme-halloween .input-error-highlight {
+      border-color: #ef4444 !important;
+      background-color: rgba(239, 68, 68, 0.22) !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4) !important;
+    }
+
     /* Ô chọn Tỉnh / Phường-Xã 1 chạm & Modal nửa màn hình chuẩn SPX */
     .spx-address-trigger {
       width: 100%;
@@ -2197,6 +2220,7 @@
     <div id="checkout-form" style="margin-top: 28px;">
       <div class="cart-step-header">
         <div class="cart-step-badge"><span class="cart-step-num" style="background: #0068ff;">BƯỚC 2</span> Thông tin nhận hàng</div>
+        <button type="button" id="btn-clear-customer-info" class="btn-clear-cart" style="display: none;" onclick="clearAllCustomerInfo()">🗑️ Xóa nhập lại</button>
       </div>
       <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" aria-label="Tên người nhận" oninput="onCustomerFormInput()" required></div>
       <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" aria-label="Số điện thoại Zalo" oninput="onCustomerFormInput()" required></div>
@@ -5325,12 +5349,92 @@
         if (nameEl && draft.name && !nameEl.value) nameEl.value = draft.name;
         if (phoneEl && draft.phone && !phoneEl.value) phoneEl.value = draft.phone;
         if (detailEl && draft.addressDetail && !detailEl.value) detailEl.value = draft.addressDetail;
+        const clearBtn = document.getElementById('btn-clear-customer-info');
+        if (clearBtn && clearBtn.style) {
+          clearBtn.style.display = hasCustomerDraftOrInput() ? 'inline-block' : 'none';
+        }
       } catch (e) {}
     }
 
+    function hasCustomerDraftOrInput() {
+      const name = (document.getElementById('customer-name')?.value || '').trim();
+      const phone = (document.getElementById('customer-phone')?.value || '').trim();
+      const detail = (document.getElementById('customer-address-detail')?.value || '').trim();
+      const tinh = (document.getElementById('tinh')?.value || '').trim();
+      const phuong = (document.getElementById('phuong')?.value || '').trim();
+      return Boolean(name || phone || detail || tinh || phuong);
+    }
+
+    function clearCustomerInputErrors() {
+      ['customer-name', 'customer-phone', 'customer-address-detail', 'spx-address-trigger'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.classList) el.classList.remove('input-error-highlight');
+      });
+    }
+
+    function highlightCustomerInputError(elementId) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        if (el.classList) {
+          el.classList.remove('input-error-highlight');
+          void el.offsetWidth; // trigger reflow
+          el.classList.add('input-error-highlight');
+        }
+        if (typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        if (typeof el.focus === 'function' && elementId !== 'spx-address-trigger') {
+          setTimeout(() => { try { el.focus(); } catch (e) {} }, 150);
+        }
+      }
+    }
+
+    function clearAllCustomerInfo() {
+      if (!confirm("Bạn có chắc chắn muốn xóa toàn bộ thông tin nhận hàng đã nhập để điền lại không?")) return;
+      
+      const nameEl = document.getElementById('customer-name');
+      const phoneEl = document.getElementById('customer-phone');
+      const detailEl = document.getElementById('customer-address-detail');
+      const noteEl = document.getElementById('customer-note');
+      const tinhEl = document.getElementById('tinh');
+      const phuongEl = document.getElementById('phuong');
+
+      if (nameEl) nameEl.value = '';
+      if (phoneEl) phoneEl.value = '';
+      if (detailEl) detailEl.value = '';
+      if (noteEl) noteEl.value = '';
+      if (tinhEl) tinhEl.value = '';
+      if (phuongEl) {
+        phuongEl.value = '';
+        phuongEl.disabled = true;
+      }
+
+      currentWardsList = [];
+      clearCustomerInputErrors();
+      syncSpxAddressTriggerDisplay();
+      updateAddressPreview();
+
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(CUSTOMER_DRAFT_STORAGE_KEY);
+        }
+      } catch (e) {}
+
+      onCustomerFormInput();
+      showToast('🗑️ Đã xóa toàn bộ thông tin nhận hàng!');
+      if (nameEl && typeof nameEl.focus === 'function') {
+        try { nameEl.focus(); } catch (e) {}
+      }
+    }
+
     function onCustomerFormInput() {
+      clearCustomerInputErrors();
       saveCustomerDraft();
       updateCheckoutSubmittedUI();
+      const clearBtn = document.getElementById('btn-clear-customer-info');
+      if (clearBtn && clearBtn.style) {
+        clearBtn.style.display = hasCustomerDraftOrInput() ? 'inline-block' : 'none';
+      }
     }
 
     function copyTextToClipboard(text) {
@@ -5442,11 +5546,37 @@
       const tinhName = (tinhSelect && tinhSelect.selectedIndex >= 0) ? (tinhSelect.options[tinhSelect.selectedIndex]?.text || '') : '';
       const phuongName = (phuongSelect && phuongSelect.selectedIndex >= 0) ? (phuongSelect.options[phuongSelect.selectedIndex]?.text || '') : '';
 
-      if (!name || !phone || !detailAddress || !tinhValue || !phuongValue) { alert("Vui lòng điền đủ Thông tin cá nhân và Địa chỉ!"); return; }
-      if (name.length < 2) { alert("Vui lòng nhập Tên người nhận hợp lệ (tối thiểu 2 ký tự)!"); return; }
+      clearCustomerInputErrors();
+      if (!name) {
+        highlightCustomerInputError('customer-name');
+        alert("Vui lòng nhập Tên người nhận!");
+        return;
+      }
+      if (name.length < 2) {
+        highlightCustomerInputError('customer-name');
+        alert("Vui lòng nhập Tên người nhận hợp lệ (tối thiểu 2 ký tự)!");
+        return;
+      }
+      if (!phone) {
+        highlightCustomerInputError('customer-phone');
+        alert("Vui lòng nhập Số điện thoại Zalo!");
+        return;
+      }
       const normPhone = normalizeVnPhoneClient(phone);
       if (!/^0[35789]\d{8}$/.test(normPhone)) {
+        highlightCustomerInputError('customer-phone');
         alert("Số điện thoại chưa đúng định dạng (vui lòng nhập đúng 10 chữ số di động Việt Nam, ví dụ: 0912345678)!");
+        return;
+      }
+      if (!tinhValue || !phuongValue) {
+        highlightCustomerInputError('spx-address-trigger');
+        alert(!tinhValue ? "Vui lòng chọn Tỉnh / Thành phố!" : "Vui lòng chọn Phường / Xã!");
+        openSpxAddressModal(!tinhValue ? 'tinh' : 'phuong');
+        return;
+      }
+      if (!detailAddress) {
+        highlightCustomerInputError('customer-address-detail');
+        alert("Vui lòng nhập Số nhà, tên đường, thôn/xóm!");
         return;
       }
 
