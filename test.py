@@ -3038,6 +3038,93 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_allow_order_creation_on_stock_shortage_with_admin_warning(self):
+        """Kiểm tra Hướng A: Vẫn cho phép lưu đơn vào Google Sheet khi thiếu tồn kho (kể cả linh kiện Combo) và cảnh báo rõ cho Admin"""
+        code_gs = read_file('Code.gs')
+        admin_html = read_file('admin.html')
+
+        # 1. Code.gs không còn chặn return fail khi qty > itemStock trong handleCreateOrder
+        create_order_block = code_gs[code_gs.find("function handleCreateOrder"):code_gs.find("function handleLogin")]
+        self.assertNotIn("if (qty > itemStock) return fail(", create_order_block,
+                         "LỖI: handleCreateOrder không được chặn lưu đơn khi qty > itemStock!")
+        self.assertIn("recordNeededStock(", create_order_block,
+                      "LỖI: handleCreateOrder phải ghi nhận tồn kho cần thiết để tạo cảnh báo!")
+        self.assertIn("⚠️ Thiếu kho: ", create_order_block,
+                      "LỖI: handleCreateOrder phải ghi chú cảnh báo thiếu kho vào cột Ghi chú Admin!")
+
+        # 2. admin.html có hàm getOrderStockShortages và khối hiển thị cảnh báo thiếu tồn kho
+        self.assertIn("function getOrderStockShortages(order)", admin_html,
+                      "LỖI: Thiếu hàm getOrderStockShortages trong admin.html!")
+        self.assertIn("order-stock-shortage-alert", admin_html,
+                      "LỖI: Thiếu khung cảnh báo thiếu tồn kho order-stock-shortage-alert trong admin.html!")
+
+        # 3. Chạy kiểm thử Node.js với đúng kịch bản khách đặt x5 Combo robot khi N20 (stock=0) và Rào cái (stock=2)
+        start_fn = admin_html.find("function getOrderStockShortages(order)")
+        end_fn = admin_html.find("function renderOrders(orders)")
+        shortage_fn_code = admin_html[start_fn:end_fn]
+
+        test_js = """
+        const assert = require('assert');
+        let globalProductsData = [
+          { id: 'SP01', name: 'ESP32-S3', stock: 39, status: 'còn hàng' },
+          { id: 'SP_89890399', name: 'Rào cái loại ngắn', stock: 2, status: 'ẩn' },
+          { id: 'SP10', name: 'Động cơ DC giảm tốc N20 trục thẳng', stock: 0, status: 'còn hàng' }
+        ];
+        let globalCombosData = [
+          {
+            id: 'CMB_146238',
+            name: 'Combo robot',
+            stock: 0,
+            rawItems: [
+              { id: 'SP01', name: 'ESP32-S3', qty: 1, price: 138000 },
+              { id: 'SP_89890399', name: 'Rào cái loại ngắn', qty: 1, price: 35000 },
+              { id: 'SP10', name: 'Động cơ DC giảm tốc N20 trục thẳng', qty: 2, price: 49000 }
+            ]
+          }
+        ];
+        """ + shortage_fn_code + """
+        const mockOrder = {
+          row: 10,
+          orderId: 'DH261105',
+          status: 'Khách đặt hàng',
+          isDeducted: false,
+          cart: [
+            { id: 'CMB_146238', name: 'Combo robot', qty: 5, isCombo: true, price: 554000 }
+          ]
+        };
+
+        const shortages = getOrderStockShortages(mockOrder);
+        assert.strictEqual(shortages.length, 2, 'Phải phát hiện đúng 2 linh kiện bị thiếu tồn kho');
+        assert.deepStrictEqual(shortages[0], {
+          name: 'Rào cái loại ngắn',
+          needed: 5,
+          available: 2
+        });
+        assert.deepStrictEqual(shortages[1], {
+          name: 'Động cơ DC giảm tốc N20 trục thẳng',
+          needed: 10,
+          available: 0
+        });
+
+        // Khi Admin cập nhật đủ tồn kho (Rào cái = 10, Động cơ N20 = 20) -> Cảnh báo tự động biến mất!
+        globalProductsData[1].stock = 10;
+        globalProductsData[2].stock = 20;
+        const shortagesAfterRestock = getOrderStockShortages(mockOrder);
+        assert.strictEqual(shortagesAfterRestock.length, 0, 'Sau khi nhập thêm kho đủ số lượng, cảnh báo phải tự tắt');
+
+        console.log("STOCK_SHORTAGE_WARNING_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("STOCK_SHORTAGE_WARNING_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 

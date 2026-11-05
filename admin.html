@@ -3129,6 +3129,9 @@
       renderCombos(globalCombosData);
       renderPosts(globalPostsData); 
       updateComboSelectOptions();
+      if (Array.isArray(globalOrdersData) && globalOrdersData.length > 0) {
+        renderOrders(globalOrdersData);
+      }
       if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
         renderAnalytics();
       }
@@ -4436,6 +4439,72 @@
       }
     }
 
+    function getOrderStockShortages(order) {
+      if (!order || order.isDeducted || order.status === "Hoàn thành" || order.status === "Đã giao cho đơn vị vận chuyển") {
+        return [];
+      }
+      if (!Array.isArray(order.cart) || order.cart.length === 0) return [];
+      if (!Array.isArray(globalProductsData) || globalProductsData.length === 0) return [];
+
+      const prodMap = {};
+      globalProductsData.forEach(p => { if (p && p.id) prodMap[String(p.id)] = p; });
+      const comboMap = {};
+      if (Array.isArray(globalCombosData)) {
+        globalCombosData.forEach(c => { if (c && c.id) comboMap[String(c.id)] = c; });
+      }
+
+      const neededMap = {};
+      function addRequired(prodId, varId, fallbackName, qtyToAdd) {
+        const p = prodMap[String(prodId)];
+        if (!p) return;
+        const vIdStr = String(varId || "");
+        let avail = Math.max(0, Number(p.stock) || 0);
+        let dispName = p.name || fallbackName || String(prodId);
+        if (vIdStr && Array.isArray(p.variants) && p.variants.length > 0) {
+          const vObj = p.variants.find(v => String(v.id) === vIdStr || String(v.name) === vIdStr);
+          if (vObj) {
+            avail = Math.max(0, Number(vObj.stock) || 0);
+            dispName = `${p.name} [${vObj.name}]`;
+          }
+        }
+        const key = `${prodId}__${vIdStr}`;
+        if (!neededMap[key]) {
+          neededMap[key] = { name: dispName, needed: 0, available: avail };
+        }
+        neededMap[key].needed += (Number(qtyToAdd) || 0);
+      }
+
+      order.cart.forEach(item => {
+        if (!item || item.isGift) return;
+        const itemQty = Math.max(1, parseInt(item.qty, 10) || 1);
+        const isComboItem = !!(item.isCombo || String(item.id || "").indexOf("CMB_") === 0);
+        if (isComboItem) {
+          let cDef = comboMap[String(item.id)];
+          if (!cDef && item.name && Array.isArray(globalCombosData)) {
+            const cleanName = item.name.replace(/^\[COMBO\]\s*/i, "").trim().toLowerCase();
+            cDef = globalCombosData.find(c => c.name && c.name.trim().toLowerCase() === cleanName);
+          }
+          if (cDef && Array.isArray(cDef.rawItems)) {
+            cDef.rawItems.forEach(sub => {
+              const subQty = Math.max(1, parseInt(sub.qty, 10) || 1);
+              addRequired(sub.id, sub.variantId || "", sub.name, subQty * itemQty);
+            });
+          }
+        } else {
+          addRequired(item.id, item.variantId || "", item.name, itemQty);
+        }
+      });
+
+      const shortages = [];
+      Object.keys(neededMap).forEach(k => {
+        const entry = neededMap[k];
+        if (entry.needed > entry.available) {
+          shortages.push(entry);
+        }
+      });
+      return shortages;
+    }
+
     // --- CĂN LỀ PHẢI "SỐ LƯỢNG" VÀ BỐ CỤC ĐẸP MẮT (BATCH DOM + SMART PAGINATION) ---
     function renderOrders(orders) {
       const tbody = document.getElementById('orders-body');
@@ -4526,6 +4595,19 @@
           }
         }).join('');
 
+        let stockShortages = getOrderStockShortages(order);
+        let stockWarningHtml = '';
+        if (stockShortages.length > 0) {
+          let shortageItemsHtml = stockShortages.map(s =>
+            `<div>• <b>${escapeHtml(s.name)}</b>: cần <b>${s.needed}</b>, kho còn <b>${s.available}</b> (thiếu <b>${s.needed - s.available}</b>)</div>`
+          ).join('');
+          stockWarningHtml = `
+            <div class="order-stock-shortage-alert" style="margin-top:8px; padding:7px 10px; background:#fff5f5; border:1px solid #feb2b2; border-left:4px solid #e53e3e; border-radius:6px; color:#c53030; font-size:12px; line-height:1.45;">
+              <div style="font-weight:700; margin-bottom:2px;">⚠️ Cảnh báo thiếu tồn kho cần nhập thêm:</div>
+              ${shortageItemsHtml}
+            </div>`;
+        }
+
         rowsHtml.push(`<tr class="${rowClass}">
             <td data-label="Chọn" style="text-align: center;">
               <input type="checkbox" class="order-item-cb" value="${order.row}" onchange="toggleOrderSelect(${order.row}, this.checked)" ${isSelected ? 'checked' : ''}>
@@ -4554,7 +4636,7 @@
                 <button type="button" class="btn-cust-action btn-cust-zalo" onclick="window.open('https://zalo.me/${phoneClean}', '_blank')">💬 Mở Zalo</button>
               </div>
             </td>
-            <td data-label="Chi tiết Đơn hàng" style="line-height: 1.5;">${detailsHtml}</td>
+            <td data-label="Chi tiết Đơn hàng" style="line-height: 1.5;">${detailsHtml}${stockWarningHtml}</td>
             <td data-label="Tổng tiền" style="color:#e53e3e; font-weight:bold; font-size:15px;">${escapeHtml(order.total)}</td>
             <td data-label="Trạng thái">
               ${statusBadgeHtml}
