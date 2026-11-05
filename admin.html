@@ -1881,6 +1881,15 @@
               </div>
             </div>
           </div>
+          <!-- Bố cục sản phẩm lẻ trên trang chủ -->
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin: 0; font-size: 16px; color: #1a2935; width: 120px;">📱 Bố cục lẻ:</h3>
+            <select id="edit-product-grid-mode" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14.5px; font-weight: bold; color: #2b6cb0; min-width: 195px;" title="Cấu hình hiển thị sản phẩm lẻ trên trang chủ">
+              <option value="2col">⊞ 2 Cột (Dạng lưới gọn gàng)</option>
+              <option value="1col">☰ 1 Cột (Dạng thẻ danh sách)</option>
+            </select>
+            <button class="btn-update" onclick="updateProductGridMode()" style="background: #319795;">Lưu Bố Cục</button>
+          </div>
         </div>
         <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px; height: fit-content;" onclick="openEditModal()">+ TẠO SẢN PHẨM MỚI</button>
       </div>
@@ -3111,6 +3120,8 @@
         if (shipInput && resData.shippingFee !== undefined) shipInput.value = resData.shippingFee;
         let themeSelect = document.getElementById("edit-theme");
         if (themeSelect) themeSelect.value = resData.theme || "default";
+        let gridSelect = document.getElementById("edit-product-grid-mode");
+        if (gridSelect) gridSelect.value = resData.productGridMode || "2col";
         let themeVideoInput = document.getElementById("edit-theme-video");
         if (themeVideoInput) {
           let loadedVideo = (resData.themeVideo || localStorage.getItem('last_admin_theme_video') || "").trim();
@@ -3598,6 +3609,25 @@
         alert("Cập nhật Chủ đề thành công! Hãy ra trang khách hàng Refresh lại để xem thành quả.");
         loadData();
       } catch(e) { alert("Lỗi!"); showLoading(false); }
+    }
+
+    async function updateProductGridMode() {
+      let gridMode = document.getElementById("edit-product-grid-mode").value;
+      showLoading(true);
+      try {
+        let res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "updateProductGridMode",
+            token: getAdminToken(),
+            productGridMode: gridMode
+          })
+        });
+        let data = await res.json();
+        if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
+        alert("Cập nhật Bố cục sản phẩm lẻ thành công!");
+        loadData();
+      } catch(e) { alert("Lỗi kết nối khi cập nhật bố cục!"); showLoading(false); }
     }
 
     function removeDiacritics(str) {

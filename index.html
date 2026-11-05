@@ -1801,10 +1801,10 @@
       color: #cbd5e1;
     }
     .btn-mobile-grid-toggle {
-      display: none;
+      display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 9px 12px;
+      padding: 8px 12px;
       border-radius: 10px;
       border: 1.5px solid #cbd5e1;
       background: #f8fafc;
@@ -1814,11 +1814,19 @@
       cursor: pointer;
       white-space: nowrap;
       font-family: 'Roboto', sans-serif;
+      transition: all 0.2s ease;
+    }
+    .btn-mobile-grid-toggle:hover {
+      background: #edf2f7;
+      border-color: #94a3b8;
     }
     body.theme-dark .btn-mobile-grid-toggle {
       background: #2a2a3e;
       border-color: #475569;
       color: #e2e8f0;
+    }
+    body.theme-dark .btn-mobile-grid-toggle:hover {
+      background: #32324a;
     }
     .storefront-filter-pills {
       display: flex;
@@ -1866,11 +1874,225 @@
       color: #ffffff;
     }
 
-    /* Chế độ Lưới 2 Cột Gọn Đẹp Trên Điện Thoại */
-    @media (max-width: 640px) {
-      .btn-mobile-grid-toggle {
-        display: inline-flex;
+    /* =========================================
+       COMBO LUÔN 1 CỘT & THU GỌN CHIỀU CAO TỔNG THỂ
+       ========================================= */
+    #flash-deal-list,
+    #combo-list {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 22px !important;
+      width: 100% !important;
+      max-width: 720px !important;
+      margin: 0 auto !important;
+      grid-template-columns: none !important;
+    }
+    .combo-card {
+      border: 2px solid #ffd700;
+      background: #fffdf0;
+      width: 100% !important;
+      max-width: 720px !important;
+      padding: 16px !important;
+      box-sizing: border-box !important;
+      border-radius: 14px;
+      margin: 0 auto;
+      text-align: left;
+      grid-column: 1 / -1 !important;
+    }
+    .combo-card.flash-deal {
+      border: 2px solid #ff4b2b;
+      background: #fffdfc;
+      box-shadow: 0 4px 18px rgba(238, 77, 45, 0.25);
+      animation: dealPulseGlow 3s infinite ease-in-out;
+      border-radius: 12px;
+      overflow: hidden;
+      padding-top: 0 !important;
+      transform: translateY(-2px);
+    }
+    .combo-card-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 18px;
+      align-items: start;
+      width: 100%;
+      margin-top: 8px;
+    }
+    @media (max-width: 580px) {
+      .combo-card-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
+      .combo-card-media-col {
+        display: contents;
+      }
+      .combo-card-media-col .carousel {
+        order: 1;
+      }
+      .combo-card-media-col .deal-countdown-box {
+        order: 2;
+      }
+      .combo-card-content-col {
+        order: 3;
+      }
+      .combo-card-buy-box {
+        order: 4;
+      }
+    }
+    .combo-card-media-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    .combo-card-media-col .carousel {
+      height: 185px;
+      border-radius: 10px;
+    }
+    .combo-card-buy-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.025);
+      padding: 10px;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    body.theme-dark .combo-card-buy-box {
+      background: rgba(255, 255, 255, 0.035);
+    }
+    .combo-card-buy-box .price-container {
+      margin: 0;
+      min-height: auto;
+    }
+    .combo-card-buy-box .qty-wrapper {
+      margin-bottom: 2px;
+    }
+    .combo-card-content-col {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .combo-items-compact {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-bottom: 8px;
+      font-size: 12.5px;
+      color: #334155;
+    }
+    body.theme-dark .combo-items-compact {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+    }
+    body.theme-halloween .combo-items-compact {
+      background: rgba(30, 10, 42, 0.7);
+      border-color: rgba(234, 88, 12, 0.3);
+      color: #fed7aa;
+    }
+    .combo-items-heading {
+      font-weight: 700;
+      font-size: 12px;
+      color: #1e293b;
+      margin-bottom: 5px;
+    }
+    body.theme-dark .combo-items-heading { color: #f1f5f9; }
+    body.theme-halloween .combo-items-heading { color: #fdba74; }
+    .combo-items-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .combo-item-entry {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .combo-item-qty {
+      font-weight: 700;
+      color: #ea580c;
+      white-space: nowrap;
+      background: #fff7ed;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid #fed7aa;
+      font-size: 11px;
+    }
+    body.theme-dark .combo-item-qty {
+      background: #431407;
+      border-color: #9a3412;
+      color: #fdba74;
+    }
+    .combo-item-name {
+      color: #475569;
+      word-break: break-word;
+    }
+    body.theme-dark .combo-item-name { color: #cbd5e1; }
+    .btn-combo-toggle-items {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0284c7;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 6px;
+      width: 100%;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .btn-combo-toggle-items:hover {
+      background: #f0f9ff;
+      border-color: #0284c7;
+    }
+    body.theme-dark .btn-combo-toggle-items {
+      background: #1e1e2d;
+      border-color: #475569;
+      color: #38bdf8;
+    }
+
+    /* =========================================
+       BỐ CỤC SẢN PHẨM LẺ (1 CỘT HOẶC 2 CỘT)
+       ========================================= */
+    /* Màn hình lớn > 640px */
+    @media (min-width: 641px) {
+      body.product-grid-2col #product-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 20px !important;
+        max-width: 720px !important;
+        margin: 0 auto !important;
+      }
+      body.product-grid-2col #product-list .product-card {
+        width: 100% !important;
+      }
+      body.product-grid-1col #product-list {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 20px !important;
+        max-width: 600px !important;
+        margin: 0 auto !important;
+      }
+      body.product-grid-1col #product-list .product-card {
+        width: 100% !important;
+        max-width: 600px !important;
+      }
+    }
+
+    /* Màn hình di động <= 640px */
+    @media (max-width: 640px) {
       .brand-hero-header h1 {
         font-size: 19px;
       }
@@ -1878,49 +2100,83 @@
         font-size: 11.5px;
         padding: 4px 10px;
       }
-      body.mobile-grid-2col #view-products .container {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+      /* Chế độ 2 cột cho riêng sản phẩm lẻ */
+      body.mobile-grid-2col #view-products #product-list,
+      body.product-grid-2col #view-products #product-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        width: 100% !important;
+        max-width: 620px !important;
+        margin: 0 auto !important;
       }
-      body.mobile-grid-2col #view-products .product-card {
-        width: 100%;
-        padding: 10px;
-        border-radius: 12px;
+      body.mobile-grid-2col #view-products #product-list .product-card,
+      body.product-grid-2col #view-products #product-list .product-card {
+        width: 100% !important;
+        padding: 10px !important;
+        border-radius: 12px !important;
       }
-      body.mobile-grid-2col #view-products .carousel {
-        height: 145px;
+      body.mobile-grid-2col #view-products #product-list .carousel,
+      body.product-grid-2col #view-products #product-list .carousel {
+        height: 145px !important;
       }
-      body.mobile-grid-2col #view-products .product-card h3 {
-        font-size: 13.5px;
-        margin: 8px 0 4px 0;
-        min-height: 34px;
+      body.mobile-grid-2col #view-products #product-list .product-card h3,
+      body.product-grid-2col #view-products #product-list .product-card h3 {
+        font-size: 13.5px !important;
+        margin: 8px 0 4px 0 !important;
+        min-height: 34px !important;
       }
-      body.mobile-grid-2col #view-products .product-card p {
-        font-size: 11.5px;
-        margin-bottom: 8px;
-        -webkit-line-clamp: 2;
+      body.mobile-grid-2col #view-products #product-list .product-card p,
+      body.product-grid-2col #view-products #product-list .product-card p {
+        font-size: 11.5px !important;
+        margin-bottom: 8px !important;
+        -webkit-line-clamp: 2 !important;
       }
-      body.mobile-grid-2col #view-products .current-price {
-        font-size: 1.1em;
+      body.mobile-grid-2col #view-products #product-list .current-price,
+      body.product-grid-2col #view-products #product-list .current-price {
+        font-size: 1.1em !important;
       }
-      body.mobile-grid-2col #view-products .btn-primary {
-        padding: 8px 8px;
-        font-size: 13px;
+      body.mobile-grid-2col #view-products #product-list .btn-primary,
+      body.product-grid-2col #view-products #product-list .btn-primary {
+        padding: 8px 8px !important;
+        font-size: 13px !important;
       }
-      body.mobile-grid-2col #view-products .qty-wrapper {
-        gap: 5px;
-        margin-bottom: 8px;
+      body.mobile-grid-2col #view-products #product-list .qty-wrapper,
+      body.product-grid-2col #view-products #product-list .qty-wrapper {
+        gap: 5px !important;
+        margin-bottom: 8px !important;
       }
-      body.mobile-grid-2col #view-products .qty-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 15px;
+      body.mobile-grid-2col #view-products #product-list .qty-btn,
+      body.product-grid-2col #view-products #product-list .qty-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 15px !important;
       }
-      body.mobile-grid-2col #view-products .qty-input {
-        width: 38px;
-        height: 28px;
-        font-size: 13px;
+      body.mobile-grid-2col #view-products #product-list .qty-input,
+      body.product-grid-2col #view-products #product-list .qty-input {
+        width: 38px !important;
+        height: 28px !important;
+        font-size: 13px !important;
+      }
+
+      /* Chế độ 1 cột cho sản phẩm lẻ */
+      body.product-grid-1col #view-products #product-list {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 14px !important;
+        width: 100% !important;
+        max-width: 580px !important;
+        margin: 0 auto !important;
+        grid-template-columns: none !important;
+      }
+      body.product-grid-1col #view-products #product-list .product-card {
+        width: 100% !important;
+        max-width: 580px !important;
+        padding: 14px !important;
+      }
+      body.product-grid-1col #view-products #product-list .carousel {
+        height: 180px !important;
       }
     }
 
@@ -3494,6 +3750,10 @@
           renderStorefrontLeaderboard(null);
         }
 
+        if (resData.productGridMode) {
+          initMobileGridMode(resData.productGridMode);
+        }
+
         return true;
       } else if (Array.isArray(resData)) {
         productsData = resData.filter(p => {
@@ -4558,30 +4818,37 @@
     // ==========================================
     let currentStorefrontSearchQuery = '';
     let currentStorefrontFilterMode = 'all';
+    let currentProductGridMode = '2col';
 
-    function initMobileGridMode() {
+    function initMobileGridMode(serverMode) {
       try {
         let savedGrid = typeof localStorage !== 'undefined' ? localStorage.getItem('chuhieu_mobile_grid_mode') : null;
-        let is2Col = (savedGrid === null || savedGrid === '2col');
-        if (typeof document !== 'undefined' && document.body) {
-          document.body.classList.toggle('mobile-grid-2col', is2Col);
-        }
-        let lbl = document.getElementById('mobile-grid-toggle-label');
-        if (lbl) lbl.innerText = is2Col ? '☰ 1 cột' : '⊞ 2 cột';
+        let mode = savedGrid || serverMode || currentProductGridMode || '2col';
+        applyProductGridMode(mode);
       } catch (e) {}
     }
 
+    function applyProductGridMode(mode) {
+      currentProductGridMode = mode || '2col';
+      let is2Col = (currentProductGridMode === '2col');
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.classList.toggle('product-grid-2col', is2Col);
+        document.body.classList.toggle('product-grid-1col', !is2Col);
+        document.body.classList.toggle('mobile-grid-2col', is2Col);
+      }
+      let lbl = document.getElementById('mobile-grid-toggle-label');
+      if (lbl) lbl.innerText = is2Col ? '☰ 1 cột' : '⊞ 2 cột';
+    }
+
     function toggleMobileGridMode() {
-      if (typeof document === 'undefined' || !document.body) return;
-      let isNow2Col = !document.body.classList.contains('mobile-grid-2col');
-      document.body.classList.toggle('mobile-grid-2col', isNow2Col);
+      let isNow2Col = (currentProductGridMode !== '2col');
+      let newMode = isNow2Col ? '2col' : '1col';
+      applyProductGridMode(newMode);
       try {
         if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('chuhieu_mobile_grid_mode', isNow2Col ? '2col' : '1col');
+          localStorage.setItem('chuhieu_mobile_grid_mode', newMode);
         }
       } catch (e) {}
-      let lbl = document.getElementById('mobile-grid-toggle-label');
-      if (lbl) lbl.innerText = isNow2Col ? '☰ 1 cột' : '⊞ 2 cột';
       setTimeout(() => { initCarouselInfiniteScroll(document.getElementById('view-products')); }, 50);
     }
 
@@ -4630,6 +4897,66 @@
         if (el) el.classList.toggle('active', k === currentStorefrontFilterMode);
       });
       renderData();
+    }
+
+    function buildComboRawItemsHtml(rawItems) {
+      if (!Array.isArray(rawItems) || rawItems.length === 0) return '';
+      const total = rawItems.length;
+      const initialCount = 3;
+      const visibleItems = rawItems.slice(0, initialCount);
+      const extraItems = rawItems.slice(initialCount);
+
+      let html = `<div class="combo-items-compact combo-items-text">`;
+      html += `<div class="combo-items-heading"><span>⚙️ Linh kiện trong combo (${total} món):</span></div>`;
+      html += `<ul class="combo-items-list">`;
+      
+      visibleItems.forEach(it => {
+        html += `
+          <li class="combo-item-entry">
+            <span class="combo-item-qty">${it.qty}x</span>
+            <span class="combo-item-name">${escapeHtml(it.name)}</span>
+          </li>`;
+      });
+      html += `</ul>`;
+
+      if (extraItems.length > 0) {
+        html += `<div class="combo-extra-items" style="display: none; margin-top: 4px;">`;
+        html += `<ul class="combo-items-list">`;
+        extraItems.forEach(it => {
+          html += `
+            <li class="combo-item-entry">
+              <span class="combo-item-qty">${it.qty}x</span>
+              <span class="combo-item-name">${escapeHtml(it.name)}</span>
+            </li>`;
+        });
+        html += `</ul>`;
+        html += `</div>`;
+
+        html += `
+          <button type="button" class="btn-combo-toggle-items" onclick="toggleComboItems(this, ${total})">
+            ▾ Xem thêm ${extraItems.length} linh kiện khác (Trọn bộ ${total} món)
+          </button>`;
+      }
+
+      html += `</div>`;
+      return html;
+    }
+
+    function toggleComboItems(btn, totalCount) {
+      if (!btn) return;
+      const box = btn.closest('.combo-items-compact');
+      if (!box) return;
+      const extra = box.querySelector('.combo-extra-items');
+      if (!extra) return;
+      const isHidden = (extra.style.display === 'none' || !extra.style.display);
+      if (isHidden) {
+        extra.style.display = 'block';
+        btn.innerHTML = `▴ Thu gọn bớt danh sách (${totalCount} món)`;
+      } else {
+        extra.style.display = 'none';
+        const remaining = Math.max(0, totalCount - 3);
+        btn.innerHTML = `▾ Xem thêm ${remaining} linh kiện khác (Trọn bộ ${totalCount} món)`;
+      }
     }
 
     function renderData() {
@@ -4786,19 +5113,27 @@
                 <span class="tag-left"><span class="gift-icon-badge">🔥</span> FLASH DEAL KÈM QUÀ</span>
                 <span class="tag-right">ĐẶC BIỆT</span>
               </div>
-              <div class="carousel"><div class="carousel-slides" id="slides-${c.id}" data-carousel-id="${c.id}" data-total-imgs="${totalImgs}">${imagesHtml}</div>${arrowsHtml}</div>
-              ${countdownHtml}
-              <h3 style="color:#c53030; margin-top:10px;">${escapeHtml(c.name)}</h3>
-              <p>${escapeHtml(c.desc)}</p>
-              <div class="combo-items-text"><b>Gồm các linh kiện:</b><br> • ${itemsText}</div>
-              ${giftBoxHtml}
-              <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
-              <div class="qty-wrapper">
-                <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
-                <input type="number" id="qty-${c.id}" class="qty-input" aria-label="Số lượng đặt mua ${escapeHtml(c.name)}" value="1" min="1" onchange="validateProductQty('${c.id}')">
-                <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
+              <div class="combo-card-layout">
+                <div class="combo-card-media-col">
+                  <div class="carousel"><div class="carousel-slides" id="slides-${c.id}" data-carousel-id="${c.id}" data-total-imgs="${totalImgs}">${imagesHtml}</div>${arrowsHtml}</div>
+                  ${countdownHtml}
+                  <div class="combo-card-buy-box">
+                    <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
+                    <div class="qty-wrapper">
+                      <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
+                      <input type="number" id="qty-${c.id}" class="qty-input" aria-label="Số lượng đặt mua ${escapeHtml(c.name)}" value="1" min="1" onchange="validateProductQty('${c.id}')">
+                      <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
+                    </div>
+                    <button class="btn-primary btn-flash-deal" onclick="addToCart('${c.id}', true)">🎁 Nhận Combo & Quà Tặng</button>
+                  </div>
+                </div>
+                <div class="combo-card-content-col">
+                  <h3 style="color:#c53030; margin-top:2px; margin-bottom:6px;">${escapeHtml(c.name)}</h3>
+                  ${c.desc ? `<p style="margin-bottom:8px;">${escapeHtml(c.desc)}</p>` : ''}
+                  ${buildComboRawItemsHtml(c.rawItems)}
+                  ${giftBoxHtml}
+                </div>
               </div>
-              <button class="btn-primary btn-flash-deal" onclick="addToCart('${c.id}', true)">🎁 Nhận Combo & Quà Tặng</button>
             `;
             fdFrag.appendChild(card);
             visibleFlashDealsCount++;
@@ -4808,17 +5143,25 @@
             card.className = 'product-card combo-card';
             card.innerHTML = `
               <div class="combo-ribbon">COMBO</div>
-              <div class="carousel"><div class="carousel-slides" id="slides-${c.id}" data-carousel-id="${c.id}" data-total-imgs="${totalImgs}">${imagesHtml}</div>${arrowsHtml}</div>
-              <h3 style="color:#c53030; margin-top:20px;">${escapeHtml(c.name)}</h3>
-              <p>${escapeHtml(c.desc)}</p>
-              <div class="combo-items-text"><b>Gồm:</b><br> • ${itemsText}</div>
-              <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
-              <div class="qty-wrapper">
-                <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
-                <input type="number" id="qty-${c.id}" class="qty-input" aria-label="Số lượng đặt mua ${escapeHtml(c.name)}" value="1" min="1" onchange="validateProductQty('${c.id}')">
-                <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
+              <div class="combo-card-layout">
+                <div class="combo-card-media-col">
+                  <div class="carousel"><div class="carousel-slides" id="slides-${c.id}" data-carousel-id="${c.id}" data-total-imgs="${totalImgs}">${imagesHtml}</div>${arrowsHtml}</div>
+                  <div class="combo-card-buy-box">
+                    <div class="price-container"><div class="current-price">${formatMoney(c.price)}</div></div>
+                    <div class="qty-wrapper">
+                      <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
+                      <input type="number" id="qty-${c.id}" class="qty-input" aria-label="Số lượng đặt mua ${escapeHtml(c.name)}" value="1" min="1" onchange="validateProductQty('${c.id}')">
+                      <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
+                    </div>
+                    <button class="btn-primary" style="background:#c53030;" onclick="addToCart('${c.id}', true)">🛒 Chọn Combo</button>
+                  </div>
+                </div>
+                <div class="combo-card-content-col">
+                  <h3 style="color:#c53030; margin-top:2px; margin-bottom:6px;">${escapeHtml(c.name)}</h3>
+                  ${c.desc ? `<p style="margin-bottom:8px;">${escapeHtml(c.desc)}</p>` : ''}
+                  ${buildComboRawItemsHtml(c.rawItems)}
+                </div>
               </div>
-              <button class="btn-primary" style="background:#c53030;" onclick="addToCart('${c.id}', true)">🛒 Chọn Combo</button>
             `;
             comboFrag.appendChild(card);
             visibleCombosCount++;

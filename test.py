@@ -248,6 +248,19 @@ class TestDOMIntegrity(unittest.TestCase):
                 f"LỖI NGHIÊM TRỌNG: Trường cốt lõi '{label}' (id='{field_id}') bị thiếu trong index.html!"
             )
 
+    def test_product_grid_mode_elements_in_admin_and_index(self):
+        """Kiểm tra: Cấu hình bố cục hiển thị sản phẩm lẻ (1 cột / 2 cột) có mặt đầy đủ ở admin và index"""
+        adm_content = read_file('admin.html')
+        adm_collector = IDCollector()
+        adm_collector.feed(adm_content)
+        self.assertIn('edit-product-grid-mode', adm_collector.ids, "LỖI: Thiếu select id='edit-product-grid-mode' trong admin.html!")
+
+        idx_content = read_file('index.html')
+        idx_collector = IDCollector()
+        idx_collector.feed(idx_content)
+        self.assertIn('btn-toggle-mobile-grid', idx_collector.ids, "LỖI: Thiếu nút bấm id='btn-toggle-mobile-grid' trong index.html!")
+        self.assertIn('mobile-grid-toggle-label', idx_collector.ids, "LỖI: Thiếu label id='mobile-grid-toggle-label' trong index.html!")
+
     def test_post_video_field_exists(self):
         """Kiểm tra: Ô nhập Link Video 'post-video' phải tồn tại và là textarea (hỗ trợ nhiều link) trong admin.html"""
         content = read_file('admin.html')
@@ -3121,6 +3134,72 @@ class TestBusinessLogic(unittest.TestCase):
         try:
             res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
             self.assertIn("STOCK_SHORTAGE_WARNING_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_combo_always_1col_and_compact_accordion(self):
+        """Kiểm tra: Combo luôn hiển thị 1 cột, thu gọn chiều cao bằng layout 2 cột & accordion linh kiện"""
+        idx_content = read_file('index.html')
+        adm_content = read_file('admin.html')
+        code_content = read_file('Code.gs')
+
+        # 1. Backend Code.gs & admin.html có xử lý updateProductGridMode
+        self.assertIn('action === "updateProductGridMode"', code_content, "LỖI: Code.gs thiếu action updateProductGridMode!")
+        self.assertIn('handleUpdateProductGridMode', code_content, "LỖI: Code.gs thiếu hàm handleUpdateProductGridMode!")
+        self.assertIn('updateProductGridMode', adm_content, "LỖI: admin.html thiếu hàm updateProductGridMode!")
+
+        # 2. index.html đảm bảo combo luôn 1 cột và có layout thu gọn
+        self.assertIn('#flash-deal-list', idx_content, "LỖI: Thiếu CSS #flash-deal-list!")
+        self.assertIn('#combo-list', idx_content, "LỖI: Thiếu CSS #combo-list!")
+        self.assertIn('flex-direction: column !important;', idx_content, "LỖI: Combo phải luôn xếp 1 cột dọc bằng flex-direction: column!")
+        self.assertIn('.combo-card-layout', idx_content, "LỖI: Thiếu class .combo-card-layout chia 2 cột ngang thu gọn chiều cao!")
+        self.assertIn('.combo-items-compact', idx_content, "LỖI: Thiếu class .combo-items-compact hiển thị gọn linh kiện!")
+        self.assertIn('buildComboRawItemsHtml', idx_content, "LỖI: Thiếu hàm buildComboRawItemsHtml tạo danh sách linh kiện gọn gàng!")
+        self.assertIn('toggleComboItems', idx_content, "LỖI: Thiếu hàm toggleComboItems đóng mở accordion linh kiện!")
+
+        # 3. Chạy Node.js kiểm tra logic thu gọn danh sách linh kiện
+        raw_fn_start = idx_content.find("function buildComboRawItemsHtml(rawItems) {")
+        raw_fn_end = idx_content.find("function renderData() {")
+        extracted_code = idx_content[raw_fn_start:raw_fn_end]
+
+        test_js = f"""
+        const assert = require('assert');
+        function escapeHtml(str) {{ return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }}
+
+        {extracted_code}
+
+        const mock10Items = [
+          {{ name: 'ESP32-S3', qty: 1 }},
+          {{ name: 'MAX98357', qty: 1 }},
+          {{ name: 'INMP441', qty: 1 }},
+          {{ name: 'Mạch sạc 5v2a', qty: 1 }},
+          {{ name: 'DRV8833', qty: 1 }},
+          {{ name: 'Board tím', qty: 1 }},
+          {{ name: 'Loa vàng', qty: 1 }},
+          {{ name: 'Rào cái', qty: 1 }},
+          {{ name: 'Động cơ N20', qty: 2 }},
+          {{ name: 'Bánh xe', qty: 2 }}
+        ];
+
+        const html = buildComboRawItemsHtml(mock10Items);
+        assert.ok(html.includes('combo-items-compact'), 'Phải có container combo-items-compact');
+        assert.ok(html.includes('Linh kiện trong combo (10 món)'), 'Phải hiển thị tổng 10 món');
+        assert.ok(html.includes('ESP32-S3'), 'Món đầu tiên phải hiển thị');
+        assert.ok(html.includes('INMP441'), 'Món thứ 3 phải hiển thị');
+        assert.ok(html.includes('combo-extra-items'), 'Phải có container combo-extra-items cho các món từ thứ 4 trở đi');
+        assert.ok(html.includes('display: none'), 'Các món thêm phải ẩn ban đầu');
+        assert.ok(html.includes('Xem thêm 7 linh kiện khác (Trọn bộ 10 món)'), 'Nút accordion phải hiển thị đúng số món còn lại');
+
+        console.log("COMBO_COMPACT_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("COMBO_COMPACT_OK", res.stdout)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
