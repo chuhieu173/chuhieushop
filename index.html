@@ -1801,32 +1801,7 @@
       color: #cbd5e1;
     }
     .btn-mobile-grid-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1.5px solid #cbd5e1;
-      background: #f8fafc;
-      color: #334155;
-      font-size: 12.5px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-      font-family: 'Roboto', sans-serif;
-      transition: all 0.2s ease;
-    }
-    .btn-mobile-grid-toggle:hover {
-      background: #edf2f7;
-      border-color: #94a3b8;
-    }
-    body.theme-dark .btn-mobile-grid-toggle {
-      background: #2a2a3e;
-      border-color: #475569;
-      color: #e2e8f0;
-    }
-    body.theme-dark .btn-mobile-grid-toggle:hover {
-      background: #32324a;
+      display: none !important;
     }
     .storefront-filter-pills {
       display: flex;
@@ -2388,7 +2363,7 @@
           <input type="text" id="storefront-search-input" class="storefront-search-input" placeholder="🔍 Tìm tên mạch, linh kiện, combo..." aria-label="Tìm kiếm sản phẩm" oninput="onStorefrontSearchInput(this.value)">
           <button type="button" id="btn-clear-storefront-search" class="btn-clear-search" onclick="clearStorefrontSearch()" title="Xóa từ khóa" aria-label="Xóa từ khóa tìm kiếm">✕</button>
         </div>
-        <button type="button" id="btn-toggle-mobile-grid" class="btn-mobile-grid-toggle" onclick="toggleMobileGridMode()" title="Đổi chế độ hiển thị 1 cột / 2 cột trên điện thoại">
+        <button type="button" id="btn-toggle-mobile-grid" class="btn-mobile-grid-toggle" onclick="toggleMobileGridMode()" title="Bố cục sản phẩm" style="display: none !important;">
           <span id="mobile-grid-toggle-label">⊞ 2 cột</span>
         </button>
       </div>
@@ -4822,8 +4797,7 @@
 
     function initMobileGridMode(serverMode) {
       try {
-        let savedGrid = typeof localStorage !== 'undefined' ? localStorage.getItem('chuhieu_mobile_grid_mode') : null;
-        let mode = savedGrid || serverMode || currentProductGridMode || '2col';
+        let mode = serverMode || currentProductGridMode || '2col';
         applyProductGridMode(mode);
       } catch (e) {}
     }
