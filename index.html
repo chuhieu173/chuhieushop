@@ -658,6 +658,20 @@
     .carousel-btn.prev { left: 5px; }
     .carousel-btn.next { right: 5px; }
 
+    /* 🎬 SLIDE VIDEO TRONG CAROUSEL COMBO */
+    .combo-video-slide { background: linear-gradient(135deg, #1a202c, #2d3748); overflow: hidden; }
+    .combo-video-slide video.combo-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+    .carousel-slides img.combo-video-poster { object-fit: cover; cursor: default; }
+    .combo-video-badge { position: absolute; top: 7px; left: 7px; z-index: 3; background: rgba(128, 90, 213, 0.92); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 5px; letter-spacing: 0.3px; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    .combo-video-play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3; width: 54px; height: 54px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.85); background: rgba(0,0,0,0.55); color: #fff; font-size: 22px; padding: 0 0 0 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.4); transition: transform 0.15s, background 0.2s; }
+    .combo-video-play-btn:hover { background: rgba(229, 62, 62, 0.85); transform: translate(-50%, -50%) scale(1.06); }
+    span.combo-video-play-btn { pointer-events: none; }
+    .combo-video-slide.is-playing .combo-video-play-btn,
+    .combo-video-slide.is-playing .combo-video-badge { display: none; }
+    /* Khi video đang phát: ẩn chấm tròn & nhãn "Kéo sang" để không che thanh điều khiển video */
+    .carousel.video-playing .carousel-dots,
+    .carousel.video-playing .carousel-swipe-badge { display: none !important; }
+
     @keyframes swipeArrowNudge {
       0%, 100% { transform: translateX(0); }
       50% { transform: translateX(3px); }
@@ -4873,6 +4887,163 @@
       renderData();
     }
 
+    // ==========================================
+    // 🎬 VIDEO NGẮN TRONG CAROUSEL COMBO
+    // Thứ tự slide: [Ảnh Combo thủ công] → [Video] → [Ảnh linh kiện]
+    // Tự phát không tiếng khi lướt tới; đã tạm dừng / lướt qua thì không tự phát lại.
+    // ==========================================
+    function isSafeComboVideoUrl(u) {
+      if (!u || typeof u !== 'string' || u.length > 500) return false;
+      if (!/^https:\/\/[^\s"'<>]+$/i.test(u)) return false;
+      if (/^https:\/\/res\.cloudinary\.com\/[^\/]+\/video\/upload\//i.test(u)) return true;
+      return /\.(mp4|webm|mov|m4v)(\?[^\s"'<>]*)?$/i.test(u);
+    }
+
+    function splitCloudinaryVideoUrl(u) {
+      let m = (u || '').match(/^(https:\/\/res\.cloudinary\.com\/[^\/]+\/video\/upload\/)(.+)$/i);
+      if (!m) return null;
+      return { base: m[1], rest: m[2].replace(/\.(mp4|webm|mov|m4v|mkv)(\?.*)?$/i, '') };
+    }
+
+    function getComboVideoPosterUrl(u) {
+      let p = splitCloudinaryVideoUrl(u);
+      return p ? `${p.base}so_1,w_720,c_limit,q_auto,f_jpg/${p.rest}.jpg` : '';
+    }
+
+    function getComboVideoPlaybackUrl(u) {
+      // Cloudinary: nén tự động + giới hạn 720px + ép MP4 để mọi trình duyệt phát được (kể cả file .mov)
+      let p = splitCloudinaryVideoUrl(u);
+      return p ? `${p.base}q_auto,vc_auto,w_720,c_limit/${p.rest}.mp4` : u;
+    }
+
+    function buildComboSlideList(c) {
+      let images = Array.isArray(c.images) ? c.images : [];
+      let videos = Array.isArray(c.videos) ? c.videos.filter(isSafeComboVideoUrl) : [];
+      let imgSlides = images.map((src, imgIdx) => ({ type: 'img', src, imgIdx }));
+      if (videos.length === 0) return imgSlides;
+
+      let manualCount = Math.max(0, Math.min(parseInt(c.manualImageCount, 10) || 0, images.length));
+      // Combo không có ảnh nào (chỉ có ảnh giữ chỗ) nhưng có video → bỏ ảnh giữ chỗ
+      if (manualCount === 0 && images.length === 1 && /via\.placeholder\.com/i.test(images[0])) imgSlides = [];
+      let vidSlides = videos.map((src, vIdx) => ({ type: 'video', src, vIdx }));
+      return [...imgSlides.slice(0, manualCount), ...vidSlides, ...imgSlides.slice(manualCount)];
+    }
+
+    function buildComboSlideHtml(c, slide, opts) {
+      const isClone = !!(opts && opts.isClone);
+      const cloneAttr = isClone ? ' data-clone="true"' : '';
+      const alt = escapeHtml(c.name || 'Combo sản phẩm');
+
+      if (slide.type === 'video') {
+        const poster = getComboVideoPosterUrl(slide.src);
+        if (isClone) {
+          // Slide clone (phục vụ lướt vòng tròn) chỉ hiện ảnh bìa, không chứa thẻ video
+          const posterHtml = poster ? `<img class="combo-video-poster" src="${escapeHtml(poster)}" referrerpolicy="no-referrer" alt="${alt}" loading="lazy" decoding="async">` : '';
+          return `
+              <div class="carousel-item-wrap combo-video-slide"${cloneAttr}>
+                ${posterHtml}
+                <span class="combo-video-badge">🎬 VIDEO</span>
+                <span class="combo-video-play-btn" aria-hidden="true">▶</span>
+              </div>`;
+        }
+        const key = `${c.id}#${slide.vIdx}`;
+        return `
+              <div class="carousel-item-wrap combo-video-slide">
+                <video class="combo-video" data-video-key="${escapeHtml(key)}" src="${escapeHtml(getComboVideoPlaybackUrl(slide.src))}"${poster ? ` poster="${escapeHtml(poster)}"` : ''} preload="none" muted playsinline webkit-playsinline controls controlslist="nodownload" aria-label="Video ${alt}"></video>
+                <span class="combo-video-badge">🎬 VIDEO</span>
+                <button type="button" class="combo-video-play-btn" onclick="playComboVideoFromButton(this)" aria-label="Phát video">▶</button>
+              </div>`;
+      }
+
+      const cap = c.imageCaptions && c.imageCaptions[slide.imgIdx] ? c.imageCaptions[slide.imgIdx] : "";
+      const capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
+      const loadAttr = (!isClone && opts && opts.isPriority) ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
+      return `
+              <div class="carousel-item-wrap"${cloneAttr}>
+                <img src="${escapeHtml(resolveSafeImgUrl(slide.src))}" data-orig-src="${escapeHtml(slide.src)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${alt}" ${loadAttr} onclick="openModal('${c.id}', ${slide.imgIdx})">
+                ${capHtml}
+              </div>`;
+    }
+
+    // Trạng thái theo từng video (giữ qua các lần render lại trang)
+    // started: đã từng phát | consumed: đã tạm dừng / lướt qua / xem hết → không tự phát lại | time: vị trí đang xem
+    const comboVideoState = new Map();
+    let comboVideoObserver = null;
+
+    function getComboVideoState(key) {
+      if (!comboVideoState.has(key)) comboVideoState.set(key, { started: false, consumed: false, time: 0 });
+      return comboVideoState.get(key);
+    }
+
+    function pauseComboVideoSilently(v) {
+      if (!v || v.paused) return;
+      v._cvProgPause = true;
+      v.pause();
+    }
+
+    function setComboVideoUiPlaying(v, isPlaying) {
+      const wrap = v.closest('.combo-video-slide');
+      if (wrap) wrap.classList.toggle('is-playing', isPlaying);
+      const carousel = v.closest('.carousel');
+      if (carousel) carousel.classList.toggle('video-playing', isPlaying);
+    }
+
+    function onComboVideoIntersect(entry) {
+      const v = entry.target;
+      if (!v.isConnected) { if (comboVideoObserver) comboVideoObserver.unobserve(v); return; }
+      const st = getComboVideoState(v.dataset.videoKey);
+      const isVisible = entry.isIntersecting && entry.intersectionRatio >= 0.6;
+      if (isVisible) {
+        if (!st.consumed && v.paused) {
+          v.muted = true;
+          if (st.time > 0) { try { v.currentTime = st.time; } catch (e) {} }
+          const p = v.play();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        }
+      } else {
+        if (st.started) st.consumed = true; // Khách đã lướt qua video
+        pauseComboVideoSilently(v);
+      }
+    }
+
+    function initComboVideoAutoplay(rootEl) {
+      const scope = rootEl || document;
+      const vids = scope.querySelectorAll('video.combo-video:not([data-cv-bound])');
+      if (!vids.length) return;
+      if (!comboVideoObserver && typeof IntersectionObserver !== 'undefined') {
+        comboVideoObserver = new IntersectionObserver(entries => entries.forEach(onComboVideoIntersect), { threshold: [0, 0.6] });
+      }
+      vids.forEach(v => {
+        v.setAttribute('data-cv-bound', '1');
+        const st = getComboVideoState(v.dataset.videoKey);
+        v.addEventListener('play', () => {
+          st.started = true;
+          // Chỉ 1 video phát tại một thời điểm
+          document.querySelectorAll('video.combo-video').forEach(other => { if (other !== v) pauseComboVideoSilently(other); });
+          setComboVideoUiPlaying(v, true);
+        });
+        v.addEventListener('pause', () => {
+          if (v._cvProgPause) { v._cvProgPause = false; }
+          else if (!v.ended && v.isConnected) { st.consumed = true; } // Khách tự bấm tạm dừng (bỏ qua khi thẻ bị gỡ do render lại)
+          setComboVideoUiPlaying(v, false);
+        });
+        v.addEventListener('ended', () => { st.consumed = true; st.time = 0; setComboVideoUiPlaying(v, false); });
+        v.addEventListener('timeupdate', () => { if (!v.ended) st.time = v.currentTime; });
+        if (comboVideoObserver) comboVideoObserver.observe(v);
+      });
+    }
+
+    function playComboVideoFromButton(btn) {
+      const wrap = btn && btn.closest('.combo-video-slide');
+      const v = wrap && wrap.querySelector('video.combo-video');
+      if (!v) return;
+      v.muted = false; // Khách chủ động bấm Play → bật tiếng
+      const p = v.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => { v.muted = true; v.play().catch(() => {}); });
+      }
+    }
+
     function buildComboRawItemsHtml(rawItems) {
       if (!Array.isArray(rawItems) || rawItems.length === 0) return '';
       const total = rawItems.length;
@@ -4943,6 +5114,7 @@
 
       if (fdList) fdList.innerHTML = '';
       if (comboList) comboList.innerHTML = '';
+      if (comboVideoObserver) comboVideoObserver.disconnect();
 
       let visibleFlashDealsCount = 0;
       let visibleCombosCount = 0;
@@ -4985,41 +5157,17 @@
           let isPriorityCard = (priorityCardCount < 4);
           priorityCardCount++;
           
-          let totalImgs = c.images.length;
-          let imagesHtml = ''; 
-          let comboAlt = escapeHtml(c.name || 'Combo sản phẩm');
-          
+          let comboSlides = buildComboSlideList(c);
+          let totalImgs = comboSlides.length;
+          let imagesHtml = '';
           if (totalImgs > 1) {
-            let cap = c.imageCaptions && c.imageCaptions[totalImgs-1] ? c.imageCaptions[totalImgs-1] : "";
-            let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
-            let lastComboImg = c.images[totalImgs-1];
-            imagesHtml += `
-              <div class="carousel-item-wrap" data-clone="true">
-                <img src="${escapeHtml(resolveSafeImgUrl(lastComboImg))}" data-orig-src="${escapeHtml(lastComboImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${comboAlt}" loading="lazy" decoding="async" onclick="openModal('${c.id}', ${totalImgs-1})">
-                ${capHtml}
-              </div>`; 
+            imagesHtml += buildComboSlideHtml(c, comboSlides[totalImgs - 1], { isClone: true });
           }
-          
-          c.images.forEach((img, idx) => { 
-            let cap = c.imageCaptions && c.imageCaptions[idx] ? c.imageCaptions[idx] : "";
-            let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
-            let imgLoadAttr = (isPriorityCard && idx === 0) ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
-            imagesHtml += `
-              <div class="carousel-item-wrap">
-                <img src="${escapeHtml(resolveSafeImgUrl(img))}" data-orig-src="${escapeHtml(img)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${comboAlt}" ${imgLoadAttr} onclick="openModal('${c.id}', ${idx})">
-                ${capHtml}
-              </div>`; 
+          comboSlides.forEach((slide, sIdx) => {
+            imagesHtml += buildComboSlideHtml(c, slide, { isClone: false, isPriority: (isPriorityCard && sIdx === 0) });
           });
-
           if (totalImgs > 1) {
-            let cap = c.imageCaptions && c.imageCaptions[0] ? c.imageCaptions[0] : "";
-            let capHtml = cap ? `<div class="carousel-caption">${escapeHtml(cap)}</div>` : "";
-            let firstComboImg = c.images[0];
-            imagesHtml += `
-              <div class="carousel-item-wrap" data-clone="true">
-                <img src="${escapeHtml(resolveSafeImgUrl(firstComboImg))}" data-orig-src="${escapeHtml(firstComboImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" alt="${comboAlt}" loading="lazy" decoding="async" onclick="openModal('${c.id}', 0)">
-                ${capHtml}
-              </div>`; 
+            imagesHtml += buildComboSlideHtml(c, comboSlides[0], { isClone: true });
           }
 
           let hasComboCaptions = !!(c.imageCaptions && c.imageCaptions.some(Boolean));
@@ -5339,6 +5487,7 @@
           }, { passive: true });
         }
       });
+      initComboVideoAutoplay(scope);
     }
 
     function jumpCarouselToIndex(id, imgIdx, totalImgs) {

@@ -2478,6 +2478,27 @@
         </div>
       </div>
 
+      <!-- VIDEO NGẮN CỦA COMBO (hiển thị ngay sau ảnh Combo trên trang chủ) -->
+      <div class="form-group" style="background: #faf5ff; border: 1px dashed #b794f4; padding: 15px; border-radius: 8px;">
+        <label style="color:#553c9a;">🎬 Video Combo (tuỳ chọn – tối đa 5 video, khuyên dùng 15–60 giây):</label>
+        <div style="font-size: 12px; color: #6b46c1; margin: -2px 0 10px 0;">Video hiển thị ngay sau ảnh Combo. Khách lướt tới sẽ tự phát không tiếng (chỉ tự phát 1 lần).</div>
+        <div id="combo-video-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; min-height: 30px;"></div>
+        <div id="combo-video-progress-box" style="display: none; margin-bottom: 10px;">
+          <div style="display:flex; justify-content:space-between; font-size: 12.5px; color:#4a5568; margin-bottom: 4px;">
+            <span id="combo-video-progress-text">Đang tải video lên Cloudinary... 0%</span>
+            <span id="combo-video-progress-size"></span>
+          </div>
+          <div style="height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+            <div id="combo-video-progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #805ad5, #3182ce); transition: width 0.2s;"></div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="file" id="combo-video-upload-input" multiple accept="video/mp4,video/webm,video/quicktime,video/*" style="display: none;" onchange="handleComboVideoFiles(this)">
+          <button type="button" id="btn-upload-combo-video" class="btn-update" style="background: #805ad5; flex: 1; padding: 10px;" onclick="triggerComboVideoUpload()">📁 Tải video từ máy</button>
+          <button type="button" class="btn-update" style="background: #4a5568; flex: 1; padding: 10px;" onclick="addComboVideoLink()">🔗 Dán link video (.mp4)</button>
+        </div>
+      </div>
+
       <div style="background: #f8fafc; border: 1px dashed #cbd5e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom: 12px;">
           <h4 style="margin:0; color:#2d3748; font-family:'Montserrat'; font-size:15px;">Thành Phần Combo</h4>
@@ -2852,6 +2873,7 @@
     let currentEditImages = []; 
     let currentComboItems = []; 
     let currentComboEditImages = [];
+    let currentComboEditVideos = [];
     let currentPostEditImages = []; 
     let currentProductVariants = [];
     let uploadingVariantIndex = -1;
@@ -5293,6 +5315,7 @@
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:15px; color:#c53030;">[COMBO] ${escapeHtml(c.name)}</b>
                 ${flashBadge}
+                ${(Array.isArray(c.videos) && c.videos.length > 0) ? `<span style="display:inline-block; margin-left:6px; background:#805ad5; color:#fff; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:bold;">🎬 ${c.videos.length} VIDEO</span>` : ''}
               </div>
               <div style="font-size:12px; color:#718096; margin-top:5px;">${itemsHtml}</div>
               ${giftDetailHtml}
@@ -5966,6 +5989,203 @@
       });
     }
 
+    // ==========================================
+    // 🎬 VIDEO NGẮN CHO COMBO (Upload Cloudinary / dán link .mp4)
+    // ==========================================
+    const MAX_COMBO_VIDEOS = 5;
+    let comboVideoUploading = false;
+
+    function isSafeComboVideoUrlClient(u) {
+      if (!u || typeof u !== 'string' || u.length > 500) return false;
+      if (!/^https:\/\/[^\s"'<>]+$/i.test(u)) return false;
+      if (/^https:\/\/res\.cloudinary\.com\/[^\/]+\/video\/upload\//i.test(u)) return true;
+      return /\.(mp4|webm|mov|m4v)(\?[^\s"'<>]*)?$/i.test(u);
+    }
+
+    function getComboVideoPosterUrl(u) {
+      if (!u) return '';
+      let m = u.match(/^(https:\/\/res\.cloudinary\.com\/[^\/]+\/video\/upload\/)(.+)$/i);
+      if (!m) return '';
+      let rest = m[2].replace(/\.(mp4|webm|mov|m4v|mkv)(\?.*)?$/i, '');
+      return `${m[1]}so_1,w_480,c_limit,q_auto,f_jpg/${rest}.jpg`;
+    }
+
+    function renderComboVideoPreviews() {
+      const box = document.getElementById('combo-video-preview-container');
+      if (!box) return;
+      if (!currentComboEditVideos.length) {
+        box.innerHTML = `<div style="font-size: 12.5px; color: #a0aec0; font-style: italic;">Chưa có video nào.</div>`;
+        return;
+      }
+      box.innerHTML = currentComboEditVideos.map((v, idx) => {
+        let poster = getComboVideoPosterUrl(v);
+        let thumb = poster
+          ? `<img src="${escapeHtml(poster)}" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.style.display='none'">`
+          : '';
+        let isFirst = idx === 0, isLast = idx === currentComboEditVideos.length - 1;
+        return `
+          <div style="position: relative; width: 120px; height: 80px; border-radius: 8px; overflow: hidden; background: #2d3748; border: 2px solid #b794f4;" title="${escapeHtml(v)}">
+            ${thumb}
+            <a href="${escapeHtml(v)}" target="_blank" rel="noopener noreferrer" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:26px; text-decoration:none; text-shadow:0 2px 6px rgba(0,0,0,0.6);">▶</a>
+            <span style="position:absolute; left:4px; top:4px; background:rgba(85,60,154,0.9); color:#fff; font-size:10.5px; font-weight:bold; padding:1px 6px; border-radius:4px;">🎬 ${idx + 1}</span>
+            <button type="button" onclick="removeComboEditVideo(${idx})" title="Xoá video" style="position:absolute; right:3px; top:3px; width:22px; height:22px; border-radius:50%; border:none; background:#e53e3e; color:#fff; font-size:12px; cursor:pointer; line-height:22px; padding:0;">✕</button>
+            <div style="position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between; padding:2px 4px; background:rgba(0,0,0,0.45);">
+              <button type="button" onclick="moveComboEditVideo(${idx}, -1)" ${isFirst ? 'disabled' : ''} title="Đưa lên trước" style="background:none; border:none; color:#fff; cursor:pointer; font-size:12px; opacity:${isFirst ? 0.3 : 1};">◀</button>
+              <button type="button" onclick="moveComboEditVideo(${idx}, 1)" ${isLast ? 'disabled' : ''} title="Đưa ra sau" style="background:none; border:none; color:#fff; cursor:pointer; font-size:12px; opacity:${isLast ? 0.3 : 1};">▶</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function removeComboEditVideo(idx) {
+      currentComboEditVideos.splice(idx, 1);
+      renderComboVideoPreviews();
+    }
+
+    function moveComboEditVideo(idx, delta) {
+      let target = idx + delta;
+      if (target < 0 || target >= currentComboEditVideos.length) return;
+      let tmp = currentComboEditVideos[idx];
+      currentComboEditVideos[idx] = currentComboEditVideos[target];
+      currentComboEditVideos[target] = tmp;
+      renderComboVideoPreviews();
+    }
+
+    function addComboVideoLink() {
+      if (currentComboEditVideos.length >= MAX_COMBO_VIDEOS) { alert(`Mỗi Combo chỉ được tối đa ${MAX_COMBO_VIDEOS} video!`); return; }
+      let url = (prompt("Dán link video (Cloudinary hoặc link trực tiếp kết thúc bằng .mp4 / .webm):") || "").trim();
+      if (!url) return;
+      if (!isSafeComboVideoUrlClient(url)) {
+        alert("Link video không hợp lệ!\nChỉ chấp nhận link https của Cloudinary hoặc link file video trực tiếp (.mp4, .webm, .mov).");
+        return;
+      }
+      if (currentComboEditVideos.includes(url)) { alert("Video này đã có trong Combo!"); return; }
+      currentComboEditVideos.push(url);
+      renderComboVideoPreviews();
+    }
+
+    function triggerComboVideoUpload() {
+      let cName = localStorage.getItem('cloudinary_cloud_name');
+      let cPreset = localStorage.getItem('cloudinary_upload_preset');
+      if (!cName || !cPreset) { openCloudinaryConfigModal(); return; }
+      if (comboVideoUploading) { alert("Đang tải video lên, vui lòng đợi xong!"); return; }
+      if (currentComboEditVideos.length >= MAX_COMBO_VIDEOS) { alert(`Mỗi Combo chỉ được tối đa ${MAX_COMBO_VIDEOS} video!`); return; }
+      let input = document.getElementById('combo-video-upload-input');
+      if (input) input.click();
+    }
+
+    function readVideoDurationSec(file) {
+      return new Promise(resolve => {
+        try {
+          const v = document.createElement('video');
+          v.preload = 'metadata';
+          const objUrl = URL.createObjectURL(file);
+          v.onloadedmetadata = () => { URL.revokeObjectURL(objUrl); resolve(isFinite(v.duration) ? v.duration : 0); };
+          v.onerror = () => { URL.revokeObjectURL(objUrl); resolve(0); };
+          v.src = objUrl;
+        } catch (e) { resolve(0); }
+      });
+    }
+
+    async function handleComboVideoFiles(input) {
+      let files = Array.from(input.files || []);
+      input.value = "";
+      if (!files.length) return;
+
+      let slotsLeft = MAX_COMBO_VIDEOS - currentComboEditVideos.length;
+      if (files.length > slotsLeft) {
+        alert(`Mỗi Combo chỉ được tối đa ${MAX_COMBO_VIDEOS} video. Hệ thống sẽ chỉ tải ${Math.max(0, slotsLeft)} video đầu tiên.`);
+        files = files.slice(0, Math.max(0, slotsLeft));
+      }
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.startsWith('video/') && !file.name.match(/\.(mp4|webm|mov|m4v)$/i)) {
+          alert(`"${file.name}" không phải tệp video (MP4, WebM, MOV) — bỏ qua.`);
+          continue;
+        }
+        const sizeMb = file.size / (1024 * 1024);
+        const duration = await readVideoDurationSec(file);
+        let warnings = [];
+        if (sizeMb > 50) warnings.push(`dung lượng ${sizeMb.toFixed(1)} MB (khuyên dùng < 50 MB)`);
+        if (duration > 90) warnings.push(`thời lượng ${Math.round(duration)} giây (khuyên dùng < 60 giây)`);
+        if (warnings.length && !confirm(`Video "${file.name}" có ${warnings.join(' và ')}.\nVideo dài/nặng sẽ tốn 4G của khách và tải chậm hơn. Vẫn tiếp tục tải lên?`)) {
+          continue;
+        }
+        try {
+          const url = await uploadComboVideoFileToCloudinary(file, i + 1, files.length);
+          if (url && !currentComboEditVideos.includes(url)) {
+            currentComboEditVideos.push(url);
+            renderComboVideoPreviews();
+            if (typeof saveVideoToHistory === 'function') { try { saveVideoToHistory(url, file.name); } catch (e) {} }
+          }
+        } catch (err) {
+          alert(`Không thể tải "${file.name}" lên Cloudinary.\n${err && err.message ? err.message : ''}\nVui lòng kiểm tra Cloud Name / Upload Preset (chế độ Unsigned).`);
+        }
+      }
+    }
+
+    function uploadComboVideoFileToCloudinary(file, order, total) {
+      return new Promise((resolve, reject) => {
+        let cName = localStorage.getItem('cloudinary_cloud_name');
+        let cPreset = localStorage.getItem('cloudinary_upload_preset');
+        if (!cName || !cPreset) { openCloudinaryConfigModal(); reject(new Error('Chưa cấu hình Cloudinary')); return; }
+
+        const progBox = document.getElementById('combo-video-progress-box');
+        const progBar = document.getElementById('combo-video-progress-bar');
+        const progText = document.getElementById('combo-video-progress-text');
+        const progSize = document.getElementById('combo-video-progress-size');
+        const uploadBtn = document.getElementById('btn-upload-combo-video');
+        const label = total > 1 ? ` (${order}/${total})` : '';
+
+        comboVideoUploading = true;
+        if (uploadBtn) uploadBtn.disabled = true;
+        if (progBox) progBox.style.display = 'block';
+        if (progBar) { progBar.style.width = '0%'; progBar.style.background = 'linear-gradient(90deg, #805ad5, #3182ce)'; }
+        if (progText) progText.innerText = `Đang chuẩn bị tải video${label}...`;
+        if (progSize) progSize.innerText = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', cPreset);
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${encodeURIComponent(cName)}/video/upload`, true);
+
+        const finish = () => { comboVideoUploading = false; if (uploadBtn) uploadBtn.disabled = false; };
+
+        xhr.upload.onprogress = function(e) {
+          if (e.lengthComputable) {
+            let percent = Math.round((e.loaded / e.total) * 100);
+            if (progBar) progBar.style.width = percent + '%';
+            if (progText) progText.innerText = `Đang tải video${label} lên Cloudinary... ${percent}%`;
+          }
+        };
+        xhr.onload = function() {
+          finish();
+          let res = null;
+          try { res = JSON.parse(xhr.responseText); } catch (e) {}
+          if (xhr.status >= 200 && xhr.status < 300 && res && (res.secure_url || res.url)) {
+            const videoUrl = res.secure_url || res.url;
+            if (progBar) { progBar.style.width = '100%'; progBar.style.background = '#38a169'; }
+            if (progText) progText.innerHTML = `<span style="color:#38a169; font-weight:bold;">✅ Tải video${label} thành công!</span>`;
+            setTimeout(() => { if (!comboVideoUploading && progBox) progBox.style.display = 'none'; }, 4000);
+            showToast("Tải video Combo thành công!");
+            resolve(videoUrl);
+            return;
+          }
+          let msg = (res && res.error && res.error.message) ? res.error.message : `HTTP ${xhr.status}`;
+          if (progText) progText.innerHTML = `<span style="color:#e53e3e; font-weight:bold;">❌ Lỗi: ${escapeHtml(msg)}</span>`;
+          reject(new Error(msg));
+        };
+        xhr.onerror = function() {
+          finish();
+          if (progText) progText.innerHTML = '<span style="color:#e53e3e; font-weight:bold;">❌ Lỗi kết nối mạng khi tải lên Cloudinary.</span>';
+          reject(new Error('Lỗi kết nối mạng'));
+        };
+        xhr.send(formData);
+      });
+    }
+
     function openComboModal(comboId = null) {
       const searchInput = document.getElementById("combo-search-input");
       if (searchInput) searchInput.value = "";
@@ -5983,6 +6203,7 @@
          document.getElementById("combo-name").value = combo.name; 
          document.getElementById("combo-desc").value = combo.desc;
          currentComboEditImages = combo.rawManualImages ? combo.rawManualImages.split('\n').map(i => i.trim()).filter(i => i !== "") : [];
+         currentComboEditVideos = Array.isArray(combo.videos) ? combo.videos.slice() : (combo.rawVideos ? combo.rawVideos.split('\n').map(v => v.trim()).filter(v => isSafeComboVideoUrlClient(v)) : []);
          try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
 
          let firstGift = (combo.giftItems && combo.giftItems.length > 0) ? combo.giftItems[0] : null;
@@ -6008,6 +6229,7 @@
          document.getElementById("combo-name").value = ""; 
          document.getElementById("combo-desc").value = "";
          currentComboEditImages = [];
+         currentComboEditVideos = [];
          currentComboItems = [];
 
          if (hasGiftCheck) hasGiftCheck.checked = false;
@@ -6019,6 +6241,7 @@
          if (expireActionSelect) expireActionSelect.value = "hide";
       }
       renderImagePreviews('combo-image-preview-container', currentComboEditImages, 'removeComboEditImage');
+      renderComboVideoPreviews();
       renderComboProductSelector(); 
       document.getElementById("combo-modal").style.display = "flex"; 
       document.body.style.overflow = "hidden";
@@ -6031,6 +6254,7 @@
       let cDesc = document.getElementById("combo-desc").value;
       if(!cName) { alert("Tên Combo không được bỏ trống!"); return; }
       if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
+      if (comboVideoUploading) { alert("Video đang được tải lên, vui lòng đợi tải xong rồi bấm Lưu!"); return; }
 
       let hasGiftCheck = document.getElementById("combo-has-gift");
       let hasGift = hasGiftCheck ? hasGiftCheck.checked : false;
@@ -6073,6 +6297,7 @@
         desc: cDesc,
         items: JSON.stringify(currentComboItems),
         images: currentComboEditImages.join('\n'),
+        videos: currentComboEditVideos.join('\n'),
         giftItems: hasGift ? JSON.stringify(giftItems) : "",
         startTime: hasGift ? startTime : "",
         endTime: hasGift ? endTime : "",

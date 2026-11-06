@@ -3204,6 +3204,122 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_combo_video_backend_and_admin_ui(self):
+        """Kiểm tra: Backend lưu/đọc video Combo (cột K, kiểm tra link an toàn) và UI quản lý video trong admin"""
+        code = read_file('Code.gs')
+        admin = read_file('admin.html')
+
+        self.assertIn('function isSafeComboVideoUrl(', code, "LỖI: Code.gs thiếu hàm kiểm tra link video isSafeComboVideoUrl!")
+        self.assertIn('function parseComboVideoList(', code, "LỖI: Code.gs thiếu hàm parseComboVideoList!")
+        self.assertIn('payload.videos', code, "LỖI: handleSaveCombo chưa nhận payload.videos!")
+        self.assertIn('sheet.getRange(r, 11).setValue(vids.join("\\n"))', code, "LỖI: handleSaveCombo chưa ghi video vào cột 11 (K)!")
+        self.assertIn('manualImageCount: manualImages.length', code, "LỖI: getCombosList phải trả về manualImageCount để xếp video sau ảnh Combo!")
+        self.assertIn('videos: comboVideos', code, "LỖI: getCombosList chưa trả về trường videos!")
+
+        collector = IDCollector()
+        collector.feed(admin)
+        for vid_id in ['combo-video-preview-container', 'combo-video-upload-input', 'btn-upload-combo-video',
+                       'combo-video-progress-box', 'combo-video-progress-bar', 'combo-video-progress-text']:
+            self.assertIn(vid_id, collector.ids, f"LỖI: Thiếu phần tử id='{vid_id}' trong admin.html!")
+        for fn in ['function handleComboVideoFiles(', 'function uploadComboVideoFileToCloudinary(',
+                   'function addComboVideoLink(', 'function renderComboVideoPreviews(']:
+            self.assertIn(fn, admin, f"LỖI: Thiếu hàm {fn} trong admin.html!")
+        self.assertIn("videos: currentComboEditVideos.join('\\n')", admin, "LỖI: saveComboChanges chưa gửi danh sách video!")
+
+        # Chạy Node.js kiểm tra hàm validate link phía backend
+        m = re.search(r'var MAX_COMBO_VIDEOS = 5;\s*function isSafeComboVideoUrl\(u\) \{.*?\n\}', code, re.S)
+        self.assertIsNotNone(m, "Không trích xuất được isSafeComboVideoUrl từ Code.gs")
+        test_js = m.group(0) + r"""
+        const assert = require('assert');
+        assert.strictEqual(isSafeComboVideoUrl('https://res.cloudinary.com/demo/video/upload/v123/robot.mp4'), true);
+        assert.strictEqual(isSafeComboVideoUrl('https://res.cloudinary.com/demo/video/upload/v123/robot.mov'), true);
+        assert.strictEqual(isSafeComboVideoUrl('https://cdn.example.com/a/b/clip.webm'), true);
+        assert.strictEqual(isSafeComboVideoUrl('http://res.cloudinary.com/demo/video/upload/x.mp4'), false);
+        assert.strictEqual(isSafeComboVideoUrl('javascript:alert(1)'), false);
+        assert.strictEqual(isSafeComboVideoUrl('https://evil.com/page.html'), false);
+        assert.strictEqual(isSafeComboVideoUrl('https://evil.com/a.mp4" onerror="x'), false);
+        assert.strictEqual(isSafeComboVideoUrl('https://www.youtube.com/watch?v=abc'), false);
+        console.log('COMBO_VIDEO_BACKEND_OK');
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("COMBO_VIDEO_BACKEND_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_combo_video_storefront_slide_order_and_autoplay(self):
+        """Kiểm tra: Slide video nằm ngay sau ảnh Combo, slide clone không chứa thẻ video, URL Cloudinary tối ưu, có cơ chế tự phát 1 lần"""
+        idx = read_file('index.html')
+        for fn in ['function buildComboSlideList(', 'function buildComboSlideHtml(', 'function initComboVideoAutoplay(',
+                   'function playComboVideoFromButton(', 'function onComboVideoIntersect(']:
+            self.assertIn(fn, idx, f"LỖI: Thiếu hàm {fn} trong index.html!")
+        self.assertIn('initComboVideoAutoplay(scope);', idx, "LỖI: initCarouselInfiniteScroll phải khởi tạo video Combo!")
+        self.assertIn('.combo-video-slide', idx, "LỖI: Thiếu CSS .combo-video-slide!")
+
+        start = idx.find("function isSafeComboVideoUrl(u) {")
+        end = idx.find("// Trạng thái theo từng video")
+        self.assertTrue(start > 0 and end > start, "Không trích xuất được các hàm video Combo trong index.html")
+        extracted = idx[start:end]
+
+        test_js = r"""
+        const assert = require('assert');
+        function escapeHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function resolveSafeImgUrl(u) { return u; }
+        """ + extracted + r"""
+        const V1 = 'https://res.cloudinary.com/demo/video/upload/v1/robot.mov';
+        const V2 = 'https://cdn.example.com/clip2.mp4';
+        const combo = {
+          id: 'CMB_1', name: 'Combo robot',
+          images: ['https://img/combo1.jpg', 'https://img/combo2.jpg', 'https://img/esp32.jpg', 'https://img/loa.jpg'],
+          manualImageCount: 2,
+          videos: [V1, V2, 'javascript:alert(1)']
+        };
+        const slides = buildComboSlideList(combo);
+        assert.deepStrictEqual(slides.map(s => s.type === 'img' ? s.src : 'VIDEO:' + s.vIdx), [
+          'https://img/combo1.jpg', 'https://img/combo2.jpg', 'VIDEO:0', 'VIDEO:1', 'https://img/esp32.jpg', 'https://img/loa.jpg'
+        ], 'Video phải nằm ngay sau ảnh Combo thủ công và trước ảnh linh kiện; link nguy hiểm bị loại');
+        assert.strictEqual(slides[4].imgIdx, 2, 'Chỉ số ảnh dùng cho popup phóng to không được lệch');
+
+        // Không có ảnh thủ công → video đứng đầu
+        const s2 = buildComboSlideList({ images: ['https://img/esp32.jpg'], manualImageCount: 0, videos: [V2] });
+        assert.strictEqual(s2[0].type, 'video');
+        // Chỉ có ảnh giữ chỗ → bỏ ảnh giữ chỗ
+        const s3 = buildComboSlideList({ images: ['https://via.placeholder.com/250x200?text=Combo'], manualImageCount: 0, videos: [V2] });
+        assert.strictEqual(s3.length, 1);
+        // Combo cũ không có video → giữ nguyên như trước
+        const s4 = buildComboSlideList({ images: ['a', 'b'] });
+        assert.deepStrictEqual(s4.map(s => s.type), ['img', 'img']);
+
+        // URL Cloudinary: ép MP4 + nén, ảnh bìa tự sinh
+        assert.strictEqual(getComboVideoPlaybackUrl(V1), 'https://res.cloudinary.com/demo/video/upload/q_auto,vc_auto,w_720,c_limit/v1/robot.mp4');
+        assert.strictEqual(getComboVideoPosterUrl(V1), 'https://res.cloudinary.com/demo/video/upload/so_1,w_720,c_limit,q_auto,f_jpg/v1/robot.jpg');
+        assert.strictEqual(getComboVideoPlaybackUrl(V2), V2);
+        assert.strictEqual(getComboVideoPosterUrl(V2), '');
+
+        // Slide thật có thẻ video tự phát không tiếng; slide clone không có thẻ video
+        const realHtml = buildComboSlideHtml(combo, slides[2], { isClone: false });
+        assert.ok(realHtml.includes('<video class="combo-video"') && realHtml.includes(' muted ') && realHtml.includes('playsinline'));
+        assert.ok(realHtml.includes('data-video-key="CMB_1#0"'));
+        const cloneHtml = buildComboSlideHtml(combo, slides[2], { isClone: true });
+        assert.ok(cloneHtml.includes('data-clone="true"') && !cloneHtml.includes('<video'));
+
+        console.log('COMBO_VIDEO_STOREFRONT_OK');
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn("COMBO_VIDEO_STOREFRONT_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 
 
