@@ -3255,10 +3255,13 @@ class TestBusinessLogic(unittest.TestCase):
         """Kiểm tra: Slide video nằm ngay sau ảnh Combo, slide clone không chứa thẻ video, URL Cloudinary tối ưu, có cơ chế tự phát 1 lần"""
         idx = read_file('index.html')
         for fn in ['function buildComboSlideList(', 'function buildComboSlideHtml(', 'function initComboVideoAutoplay(',
-                   'function playComboVideoFromButton(', 'function onComboVideoIntersect(']:
+                   'function playComboVideoFromButton(', 'function onComboVideoIntersect(',
+                   'function getModalSlides(', 'function stopModalVideo(']:
             self.assertIn(fn, idx, f"LỖI: Thiếu hàm {fn} trong index.html!")
+        self.assertIn('id="modal-video"', idx, "LỖI: Thiếu thẻ <video id='modal-video'> trong #image-modal!")
         self.assertIn('initComboVideoAutoplay(scope);', idx, "LỖI: initCarouselInfiniteScroll phải khởi tạo video Combo!")
         self.assertIn('.combo-video-slide', idx, "LỖI: Thiếu CSS .combo-video-slide!")
+        self.assertIn('.modal-video-player', idx, "LỖI: Thiếu CSS .modal-video-player!")
 
         start = idx.find("function isSafeComboVideoUrl(u) {")
         end = idx.find("// Trạng thái theo từng video")
@@ -3300,12 +3303,17 @@ class TestBusinessLogic(unittest.TestCase):
         assert.strictEqual(getComboVideoPlaybackUrl(V2), V2);
         assert.strictEqual(getComboVideoPosterUrl(V2), '');
 
-        // Slide thật có thẻ video tự phát không tiếng; slide clone không có thẻ video
+        // Slide thật có thẻ video tự phát không tiếng + nút phóng to mở đúng slideIdx=2; slide clone không có thẻ video
         const realHtml = buildComboSlideHtml(combo, slides[2], { isClone: false });
         assert.ok(realHtml.includes('<video class="combo-video"') && realHtml.includes(' muted ') && realHtml.includes('playsinline'));
         assert.ok(realHtml.includes('data-video-key="CMB_1#0"'));
+        assert.ok(realHtml.includes("openModal('CMB_1', 2)"), 'Nút phóng to trên video đầu tiên phải mở đúng vị trí slide 2 trong modal');
         const cloneHtml = buildComboSlideHtml(combo, slides[2], { isClone: true });
         assert.ok(cloneHtml.includes('data-clone="true"') && !cloneHtml.includes('<video'));
+
+        // Ảnh linh kiện nằm sau 2 video (slides[4]) khi click phải truyền slideIdx=4 vào openModal để khớp với getModalSlides
+        const afterVidImgHtml = buildComboSlideHtml(combo, slides[4], { isClone: false });
+        assert.ok(afterVidImgHtml.includes("openModal('CMB_1', 4)"), 'Click vào ảnh linh kiện sau video phải mở đúng slide thứ 5 (index 4) trong modal');
 
         console.log('COMBO_VIDEO_STOREFRONT_OK');
         """
