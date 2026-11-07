@@ -1727,6 +1727,9 @@
             <div class="order-pill" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành <span id="pill-count-completed" class="order-pill-badge">0</span></div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+            <button type="button" id="btn-open-order-logs" class="btn-update" onclick="openOrderLogsModal()" style="background: #b91c1c; color: #fff; font-weight: 700; padding: 7px 12px; border-radius: 6px; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(185, 28, 28, 0.25);" title="Xem nhật ký chẩn đoán đơn lỗi và khôi phục đơn hàng">
+              <span>🩺</span> Đơn lỗi
+            </button>
             <button type="button" id="btn-export-spx-toolbar" class="btn-update" onclick="openSpxExportModal(false)" style="background: #ea580c; color: #fff; font-weight: 700; padding: 7px 13px; border-radius: 6px; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25);" title="Xuất danh sách đơn hàng đang hiển thị sang file Excel SPX">
               <span>📦</span> Xuất Đơn SPX
             </button>
@@ -2844,6 +2847,48 @@
       <div class="edit-actions" style="justify-content: flex-end; gap: 10px;">
         <button type="button" class="btn-cancel" onclick="closeSpxExportModal()" style="padding: 9px 18px;">Hủy</button>
         <button type="button" class="btn-save" onclick="confirmExportSpxExcel()" style="background: #ea580c; padding: 10px 22px; font-size: 14.5px; font-weight: bold; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3);">🚀 Tải File Excel SPX (.xlsx)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NHẬT KÝ CHẨN ĐOÁN ĐƠN HÀNG LỖI & KHÔI PHỤC 1-CLICK -->
+  <div id="order-logs-modal" class="edit-modal" style="display: none;">
+    <div class="edit-content" style="max-width: 1080px; width: 96%; max-height: 88vh; display: flex; flex-direction: column; text-align: left;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 2px solid #fee2e2; padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+        <h2 style="margin: 0; color: #b91c1c; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+          <span>🩺</span> Nhật ký đơn lỗi &amp; Chẩn đoán (Khôi phục 1-Click)
+        </h2>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button type="button" id="btn-refresh-order-logs" onclick="loadOrderLogs()" style="background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer;">🔄 Tải lại</button>
+          <button type="button" id="btn-clear-resolved-order-logs" onclick="clearOrderLogs(true)" style="background: #475569; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer;">🧹 Xoá mục đã xử lý</button>
+          <button type="button" id="btn-clear-all-order-logs" onclick="clearOrderLogs(false)" style="background: #dc2626; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer;">🗑️ Xoá tất cả</button>
+          <button type="button" id="btn-close-order-logs" onclick="closeOrderLogsModal()" style="background: #e2e8f0; color: #1e293b; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer;">✕ Đóng</button>
+        </div>
+      </div>
+
+      <div id="order-logs-counters" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px; margin-bottom: 10px; font-size: 12.5px; color: #334155; font-weight: 600;">
+        Bot bị chặn (ô ẩn): 0 · Bot bị chặn (quá nhanh): 0 · Đơn đã lưu nhưng mất phản hồi: 0 · Log bị giới hạn tần suất: 0
+      </div>
+
+      <div style="overflow: auto; flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 820px;">
+          <thead>
+            <tr style="background: #f1f5f9; color: #1e293b; text-align: left; position: sticky; top: 0; z-index: 2;">
+              <th style="padding: 9px 10px; border-bottom: 1px solid #cbd5e1; white-space: nowrap;">Thời gian</th>
+              <th style="padding: 9px 10px; border-bottom: 1px solid #cbd5e1; white-space: nowrap;">Mã tra cứu</th>
+              <th style="padding: 9px 10px; border-bottom: 1px solid #cbd5e1;">Nguyên nhân</th>
+              <th style="padding: 9px 10px; border-bottom: 1px solid #cbd5e1;">Khách hàng</th>
+              <th style="padding: 9px 10px; border-bottom: 1px solid #cbd5e1;">Giỏ hàng</th>
+              <th style="padding: 9px 10px; border-bottom: 1px solid #cbd5e1;">Chi tiết</th>
+              <th style="padding: 9px 10px; border-bottom: 1px solid #cbd5e1; white-space: nowrap;">Trạng thái</th>
+              <th style="padding: 9px 10px; border-bottom: 1px solid #cbd5e1; white-space: nowrap;">Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="order-logs-body"></tbody>
+        </table>
+        <div id="order-logs-empty" style="display: none; padding: 28px 16px; text-align: center; color: #64748b; font-size: 13.5px;">
+          ✅ Không có nhật ký đơn hàng lỗi nào. Mọi đơn hàng đều hoạt động bình thường!
+        </div>
       </div>
     </div>
   </div>
@@ -9414,6 +9459,223 @@
       } catch (err) {
         showLoading(false);
         alert("❌ Lỗi kết nối máy chủ: " + err.message);
+      }
+    }
+
+    // ==========================================
+    // 🩺 NHẬT KÝ ĐƠN LỖI & KHÔI PHỤC 1-CLICK
+    // ==========================================
+    let isRecoveringOrderLog = false;
+
+    function openOrderLogsModal() {
+      const modal = document.getElementById('order-logs-modal');
+      if (modal) modal.style.display = 'flex';
+      loadOrderLogs();
+    }
+
+    function closeOrderLogsModal() {
+      const modal = document.getElementById('order-logs-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function getOrderLogReasonLabel(code) {
+      const c = String(code || '').toUpperCase();
+      if (c === 'CLIENT_NETWORK_DROP') {
+        return { label: 'Đứt mạng phía khách (chuyển app/sóng yếu)', bg: '#ffedd5', color: '#c2410c' };
+      }
+      if (c === 'SERVER_NON_JSON') {
+        return { label: 'Google trả lỗi (quota/timeout/quyền)', bg: '#fee2e2', color: '#991b1b' };
+      }
+      if (c === 'SERVER_EXCEPTION') {
+        return { label: 'Lỗi máy chủ', bg: '#fee2e2', color: '#991b1b' };
+      }
+      if (c === 'LOCK_TIMEOUT') {
+        return { label: 'Quá tải xử lý đồng thời', bg: '#fee2e2', color: '#dc2626' };
+      }
+      if (c === 'BAD_REQUEST_JSON') {
+        return { label: 'Dữ liệu gửi lên bị hỏng', bg: '#fee2e2', color: '#dc2626' };
+      }
+      if (c === 'RATE_LIMIT_PHONE' || c === 'RATE_LIMIT_GLOBAL') {
+        return { label: 'Bị giới hạn tần suất', bg: '#fef3c7', color: '#b45309' };
+      }
+      if (c === 'PRODUCT_NOT_FOUND' || c === 'PRODUCT_INACTIVE' || c === 'COMBO_EXPIRED') {
+        return { label: 'Sản phẩm/Combo không còn bán', bg: '#f3e8ff', color: '#6b21a8' };
+      }
+      if (c === 'INVALID_INPUT' || c === 'INVALID_CART') {
+        return { label: 'Dữ liệu khách nhập không hợp lệ', bg: '#f1f5f9', color: '#475569' };
+      }
+      return { label: c || 'Không xác định', bg: '#f1f5f9', color: '#334155' };
+    }
+
+    async function loadOrderLogs() {
+      const token = getAdminToken();
+      if (!token) return logout();
+      const refreshBtn = document.getElementById('btn-refresh-order-logs');
+      if (refreshBtn) refreshBtn.disabled = true;
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: "getOrderLogs", token: token })
+        });
+        const data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg);
+          return;
+        }
+        renderOrderLogs(data);
+      } catch (e) {
+        alert("Lỗi tải nhật ký đơn lỗi!");
+      } finally {
+        if (refreshBtn) refreshBtn.disabled = false;
+      }
+    }
+
+    function renderOrderLogs(data) {
+      const countersEl = document.getElementById('order-logs-counters');
+      const bodyEl = document.getElementById('order-logs-body');
+      const emptyEl = document.getElementById('order-logs-empty');
+      const closeBtn = document.getElementById('btn-close-order-logs');
+      const clearResolvedBtn = document.getElementById('btn-clear-resolved-order-logs');
+      const clearAllBtn = document.getElementById('btn-clear-all-order-logs');
+      void closeBtn; void clearResolvedBtn; void clearAllBtn;
+
+      const cnt = (data && data.counters) || {};
+      if (countersEl) {
+        countersEl.textContent =
+          'Bot bị chặn (ô ẩn): ' + (Number(cnt.botHpTrap) || 0) +
+          ' · Bot bị chặn (quá nhanh): ' + (Number(cnt.botFastSubmit) || 0) +
+          ' · Đơn đã lưu nhưng mất phản hồi: ' + (Number(cnt.responseLost) || 0) +
+          ' · Log bị giới hạn tần suất: ' + (Number(cnt.rateLimitedLogs) || 0);
+      }
+
+      const logs = (data && Array.isArray(data.logs)) ? data.logs : [];
+      if (!bodyEl) return;
+      if (logs.length === 0) {
+        bodyEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+      if (emptyEl) emptyEl.style.display = 'none';
+
+      const rowsHtml = [];
+      for (let i = 0; i < logs.length; i++) {
+        const item = logs[i] || {};
+        const reasonMeta = getOrderLogReasonLabel(item.code);
+        const safeTime = escapeHtml(item.time || '');
+        const safeTrace = escapeHtml(item.traceId || '');
+        const safeCode = escapeHtml(item.code || '');
+        const safeLabel = escapeHtml(reasonMeta.label);
+        const safeCust = escapeHtml(item.customer || '');
+        const safeCart = escapeHtml(item.cartSummary || '');
+        const safeDetail = escapeHtml(item.detail || '');
+        const safeEnv = escapeHtml(item.env || '');
+        const safeState = escapeHtml(item.state || 'Mới');
+        const rowNum = parseInt(item.row, 10) || 0;
+        const canRec = item.canRecover === true && rowNum >= 2;
+
+        const actionHtml = canRec
+          ? `<button type="button" onclick="recoverOrderFromLog(${rowNum}, '${safeTrace}', this)" style="background:#16a34a; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">➕ Khôi phục</button>`
+          : `<span style="color:#94a3b8; font-size:11.5px;">—</span>`;
+
+        rowsHtml.push(`
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px 10px; white-space: nowrap; color: #475569;">${safeTime}</td>
+            <td style="padding: 8px 10px; white-space: nowrap; font-family: monospace; font-weight: 700; color: #0f172a;">${safeTrace || '—'}</td>
+            <td style="padding: 8px 10px;">
+              <span style="display:inline-block; background:${reasonMeta.bg}; color:${reasonMeta.color}; padding:3px 8px; border-radius:999px; font-weight:700; font-size:11.5px;">${safeLabel}</span>
+              <div style="font-size:10.5px; color:#64748b; margin-top:2px;">${safeCode}</div>
+            </td>
+            <td style="padding: 8px 10px; color: #1e293b; font-weight: 600;">${safeCust || '—'}</td>
+            <td style="padding: 8px 10px; color: #334155;">${safeCart || '—'}</td>
+            <td style="padding: 8px 10px; color: #475569; max-width: 240px; word-break: break-word;">
+              <div>${safeDetail || '—'}</div>
+              ${safeEnv ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">${safeEnv}</div>` : ''}
+            </td>
+            <td style="padding: 8px 10px; white-space: nowrap; font-weight: 700; color: ${item.state === 'Mới' ? '#dc2626' : '#15803d'};">${safeState}</td>
+            <td style="padding: 8px 10px; white-space: nowrap;">${actionHtml}</td>
+          </tr>
+        `);
+      }
+      bodyEl.innerHTML = rowsHtml.join('');
+    }
+
+    async function recoverOrderFromLog(row, traceId, btnEl) {
+      if (isRecoveringOrderLog) return;
+      if (btnEl && btnEl.disabled) return;
+      if (!confirm("Khôi phục dòng nhật ký này thành đơn hàng thật trong sheet Đơn Hàng?")) return;
+
+      const token = getAdminToken();
+      if (!token) return logout();
+      isRecoveringOrderLog = true;
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = '⏳ Đang khôi phục...';
+      }
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "recoverOrderFromLog",
+            token: token,
+            row: Number(row),
+            traceId: String(traceId || '')
+          })
+        });
+        const data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg);
+          if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.textContent = '➕ Khôi phục';
+          }
+          return;
+        }
+        if (data.alreadySaved) {
+          showToast("ℹ️ Đơn hàng này thực tế đã được lưu trước đó (" + (data.orderId || "") + ")");
+        } else {
+          showToast("✅ Đã khôi phục thành đơn hàng " + (data.orderId || ""));
+        }
+        await loadOrderLogs();
+        loadData();
+      } catch (e) {
+        alert("Lỗi kết nối khi khôi phục đơn hàng!");
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = '➕ Khôi phục';
+        }
+      } finally {
+        isRecoveringOrderLog = false;
+      }
+    }
+
+    async function clearOrderLogs(onlyResolved) {
+      const msg = onlyResolved
+        ? "Xoá toàn bộ các dòng nhật ký đã xử lý (giữ lại các dòng Mới)?"
+        : "Xoá TOÀN BỘ nhật ký đơn lỗi?";
+      if (!confirm(msg)) return;
+      const token = getAdminToken();
+      if (!token) return logout();
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "clearOrderLogs",
+            token: token,
+            onlyResolved: Boolean(onlyResolved)
+          })
+        });
+        const data = await res.json();
+        if (data.status === "error") {
+          if (data.code === "AUTH") logout();
+          else alert(data.msg);
+          return;
+        }
+        showToast("🗑️ Đã xoá " + (Number(data.deleted) || 0) + " dòng nhật ký");
+        await loadOrderLogs();
+      } catch (e) {
+        alert("Lỗi khi xoá nhật ký đơn lỗi!");
       }
     }
   </script>

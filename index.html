@@ -6565,9 +6565,168 @@
     // === GIẢI PHÁP CHỐNG TẠO ĐƠN TRÙNG LẶP (IDEMPOTENCY FINGERPRINT + MODAL HƯỚNG DẪN ZALO) ===
     const ORDER_DEDUP_WINDOW_MS = 15 * 60 * 1000; // 15 phút
     const ORDER_DEDUP_STORAGE_KEY = 'chuhieu_last_submitted_order_v1';
+    const ORDER_DIAG_STORAGE_KEY = 'chuhieu_pending_order_diag_v1';
+    const ORDER_DIAG_MAX_ENTRIES = 3;
+    const ORDER_DIAG_MIN_AGE_MS = 20000;
+    const ORDER_DIAG_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+    const ORDER_DIAG_MAX_REPORT_TRIES = 3;
+    let isFlushingOrderDiag = false;
     const checkoutFormLoadedAt = Date.now();
     let isSubmittingOrder = false;
-    let lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: '' };
+    let lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: '', traceId: '' };
+
+    function generateOrderTraceId() {
+      const ts = Date.now().toString(36).toUpperCase();
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let rand = '';
+      for (let i = 0; i < 4; i++) {
+        rand += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return 'CH-' + ts + '-' + rand;
+    }
+
+    function readPendingOrderDiag() {
+      try {
+        if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return [];
+        const raw = localStorage.getItem(ORDER_DIAG_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function writePendingOrderDiag(list) {
+      try {
+        if (typeof localStorage === 'undefined' || typeof localStorage.setItem !== 'function') return;
+        const arr = Array.isArray(list) ? list.slice(-ORDER_DIAG_MAX_ENTRIES) : [];
+        if (arr.length === 0) {
+          if (typeof localStorage.removeItem === 'function') {
+            localStorage.removeItem(ORDER_DIAG_STORAGE_KEY);
+          } else {
+            localStorage.setItem(ORDER_DIAG_STORAGE_KEY, '[]');
+          }
+        } else {
+          localStorage.setItem(ORDER_DIAG_STORAGE_KEY, JSON.stringify(arr));
+        }
+      } catch (e) {}
+    }
+
+    function upsertPendingOrderDiag(entry) {
+      try {
+        if (!entry || !entry.traceId) return;
+        const list = readPendingOrderDiag().filter(it => it && it.traceId !== entry.traceId);
+        list.push({
+          traceId: String(entry.traceId),
+          createdAt: Number(entry.createdAt) || Date.now(),
+          attempts: Number(entry.attempts) || 0,
+          errorKind: String(entry.errorKind || ''),
+          lastError: String(entry.lastError || ''),
+          reportTries: Number(entry.reportTries) || 0,
+          order: entry.order || {}
+        });
+        writePendingOrderDiag(list);
+      } catch (e) {}
+    }
+
+    function markPendingOrderDiagFailure(traceId, errorKind, lastError) {
+      try {
+        if (!traceId) return;
+        const list = readPendingOrderDiag();
+        let updated = false;
+        for (let i = 0; i < list.length; i++) {
+          if (list[i] && list[i].traceId === traceId) {
+            list[i].attempts = (Number(list[i].attempts) || 0) + 1;
+            list[i].errorKind = String(errorKind || 'network');
+            list[i].lastError = String(lastError || '').slice(0, 300);
+            updated = true;
+            break;
+          }
+        }
+        if (updated) writePendingOrderDiag(list);
+      } catch (e) {}
+    }
+
+    function removePendingOrderDiag(traceId) {
+      try {
+        if (!traceId) return;
+        const list = readPendingOrderDiag();
+        const filtered = list.filter(it => it && it.traceId !== traceId);
+        if (filtered.length !== list.length) {
+          writePendingOrderDiag(filtered);
+        }
+      } catch (e) {}
+    }
+
+    async function flushPendingOrderDiag() {
+      if (isFlushingOrderDiag) return;
+      try {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+        const rawList = readPendingOrderDiag();
+        if (!rawList || rawList.length === 0) return;
+
+        const now = Date.now();
+        const validList = [];
+        let listChanged = false;
+        for (let i = 0; i < rawList.length; i++) {
+          const item = rawList[i];
+          if (!item || !item.traceId) { listChanged = true; continue; }
+          const age = now - (Number(item.createdAt) || 0);
+          const tries = Number(item.reportTries) || 0;
+          if (age > ORDER_DIAG_MAX_AGE_MS || tries >= ORDER_DIAG_MAX_REPORT_TRIES) {
+            listChanged = true;
+            continue;
+          }
+          validList.push(item);
+        }
+        if (listChanged) writePendingOrderDiag(validList);
+        if (validList.length === 0) return;
+
+        const readyEntries = validList.filter(it => {
+          const age = now - (Number(it.createdAt) || 0);
+          return age >= ORDER_DIAG_MIN_AGE_MS && (Number(it.attempts) || 0) > 0;
+        }).slice(0, ORDER_DIAG_MAX_ENTRIES);
+
+        if (readyEntries.length === 0) return;
+
+        isFlushingOrderDiag = true;
+        for (let i = 0; i < readyEntries.length; i++) {
+          const entry = readyEntries[i];
+          const currentList = readPendingOrderDiag();
+          const target = currentList.find(it => it && it.traceId === entry.traceId);
+          if (!target) continue;
+          target.reportTries = (Number(target.reportTries) || 0) + 1;
+          writePendingOrderDiag(currentList);
+
+          try {
+            const diagPayload = {
+              action: "logClientOrderDiag",
+              traceId: target.traceId,
+              createdAt: Number(target.createdAt) || now,
+              attempts: Number(target.attempts) || 1,
+              errorKind: target.errorKind === 'non_json' ? 'non_json' : 'network',
+              lastError: String(target.lastError || '').slice(0, 300),
+              online: (typeof navigator !== 'undefined') ? (navigator.onLine !== false) : true,
+              ua: (typeof navigator !== 'undefined' && navigator.userAgent) ? String(navigator.userAgent).slice(0, 200) : '',
+              order: target.order || {}
+            };
+            const res = await fetch(API_URL, {
+              method: 'POST',
+              body: JSON.stringify(diagPayload)
+            });
+            const text = (res && typeof res.text === 'function') ? await res.text() : '';
+            const data = text ? JSON.parse(text) : null;
+            if (data && data.status === 'success') {
+              removePendingOrderDiag(target.traceId);
+            }
+          } catch (err) {}
+        }
+      } catch (e) {
+      } finally {
+        isFlushingOrderDiag = false;
+      }
+    }
 
     function normalizeVnPhoneClient(rawPhone) {
       let digits = String(rawPhone || '').replace(/\D+/g, '');
@@ -6841,7 +7000,7 @@
     }
 
     function handleOrderSaveFailure(orderText, reasonMsg) {
-      lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: orderText };
+      lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: orderText, traceId: '' };
       try {
         if (typeof sessionStorage !== 'undefined' && typeof sessionStorage.removeItem === 'function') {
           sessionStorage.removeItem(ORDER_DEDUP_STORAGE_KEY);
@@ -6874,19 +7033,56 @@
     }
 
     function sendOrderToSheetWithRetry(orderData, orderText, retriesLeft) {
+      const traceId = (orderData && orderData.clientTraceId) ? String(orderData.clientTraceId) : '';
+      if (retriesLeft === 2 && traceId) {
+        upsertPendingOrderDiag({
+          traceId: traceId,
+          createdAt: Date.now(),
+          attempts: 0,
+          errorKind: '',
+          lastError: '',
+          reportTries: 0,
+          order: {
+            name: orderData.name || '',
+            phone: orderData.phone || '',
+            address: orderData.address || '',
+            note: orderData.note || '',
+            cartJSON: orderData.cartJSON || '[]',
+            formDurationMs: orderData.formDurationMs || 0
+          }
+        });
+      }
       const payloadStr = JSON.stringify(orderData);
       return fetch(API_URL, { method: 'POST', keepalive: true, body: payloadStr })
-        .then(r => (r && typeof r.json === 'function') ? r.json() : null)
+        .then(r => {
+          if (!r) return null;
+          if (typeof r.text !== 'function') return { status: 'success' };
+          return r.text().then(t => {
+            try { return JSON.parse(t); }
+            catch (e) {
+              const err = new Error('HTTP ' + (r.status || 0) + ' ' + String(t || '').slice(0, 200));
+              err.kind = 'non_json';
+              throw err;
+            }
+          });
+        })
         .then(res => {
           if (res && res.status === 'error') {
+            removePendingOrderDiag(traceId);
             handleOrderSaveFailure(orderText, res.msg || 'Hệ thống đang bận');
           } else if (res && res.status === 'success') {
+            removePendingOrderDiag(traceId);
             try {
               sessionStorage.setItem(ORDER_DEDUP_STORAGE_KEY, JSON.stringify(lastSubmittedOrderState));
             } catch (e) {}
           }
         })
         .catch(err => {
+          markPendingOrderDiagFailure(
+            traceId,
+            err && err.kind === 'non_json' ? 'non_json' : 'network',
+            String(err && (err.message || err)).slice(0, 300)
+          );
           if (retriesLeft > 0) {
             let retried = false;
             const triggerRetry = () => {
@@ -7023,6 +7219,10 @@
         lastSubmittedOrderState.fingerprint === currentFp &&
         (Date.now() - Number(lastSubmittedOrderState.timestamp || 0)) < ORDER_DEDUP_WINDOW_MS
       );
+      const traceId = (isDuplicateSubmission && lastSubmittedOrderState.traceId)
+        ? lastSubmittedOrderState.traceId
+        : generateOrderTraceId();
+      orderText += "\nMã tra cứu: " + traceId;
 
       // Copy nội dung đơn hàng vào bộ nhớ tạm
       copyTextToClipboard(orderText);
@@ -7052,14 +7252,16 @@
         total: formatMoney(finalTotal),
         cartJSON: JSON.stringify(cart),
         website: hpValue,
-        formDurationMs: formDurationMs
+        formDurationMs: formDurationMs,
+        clientTraceId: traceId
       };
       isSubmittingOrder = true;
       setTimeout(() => { isSubmittingOrder = false; }, 3500);
       lastSubmittedOrderState = {
         fingerprint: currentFp,
         timestamp: Date.now(),
-        orderText: orderText
+        orderText: orderText,
+        traceId: traceId
       };
       try {
         sessionStorage.setItem(ORDER_DEDUP_STORAGE_KEY, JSON.stringify(lastSubmittedOrderState));
@@ -7269,6 +7471,23 @@
       document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') {
           syncLeaderboardRealtime();
+        }
+        if (!document.hidden) {
+          setTimeout(flushPendingOrderDiag, 3000);
+        }
+      });
+    }
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const runner = (typeof window.requestIdleCallback === 'function') ? window.requestIdleCallback : setTimeout;
+          runner(flushPendingOrderDiag);
+        }, 3000);
+      });
+      window.addEventListener('pageshow', function(e) {
+        if (e && e.persisted) {
+          setTimeout(flushPendingOrderDiag, 3000);
         }
       });
     }

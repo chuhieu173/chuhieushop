@@ -3339,7 +3339,374 @@ class TestBusinessLogic(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_order_log_actions_routing(self):
+        """Kiểm tra: Định tuyến action logClientOrderDiag (công khai) và getOrderLogs, recoverOrderFromLog, clearOrderLogs (Admin) trong Code.gs"""
+        code = read_file('Code.gs')
+        do_post_idx = code.find("function doPost(e)")
+        self.assertNotEqual(do_post_idx, -1, "Thiếu hàm doPost(e) trong Code.gs")
+        do_post_body = code[do_post_idx:]
 
+        auth_check_idx = do_post_body.find("if (!isValidSession(payload.token))")
+        self.assertNotEqual(auth_check_idx, -1, "Thiếu kiểm tra isValidSession trong doPost")
+
+        diag_idx = do_post_body.find('action === "logClientOrderDiag"')
+        self.assertNotEqual(diag_idx, -1, "Thiếu action === 'logClientOrderDiag' trong doPost")
+        self.assertLess(diag_idx, auth_check_idx, "logClientOrderDiag phải đứng TRƯỚC kiểm tra isValidSession")
+
+        for admin_act in ['getOrderLogs', 'recoverOrderFromLog', 'clearOrderLogs']:
+            act_idx = do_post_body.find(f'action === "{admin_act}"')
+            self.assertNotEqual(act_idx, -1, f"Thiếu action === '{admin_act}' trong doPost")
+            self.assertGreater(act_idx, auth_check_idx, f"Action '{admin_act}' phải đứng SAU kiểm tra isValidSession")
+
+    def test_order_log_pure_helpers_node(self):
+        """Kiểm tra: Các hàm pure isValidTraceId, classifyServerError, buildOrderLogCartSummary, logOrderFailure(null) và khôi phục đơn bằng Node.js"""
+        code = read_file('Code.gs')
+        start_pure = code.find("var ORDER_LOG_SHEET = ")
+        end_pure = code.find("function getConfigValues(doc)")
+        self.assertTrue(start_pure > 0 and end_pure > start_pure, "Không trích xuất được khối hàm log từ Code.gs")
+        pure_block = code[start_pure:end_pure]
+
+        # Đảm bảo 3 hàm pure không tham chiếu SpreadsheetApp / CacheService
+        pure_only = code[code.find("function isValidTraceId(t)"):code.find("function getOrderLogDayKeyGmt7()")]
+        self.assertNotIn("SpreadsheetApp", pure_only)
+        self.assertNotIn("CacheService", pure_only)
+
+        # Trích xuất thêm buildOrderRowData, findSavedOrderByTraceId, handleLogClientOrderDiag, handleRecoverOrderFromLog để test tích hợp
+        build_start = code.find("function buildOrderRowData(doc, cartIn, opts)")
+        build_end = code.find("function handleLogin(payload)")
+        diag_start = code.find("function findSavedOrderByTraceId(doc, traceId)")
+        diag_end = code.find("function doPost(e)")
+        extra_backend_code = code[build_start:build_end] + "\n" + code[diag_start:diag_end]
+
+        test_js = r"""
+        const assert = require('assert');
+        const MAX_QTY_PER_ITEM = 99;
+        function jsonOutput(obj) { return obj; }
+        function fail(msg) { return { status: "error", msg: msg }; }
+        function formatMoney(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ"; }
+        function sanitize(str, maxLen) {
+          if (str === null || str === undefined) return "";
+          str = str.toString().replace(/<[^>]*>/g, "").trim();
+          if (maxLen && str.length > maxLen) str = str.substring(0, maxLen);
+          return str;
+        }
+        function safeCell(v) {
+          v = (v === null || v === undefined) ? "" : v.toString();
+          return /^[=+\-@\t\r]/.test(v) ? "'" + v : v;
+        }
+        function normalizeVnPhoneBackend(rawPhone) {
+          var digits = (rawPhone || "").toString().replace(/\D+/g, "");
+          if (digits.indexOf("84") === 0 && digits.length === 11) digits = "0" + digits.substring(2);
+          return digits;
+        }
+        function withLock(fn) { return fn(); }
+        function getShippingFee() { return 19800; }
+        function getProductsList() {
+          return [
+            { id: "SP_INACTIVE", name: "Mạch đã ẩn", price: 130000, stock: 5, status: "ẩn", isCombo: false }
+          ];
+        }
+        function getCombosList() { return []; }
+        const cacheStore = {};
+        const CacheService = {
+          getScriptCache: () => ({
+            get: (k) => cacheStore[k] || null,
+            put: (k, v) => { cacheStore[k] = String(v); },
+            getAll: (keys) => {
+              const r = {};
+              keys.forEach(k => { if (cacheStore[k]) r[k] = cacheStore[k]; });
+              return r;
+            }
+          })
+        };
+        const Utilities = {
+          formatDate: () => "20261107"
+        };
+        """ + pure_block + "\n" + extra_backend_code + r"""
+        // 1. isValidTraceId
+        assert.strictEqual(isValidTraceId("CH-MH7K2Q1A-7QF2"), true);
+        assert.strictEqual(isValidTraceId("CH-123456-ABCD"), true);
+        assert.strictEqual(isValidTraceId("CH-short-1234"), false);
+        assert.strictEqual(isValidTraceId("INVALID-123456-ABCD"), false);
+        assert.strictEqual(isValidTraceId(""), false);
+        assert.strictEqual(isValidTraceId(null), false);
+
+        // 2. classifyServerError
+        assert.strictEqual(classifyServerError(new Error("Lock timeout: another process was holding the lock")), "LOCK_TIMEOUT");
+        assert.strictEqual(classifyServerError("Service invoked too many times: lock"), "LOCK_TIMEOUT");
+        assert.strictEqual(classifyServerError(new Error("Something else broke")), "SERVER_EXCEPTION");
+
+        // 3. buildOrderLogCartSummary
+        assert.strictEqual(
+          buildOrderLogCartSummary(JSON.stringify([
+            { name: "ESP32-S3", qty: 2 },
+            { name: "Loa", variantName: "3W 4R", qty: 1 }
+          ])),
+          "ESP32-S3 x2; Loa [3W 4R] x1"
+        );
+        assert.strictEqual(buildOrderLogCartSummary("{broken json"), "(giỏ hàng không đọc được)");
+        assert.strictEqual(buildOrderLogCartSummary("[]"), "(giỏ hàng không đọc được)");
+
+        // 4. logOrderFailure với doc = null không throw
+        const resNull = logOrderFailure(null, "SERVER_REJECT", "INVALID_INPUT", "Thiếu tên", { name: "A" }, {});
+        assert.strictEqual(resNull.logged, false);
+        const resSilent = logOrderFailure(null, "SERVER_REJECT", "HP_TRAP", "Bot", {}, {});
+        assert.strictEqual(resSilent.logged, false);
+        assert.strictEqual(resSilent.reason, "silent");
+
+        // 5. Kiểm tra đối soát alreadySaved và khôi phục đơn PRODUCT_INACTIVE (strict: false)
+        const sheets = {};
+        function makeSheet(name, initialRows) {
+          const rows = initialRows.slice();
+          return {
+            getLastRow: () => rows.length,
+            getLastColumn: () => (rows[0] ? rows[0].length : 0),
+            appendRow: (r) => { rows.push(r.slice()); },
+            setFrozenRows: () => {},
+            getDataRange: () => ({ getValues: () => rows }),
+            getRange: (r, c, numR, numC) => ({
+              getValue: () => (rows[r - 1] && rows[r - 1][c - 1]) || "",
+              setValue: (val) => {
+                while (rows.length < r) rows.push([]);
+                rows[r - 1][c - 1] = val;
+              },
+              getValues: () => {
+                const out = [];
+                for (let i = 0; i < (numR || 1); i++) {
+                  const src = rows[r - 1 + i] || [];
+                  out.push(src.slice(c - 1, c - 1 + (numC || 1)));
+                }
+                return out;
+              }
+            }),
+            _rows: rows
+          };
+        }
+        sheets["Đơn Hàng"] = makeSheet("Đơn Hàng", [
+          ["Mã ĐH", "Ngày", "Tên", "SĐT", "Địa chỉ", "Chi tiết", "Tổng", "Ghi chú", "Trạng thái", "CartJSON", "Đã trừ kho", "Xóa", "Ghi chú Admin", "Trace ID"],
+          ["DH2611070001", "07/11/2026 15:00", "Khách Đã Lưu", "'0912345678", "Hà Nội", "- Mạch", "149.800đ", "", "Khách đặt hàng", "[]", false, "", "", "CH-SAVED001-AAAA"]
+        ]);
+        const mockDoc = {
+          getSheetByName: (n) => sheets[n] || null,
+          insertSheet: (n) => { sheets[n] = makeSheet(n, []); return sheets[n]; }
+        };
+
+        // Gửi diag với traceId đã có trong sheet Đơn Hàng -> alreadySaved: true, không tạo dòng log
+        const diagSaved = handleLogClientOrderDiag(mockDoc, {
+          action: "logClientOrderDiag",
+          traceId: "CH-SAVED001-AAAA",
+          attempts: 2,
+          errorKind: "network",
+          lastError: "Failed to fetch",
+          order: { name: "Khách Đã Lưu", phone: "0912345678", address: "Hà Nội", cartJSON: "[{\"id\":\"SP_INACTIVE\",\"qty\":1}]" }
+        });
+        assert.strictEqual(diagSaved.alreadySaved, true);
+        assert.strictEqual(diagSaved.orderId, "DH2611070001");
+        assert.strictEqual(sheets[ORDER_LOG_SHEET], undefined, "Không được tạo dòng log khi đơn đã lưu thực tế!");
+
+        // Log 1 đơn bị từ chối vì PRODUCT_INACTIVE rồi khôi phục 1-Click
+        const traceRecover = "CH-RECOV001-BBBB";
+        const payloadInactive = {
+          name: "Khách Khôi Phục",
+          phone: "0987654321",
+          address: "Đông Ngạc, Hà Nội",
+          note: "",
+          cartJSON: JSON.stringify([{ id: "SP_INACTIVE", name: "Mạch đã ẩn", price: 130000, qty: 1 }]),
+          clientTraceId: traceRecover
+        };
+        const logRes = logOrderFailure(mockDoc, "SERVER_REJECT", "PRODUCT_INACTIVE", "SP ngừng bán", payloadInactive, { traceId: traceRecover });
+        assert.strictEqual(logRes.logged, true);
+        assert.strictEqual(sheets[ORDER_LOG_SHEET].getLastRow(), 2);
+
+        // Khôi phục lần 1 -> thành công dù SP đang ở trạng thái 'ẩn', có cảnh báo trong Ghi chú Admin
+        const rec1 = handleRecoverOrderFromLog(mockDoc, { row: 2, traceId: traceRecover });
+        assert.strictEqual(rec1.status, "success");
+        assert.ok(rec1.orderId && rec1.orderId.startsWith("DH"));
+        const newOrderRow = sheets["Đơn Hàng"]._rows[2];
+        assert.ok(newOrderRow[12].includes("♻️ Khôi phục từ nhật ký lỗi [PRODUCT_INACTIVE]"), "Phải có ghi chú Admin khi khôi phục");
+        assert.strictEqual(newOrderRow[13], traceRecover, "Cột 14 phải lưu traceId");
+
+        // Khôi phục lần 2 cùng dòng đó -> bị từ chối, không tạo đơn thứ 2
+        const rec2 = handleRecoverOrderFromLog(mockDoc, { row: 2, traceId: traceRecover });
+        assert.strictEqual(rec2.status, "error");
+        assert.strictEqual(sheets["Đơn Hàng"].getLastRow(), 3, "Không được tạo đơn trùng khi bấm khôi phục lần 2");
+
+        console.log("ORDER_LOG_PURE_OK");
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("ORDER_LOG_PURE_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_no_logging_inside_withlock_in_create_order(self):
+        """Kiểm tra: Trong handleCreateOrder, bên trong callback withLock tuyệt đối không gọi logOrderFailure hay reject, mà trả về __reject"""
+        code = read_file('Code.gs')
+        fn_start = code.find("function handleCreateOrder(doc, payload)")
+        fn_end = code.find("function buildOrderRowData(doc, cartIn, opts)")
+        self.assertTrue(fn_start > 0 and fn_end > fn_start, "Không tìm thấy ranh giới handleCreateOrder")
+        fn_body = code[fn_start:fn_end]
+
+        lock_marker = "withLock(function () {"
+        lock_start = fn_body.find(lock_marker)
+        self.assertNotEqual(lock_start, -1, "Không tìm thấy withLock(function () { trong handleCreateOrder")
+
+        brace_start = fn_body.find("{", lock_start)
+        depth = 0
+        lock_end = -1
+        for idx in range(brace_start, len(fn_body)):
+            ch = fn_body[idx]
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    lock_end = idx
+                    break
+        self.assertNotEqual(lock_end, -1, "Không khớp được ngoặc đóng của withLock trong handleCreateOrder")
+        inside_lock = fn_body[brace_start:lock_end + 1]
+
+        self.assertNotIn("logOrderFailure(", inside_lock, "CẤM: Không được gọi logOrderFailure bên trong withLock!")
+        self.assertNotIn("reject(", inside_lock, "CẤM: Không được gọi reject() bên trong withLock!")
+        self.assertIn("__reject", inside_lock, "Phải trả về { __reject: ... } từ bên trong withLock để log bên ngoài lock!")
+
+    def test_create_order_appends_trace_id_column(self):
+        """Kiểm tra: handleCreateOrder lưu cột 14 safeCell(traceId) và đặt cache ord_trace_"""
+        code = read_file('Code.gs')
+        fn_start = code.find("function handleCreateOrder(doc, payload)")
+        fn_end = code.find("function buildOrderRowData(doc, cartIn, opts)")
+        fn_body = code[fn_start:fn_end]
+
+        self.assertIn("ord_trace_", fn_body, "handleCreateOrder phải lưu cache ord_trace_<traceId>")
+        self.assertIn("safeCell(traceId)", fn_body, "handleCreateOrder phải ghi safeCell(traceId) vào cột 14 của appendRow")
+
+    def test_client_pending_order_diag_queue_node(self):
+        """Kiểm tra: Hàng đợi chẩn đoán pending queue ở index.html (tối đa 3 phần tử, tạo traceId, lọc entry < 20s và attempts === 0) bằng Node.js"""
+        idx = read_file('index.html')
+        q_start = idx.find("const ORDER_DIAG_STORAGE_KEY = ")
+        q_end = idx.find("function normalizeVnPhoneClient(")
+        self.assertTrue(q_start > 0 and q_end > q_start, "Không trích xuất được khối hàm queue chẩn đoán từ index.html")
+        q_code = idx[q_start:q_end]
+
+        test_js = r"""
+        const assert = require('assert');
+        const store = {};
+        const localStorage = {
+          getItem: (k) => store[k] || null,
+          setItem: (k, v) => { store[k] = String(v); },
+          removeItem: (k) => { delete store[k]; }
+        };
+        let fetchCalls = [];
+        const API_URL = "https://example.com/exec";
+        const navigator = { onLine: true, userAgent: "Mozilla/5.0 TestAgent" };
+        function fetch(url, opts) {
+          fetchCalls.push({ url, body: JSON.parse(opts.body) });
+          return Promise.resolve({
+            text: () => Promise.resolve(JSON.stringify({ status: "success", logged: true }))
+          });
+        }
+        """ + q_code + r"""
+        (async () => {
+          // 1. Kiểm tra định dạng Trace ID
+          const t1 = generateOrderTraceId();
+          assert.ok(/^CH-[A-Z0-9]{6,12}-[A-Z0-9]{4}$/.test(t1), "Trace ID không khớp regex: " + t1);
+
+          // 2. Upsert -> mark failure -> remove -> rỗng
+          upsertPendingOrderDiag({ traceId: t1, createdAt: Date.now() - 30000, order: { name: "Khách A" } });
+          assert.strictEqual(readPendingOrderDiag().length, 1);
+          assert.strictEqual(readPendingOrderDiag()[0].attempts, 0);
+
+          markPendingOrderDiagFailure(t1, "network", "Failed to fetch");
+          assert.strictEqual(readPendingOrderDiag()[0].attempts, 1);
+          assert.strictEqual(readPendingOrderDiag()[0].errorKind, "network");
+
+          removePendingOrderDiag(t1);
+          assert.strictEqual(readPendingOrderDiag().length, 0);
+
+          // 3. Upsert 5 entry -> chỉ giữ tối đa 3 entry mới nhất
+          for (let i = 1; i <= 5; i++) {
+            upsertPendingOrderDiag({ traceId: "CH-ABCDEF" + i + "-000" + i, createdAt: Date.now() - 25000 });
+          }
+          const list3 = readPendingOrderDiag();
+          assert.strictEqual(list3.length, 3);
+          assert.strictEqual(list3[0].traceId, "CH-ABCDEF3-0003");
+          assert.strictEqual(list3[2].traceId, "CH-ABCDEF5-0005");
+
+          // 4. Flush bỏ qua entry < 20s và entry attempts === 0
+          writePendingOrderDiag([]);
+          const trYoung = "CH-YOUNG001-1111";
+          const trZeroAttempts = "CH-ZEROAT01-2222";
+          const trReady = "CH-READY001-3333";
+          upsertPendingOrderDiag({ traceId: trYoung, createdAt: Date.now() - 5000, attempts: 2, errorKind: "network", lastError: "Err1", order: { name: "Young" } });
+          upsertPendingOrderDiag({ traceId: trZeroAttempts, createdAt: Date.now() - 30000, attempts: 0, errorKind: "", lastError: "", order: { name: "Zero" } });
+          upsertPendingOrderDiag({ traceId: trReady, createdAt: Date.now() - 30000, attempts: 2, errorKind: "non_json", lastError: "HTTP 200 <!DOCTYPE html>", order: { name: "Ready" } });
+
+          await flushPendingOrderDiag();
+          assert.strictEqual(fetchCalls.length, 1, "Chỉ gửi báo cáo cho duy nhất entry đã >= 20s và attempts > 0");
+          assert.strictEqual(fetchCalls[0].body.traceId, trReady);
+          assert.strictEqual(fetchCalls[0].body.errorKind, "non_json");
+
+          // Sau khi flush thành công, trReady đã được xóa, còn lại 2 entry kia
+          const remaining = readPendingOrderDiag();
+          assert.strictEqual(remaining.length, 2);
+          console.log("CLIENT_DIAG_QUEUE_OK");
+        })().catch(e => { console.error(e); process.exit(1); });
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:
+            tf.write(test_js)
+            temp_path = tf.name
+        try:
+            res = subprocess.run(['node', temp_path], capture_output=True, text=True, check=True)
+            self.assertIn("CLIENT_DIAG_QUEUE_OK", res.stdout)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_client_non_json_classification(self):
+        """Kiểm tra: sendOrderToSheetWithRetry dùng r.text() và phân loại 'non_json', không còn gọi r.json()"""
+        idx = read_file('index.html')
+        fn_start = idx.find("function sendOrderToSheetWithRetry(")
+        fn_end = idx.find("function checkout(openZalo)")
+        self.assertTrue(fn_start > 0 and fn_end > fn_start, "Không tìm thấy hàm sendOrderToSheetWithRetry")
+        fn_body = idx[fn_start:fn_end]
+
+        self.assertIn("r.text()", fn_body, "sendOrderToSheetWithRetry phải đọc r.text() để bắt lỗi HTML từ Google")
+        self.assertIn("'non_json'", fn_body, "sendOrderToSheetWithRetry phải gán err.kind = 'non_json'")
+        self.assertNotIn("r.json()", fn_body, "sendOrderToSheetWithRetry không được dùng r.json() trực tiếp nữa")
+
+    def test_order_logs_admin_ui(self):
+        """Kiểm tra: Giao diện Nhật ký đơn lỗi & Khôi phục 1-Click trong admin.html"""
+        admin = read_file('admin.html')
+        for dom_id in [
+            'btn-open-order-logs', 'order-logs-modal', 'order-logs-counters',
+            'order-logs-body', 'order-logs-empty', 'btn-refresh-order-logs',
+            'btn-clear-resolved-order-logs', 'btn-clear-all-order-logs', 'btn-close-order-logs'
+        ]:
+            self.assertIn(f'id="{dom_id}"', admin, f"Thiếu phần tử id='{dom_id}' trong admin.html")
+
+        for fn_name in [
+            'function openOrderLogsModal(', 'function closeOrderLogsModal(',
+            'async function loadOrderLogs(', 'function renderOrderLogs(',
+            'function getOrderLogReasonLabel(', 'async function recoverOrderFromLog(',
+            'async function clearOrderLogs('
+        ]:
+            self.assertIn(fn_name, admin, f"Thiếu hàm '{fn_name}' trong admin.html")
+
+        render_start = admin.find("function renderOrderLogs(")
+        render_end = admin.find("async function recoverOrderFromLog(")
+        self.assertTrue(render_start > 0 and render_end > render_start)
+        render_body = admin[render_start:render_end]
+        self.assertIn("escapeHtml(", render_body, "renderOrderLogs phải dùng escapeHtml() để chống XSS")
+
+        # Đảm bảo loadData() khi mở trang admin không tự động gọi loadOrderLogs()
+        load_data_start = admin.find("async function loadData()")
+        load_data_end = admin.find("function toggleThemeVideoInput(")
+        load_data_body = admin[load_data_start:load_data_end]
+        self.assertNotIn("loadOrderLogs", load_data_body, "Mở trang admin không được tự động tải getOrderLogs")
 
 
 if __name__ == '__main__':
