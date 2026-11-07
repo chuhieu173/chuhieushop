@@ -2106,6 +2106,10 @@ class TestBusinessLogic(unittest.TestCase):
         self.assertIn('id="order-success-modal"', index)
         self.assertIn('id="btn-checkout-zalo"', index)
         self.assertIn('id="btn-checkout-copy"', index)
+        self.assertIn('keepalive: true', index, "LỖI: fetch tạo đơn phải có keepalive: true để không bị đứt kết nối khi điện thoại chuyển sang app Zalo!")
+        self.assertIn('name="ch_hp_trap_nofill"', index, "LỖI: Ô Honeypot phải dùng name='ch_hp_trap_nofill' tránh trình duyệt di động Autofill nhầm!")
+        self.assertIn('function sendOrderToSheetWithRetry(', index, "LỖI: Thiếu hàm sendOrderToSheetWithRetry tự động gửi lại khi mạng chập chờn!")
+        self.assertIn('function handleOrderSaveFailure(', index, "LỖI: Thiếu hàm handleOrderSaveFailure mở khóa chống trùng khi lưu đơn thất bại!")
 
         # 2. Server-side Idempotency trong Code.gs (chống ghi trùng đơn trong 180 giây)
         self.assertIn('ord_dedup_', codegs, "LỖI: Code.gs thiếu khóa chống trùng đơn ord_dedup_ trong handleCreateOrder!")
@@ -2199,6 +2203,13 @@ class TestBusinessLogic(unittest.TestCase):
 
         checkout(false);
         assert.strictEqual(apiCallCount, 2, "Sau khi thay đổi giỏ hàng, bấm đặt hàng phải tạo đơn mới (apiCallCount = 2)");
+
+        // Lần bấm 5: Nếu lưu đơn gặp lỗi mạng (handleOrderSaveFailure) -> Phải mở khóa chống trùng để khách bấm gửi lại được ngay!
+        handleOrderSaveFailure("Nội dung đơn", "Mất kết nối mạng");
+        assert.strictEqual(domElements['order-submitted-banner'].style.display, 'none', "Khi lỗi mạng, banner Đã lưu đơn phải ẩn đi");
+        assert(domElements['order-success-badge'].innerHTML.includes('CHƯA LƯU TỰ ĐỘNG'), "Modal phải cảnh báo chưa lưu tự động khi lỗi mạng");
+        checkout(false);
+        assert.strictEqual(apiCallCount, 3, "Sau khi mở khóa lỗi mạng, khách bấm lại phải gọi API gửi lại đơn thành công (apiCallCount = 3)");
         console.log("ANTI_DUP_CHECKOUT_OK");
         """
         with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tf:

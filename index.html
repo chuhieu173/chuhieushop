@@ -3194,8 +3194,8 @@
         <div class="cart-step-badge"><span class="cart-step-num" style="background: #0068ff;">BƯỚC 2</span> Thông tin nhận hàng</div>
         <button type="button" id="btn-clear-customer-info" class="btn-clear-cart" style="display: none;" onclick="clearAllCustomerInfo()">🗑️ Xóa nhập lại</button>
       </div>
-      <div class="form-group"><input type="text" id="customer-name" placeholder="Tên người nhận *" aria-label="Tên người nhận" oninput="onCustomerFormInput()" required></div>
-      <div class="form-group"><input type="tel" id="customer-phone" placeholder="Số điện thoại Zalo *" aria-label="Số điện thoại Zalo" oninput="onCustomerFormInput()" required></div>
+      <div class="form-group"><input type="text" id="customer-name" name="customer_name" autocomplete="name" placeholder="Tên người nhận *" aria-label="Tên người nhận" oninput="onCustomerFormInput()" required></div>
+      <div class="form-group"><input type="tel" id="customer-phone" name="customer_phone" autocomplete="tel" placeholder="Số điện thoại Zalo *" aria-label="Số điện thoại Zalo" oninput="onCustomerFormInput()" required></div>
       <div class="form-group">
         <div id="spx-address-trigger" class="spx-address-trigger" role="button" tabindex="0" onclick="openSpxAddressModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSpxAddressModal();}" aria-label="Chọn Tỉnh hoặc Thành phố và Phường hoặc Xã">
           <span id="spx-address-trigger-text" class="spx-address-trigger-text is-placeholder">Tỉnh / Phường-Xã <span class="spx-address-trigger-star">*</span></span>
@@ -3224,7 +3224,7 @@
         </div>
       </div>
       <div class="form-group">
-        <input type="text" id="customer-address-detail" placeholder="Số nhà, tên đường, thôn/xóm (Không cần gõ Phường, Tỉnh/TP) *" aria-label="Số nhà, tên đường, thôn xóm" oninput="updateAddressPreview(); onCustomerFormInput();" required>
+        <input type="text" id="customer-address-detail" name="customer_address_detail" autocomplete="street-address" placeholder="Số nhà, tên đường, thôn/xóm (Không cần gõ Phường, Tỉnh/TP) *" aria-label="Số nhà, tên đường, thôn xóm" oninput="updateAddressPreview(); onCustomerFormInput();" required>
         <div style="font-size: 12px; color: #718096; margin-top: 4px; padding-left: 2px;">
           💡 Chỉ cần nhập số nhà, tên đường (hệ thống sẽ tự động ghép với Phường & Tỉnh/TP đã chọn ở trên).
         </div>
@@ -3235,9 +3235,9 @@
       </div>
       <!-- Tạm thời ẩn phần ghi chú đặt hàng -->
       <div class="form-group" style="display: none;"><input type="text" id="customer-note" placeholder="Ghi chú (Tùy chọn)" aria-label="Ghi chú đơn hàng" oninput="onCustomerFormInput()"></div>
-      <!-- Ô bẫy bot tự động (Honeypot - ẩn hoàn toàn với người dùng thật) -->
+      <!-- Ô bẫy bot tự động (Honeypot - ẩn hoàn toàn với người dùng thật, đặt tên tránh Autofill điền nhầm) -->
       <div aria-hidden="true" style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none;">
-        <input type="text" id="customer-website-hp" name="website" tabindex="-1" autocomplete="off" value="">
+        <input type="text" id="customer-website-hp" name="ch_hp_trap_nofill" tabindex="-1" autocomplete="new-password" data-lpignore="true" data-form-type="other" value="">
       </div>
 
       <!-- Cảnh báo bắt buộc nhắn Zalo để đơn hàng được thực hiện -->
@@ -6840,6 +6840,79 @@
       }
     }
 
+    function handleOrderSaveFailure(orderText, reasonMsg) {
+      lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: orderText };
+      try {
+        if (typeof sessionStorage !== 'undefined' && typeof sessionStorage.removeItem === 'function') {
+          sessionStorage.removeItem(ORDER_DEDUP_STORAGE_KEY);
+        } else if (typeof sessionStorage !== 'undefined' && typeof sessionStorage.setItem === 'function') {
+          sessionStorage.setItem(ORDER_DEDUP_STORAGE_KEY, '');
+        }
+      } catch (e) {}
+      updateCheckoutSubmittedUI();
+      const safeMsg = reasonMsg || 'Hệ thống đang bận';
+      const badge = document.getElementById('order-success-badge');
+      const step1Icon = document.getElementById('order-step-1-icon');
+      const step1Text = document.getElementById('order-step-1-text');
+      const copyStatus = document.getElementById('order-success-copy-status');
+      if (badge) {
+        if (badge.style) {
+          badge.style.background = '#fef3c7';
+          badge.style.color = '#92400e';
+        }
+        badge.innerHTML = '⚠️ CHƯA LƯU TỰ ĐỘNG - HÃY GỬI QUA ZALO';
+      }
+      if (step1Icon) step1Icon.innerText = '📋';
+      if (step1Text) {
+        const escapedMsg = (typeof escapeHtml === 'function') ? escapeHtml(safeMsg) : safeMsg;
+        step1Text.innerHTML = '<b>Bước 1 (Đã copy đơn):</b> Hệ thống chưa thể lưu tự động (' + escapedMsg + '), nhưng nội dung đơn <b>ĐÃ ĐƯỢC COPY SẴN</b> vào bộ nhớ máy của bạn.';
+      }
+      if (copyStatus) {
+        if (copyStatus.style) copyStatus.style.color = '#b45309';
+        copyStatus.innerText = '⚠️ ' + safeMsg + '. Nội dung đơn ĐÃ ĐƯỢC COPY sẵn, bạn hãy DÁN gửi trực tiếp vào Zalo của Shop nhé!';
+      }
+    }
+
+    function sendOrderToSheetWithRetry(orderData, orderText, retriesLeft) {
+      const payloadStr = JSON.stringify(orderData);
+      return fetch(API_URL, { method: 'POST', keepalive: true, body: payloadStr })
+        .then(r => (r && typeof r.json === 'function') ? r.json() : null)
+        .then(res => {
+          if (res && res.status === 'error') {
+            handleOrderSaveFailure(orderText, res.msg || 'Hệ thống đang bận');
+          } else if (res && res.status === 'success') {
+            try {
+              sessionStorage.setItem(ORDER_DEDUP_STORAGE_KEY, JSON.stringify(lastSubmittedOrderState));
+            } catch (e) {}
+          }
+        })
+        .catch(err => {
+          if (retriesLeft > 0) {
+            let retried = false;
+            const triggerRetry = () => {
+              if (retried) return;
+              retried = true;
+              sendOrderToSheetWithRetry(orderData, orderText, retriesLeft - 1);
+            };
+            setTimeout(triggerRetry, 1200);
+            if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+              const onVis = () => {
+                if (!document.hidden) {
+                  if (typeof document.removeEventListener === 'function') {
+                    document.removeEventListener('visibilitychange', onVis);
+                  }
+                  triggerRetry();
+                }
+              };
+              document.addEventListener('visibilitychange', onVis);
+            }
+          } else {
+            if (typeof console !== 'undefined' && console.error) console.error(err);
+            handleOrderSaveFailure(orderText, 'Kết nối mạng bị gián đoạn khi chuyển ứng dụng');
+          }
+        });
+    }
+
     function checkout(openZalo) {
       if (cart.length === 0) { alert("Giỏ hàng đang trống! Vui lòng mua ít nhất 1 món."); return; }
 
@@ -6992,35 +7065,7 @@
         sessionStorage.setItem(ORDER_DEDUP_STORAGE_KEY, JSON.stringify(lastSubmittedOrderState));
       } catch (e) {}
 
-      fetch(API_URL, { method: 'POST', body: JSON.stringify(orderData) })
-        .then(r => (r && typeof r.json === 'function') ? r.json() : null)
-        .then(res => {
-          if (res && res.status === 'error') {
-            lastSubmittedOrderState = { fingerprint: '', timestamp: 0, orderText: orderText };
-            try { sessionStorage.removeItem(ORDER_DEDUP_STORAGE_KEY); } catch (e) {}
-            updateCheckoutSubmittedUI();
-            const badge = document.getElementById('order-success-badge');
-            const step1Icon = document.getElementById('order-step-1-icon');
-            const step1Text = document.getElementById('order-step-1-text');
-            const copyStatus = document.getElementById('order-success-copy-status');
-            if (badge) {
-              if (badge.style) {
-                badge.style.background = '#fef3c7';
-                badge.style.color = '#92400e';
-              }
-              badge.innerHTML = '⚠️ CHƯA LƯU TỰ ĐỘNG - HÃY GỬI QUA ZALO';
-            }
-            if (step1Icon) step1Icon.innerText = '📋';
-            if (step1Text) {
-              step1Text.innerHTML = '<b>Bước 1 (Đã copy đơn):</b> Hệ thống chưa thể lưu tự động (' + escapeHtml(res.msg || 'đang bận') + '), nhưng nội dung đơn <b>ĐÃ ĐƯỢC COPY SẴN</b> vào bộ nhớ máy của bạn.';
-            }
-            if (copyStatus) {
-              if (copyStatus.style) copyStatus.style.color = '#b45309';
-              copyStatus.innerText = '⚠️ ' + (res.msg || 'Hệ thống đang bận') + '. Nội dung đơn ĐÃ ĐƯỢC COPY sẵn, bạn hãy DÁN gửi trực tiếp vào Zalo của Shop nhé!';
-            }
-          }
-        })
-        .catch(err => console.error(err));
+      sendOrderToSheetWithRetry(orderData, orderText, 2);
 
       updateCheckoutSubmittedUI();
       openOrderSuccessModal(orderText, false);
