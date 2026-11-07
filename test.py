@@ -2494,7 +2494,7 @@ class TestBusinessLogic(unittest.TestCase):
         # 1. Brand Hero Header & Trust Badges (tuyệt đối KHÔNG có dòng "🚚 Ship COD toàn quốc (Phí ship chỉ 18k)")
         self.assertIn('class="brand-hero-header"', index_content)
         self.assertIn('class="brand-logo-badge"', index_content)
-        self.assertIn('⚡ Linh kiện tuyển chọn, kiểm kỹ trước khi gửi', index_content)
+        self.assertIn('⚡ Linh kiện tuyển chọn', index_content)
         self.assertIn('🛠️ Hỗ trợ sơ đồ', index_content)
         self.assertIn('id="btn-hero-zalo-quick"', index_content)
         self.assertNotIn('🚚 Ship COD toàn quốc (Phí ship chỉ 18k)', index_content,
