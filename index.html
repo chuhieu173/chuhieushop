@@ -2061,47 +2061,617 @@
     /* =========================================
        BỐ CỤC SẢN PHẨM LẺ (1 CỘT HOẶC 2 CỘT)
        ========================================= */
-    /* Màn hình lớn > 640px */
+    /* Màn hình máy tính / Desktop > 640px: Tối ưu hiển thị sản phẩm ngay trên màn hình đầu tiên (Above-The-Fold) */
     @media (min-width: 641px) {
+      body {
+        padding: 10px 16px 90px 16px !important;
+      }
+      .theme-switcher-bar {
+        margin-bottom: 4px !important;
+      }
+      .top-marquee-bar {
+        margin: 0 auto 8px auto !important;
+        font-size: 12.5px !important;
+      }
+      .marquee-badge {
+        padding: 5px 10px !important;
+        font-size: 11px !important;
+      }
+      .marquee-text-item {
+        padding: 5px 20px !important;
+      }
+      .brand-hero-header {
+        max-width: 980px !important;
+        margin: 0 auto 10px auto !important;
+        padding: 10px 16px 8px 16px !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+      }
+      .brand-title-row {
+        gap: 8px !important;
+      }
+      .brand-logo-badge {
+        width: 36px !important;
+        height: 36px !important;
+      }
+      .brand-hero-header h1 {
+        font-size: 20px !important;
+        margin: 0 !important;
+        line-height: 1.25 !important;
+      }
+      .trust-badges-bar {
+        margin-top: 6px !important;
+        gap: 8px !important;
+      }
+      .trust-badge-item {
+        font-size: 11.5px !important;
+        padding: 3px 10px !important;
+        border-radius: 16px !important;
+      }
+      .btn-hero-zalo {
+        font-size: 11.5px !important;
+        padding: 3px 12px !important;
+        border-radius: 16px !important;
+      }
+      .main-nav-tabs {
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+      }
+      .tab-btn {
+        padding: 6px 16px !important;
+        font-size: 13px !important;
+        border-radius: 20px !important;
+      }
+      .storefront-toolbar {
+        max-width: 980px !important;
+        margin: 0 auto 10px auto !important;
+        padding: 8px 12px !important;
+        gap: 6px !important;
+        border-radius: 10px !important;
+      }
+      .storefront-search-input {
+        padding: 7px 34px 7px 12px !important;
+        font-size: 13px !important;
+        border-radius: 8px !important;
+      }
+      .storefront-filter-pills {
+        gap: 6px !important;
+      }
+      .sf-filter-pill {
+        padding: 4px 11px !important;
+        font-size: 12px !important;
+        border-radius: 16px !important;
+      }
+
+      /* Tối ưu Kệ Flash Sale & Combo Desktop */
+      .flash-deal-header-banner {
+        padding: 6px 14px !important;
+        margin-bottom: 8px !important;
+        border-radius: 10px !important;
+      }
+      .flash-deal-header-banner .f-title {
+        font-size: 13.5px !important;
+        gap: 6px !important;
+      }
+      .flash-deal-header-banner .f-icon {
+        font-size: 16px !important;
+      }
+      .flash-deal-header-banner .f-badge {
+        font-size: 9.5px !important;
+        padding: 2px 6px !important;
+      }
+      .flash-deal-header-banner .f-desc {
+        font-size: 11px !important;
+        margin-top: 2px !important;
+      }
+      #flash-deal-section {
+        margin-bottom: 8px !important;
+      }
+      #flash-deal-section > div[style*="border-bottom"],
+      #combo-section > div[style*="border-bottom"] {
+        margin: 14px auto 10px auto !important;
+      }
+      #combo-section h2,
+      #regular-title {
+        font-size: 17px !important;
+        margin-top: 6px !important;
+        margin-bottom: 8px !important;
+      }
+      .combo-card {
+        max-width: 780px !important;
+        padding: 10px 14px 12px 14px !important;
+        border-radius: 12px !important;
+      }
+      .combo-card-layout {
+        grid-template-columns: 220px 1fr !important;
+        gap: 14px !important;
+        margin-top: 6px !important;
+      }
+      #flash-deal-list,
+      #combo-list {
+        gap: 12px !important;
+      }
+      .combo-card-media-col {
+        gap: 6px !important;
+      }
+      .combo-card-media-col .carousel {
+        height: 155px !important;
+        border-radius: 8px !important;
+      }
+      .deal-top-header-bar {
+        margin: 0 -14px 6px -14px !important;
+        padding: 5px 12px !important;
+        font-size: 10.5px !important;
+      }
+      .deal-top-header-bar .tag-right {
+        font-size: 9.5px !important;
+        padding: 2px 6px !important;
+      }
+      .deal-countdown-box {
+        padding: 4px 8px !important;
+        margin: 3px 0 !important;
+        border-radius: 6px !important;
+      }
+      .deal-countdown-box .cd-label {
+        font-size: 9.5px !important;
+        margin-bottom: 2px !important;
+      }
+      .countdown-timer {
+        gap: 2.5px !important;
+      }
+      .cd-seg {
+        padding: 2px 4px !important;
+        font-size: 11px !important;
+        min-width: 18px !important;
+        border-radius: 3px !important;
+      }
+      .cd-seg-label {
+        font-size: 7px !important;
+        margin-top: 1px !important;
+      }
+      .cd-colon {
+        font-size: 11px !important;
+        margin-bottom: 6px !important;
+      }
+      .deal-hot-status {
+        font-size: 9.5px !important;
+        padding: 1.5px 5px !important;
+        margin-top: 2px !important;
+      }
+      .combo-card-content-col h3 {
+        font-size: 15px !important;
+        margin-top: 0 !important;
+        margin-bottom: 3px !important;
+      }
+      .combo-card-content-col p {
+        font-size: 11.5px !important;
+        margin-bottom: 5px !important;
+        -webkit-line-clamp: 2 !important;
+      }
+      .combo-items-compact {
+        padding: 5px 8px !important;
+        margin-bottom: 4px !important;
+        border-radius: 6px !important;
+      }
+      .combo-items-heading {
+        font-size: 10.5px !important;
+        margin-bottom: 2px !important;
+      }
+      .combo-items-list {
+        gap: 2px !important;
+      }
+      .combo-item-entry {
+        font-size: 11px !important;
+        gap: 5px !important;
+        line-height: 1.25 !important;
+      }
+      .combo-item-qty {
+        padding: 0 4px !important;
+        font-size: 9.5px !important;
+        border-radius: 3px !important;
+      }
+      .btn-combo-toggle-items {
+        padding: 2px 6px !important;
+        font-size: 10px !important;
+        margin-top: 3px !important;
+      }
+      .combo-gift-container {
+        padding: 4px 8px !important;
+        margin: 3px 0 5px 0 !important;
+        border-radius: 6px !important;
+      }
+      .combo-gift-header {
+        font-size: 9.5px !important;
+        margin-bottom: 2px !important;
+      }
+      .gift-value-badge {
+        font-size: 8.5px !important;
+        padding: 1px 5px !important;
+      }
+      .combo-gift-item {
+        padding: 3px 6px !important;
+        gap: 6px !important;
+        border-radius: 4px !important;
+      }
+      .gift-thumb {
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 4px !important;
+      }
+      .gift-name {
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+      }
+      .gift-pricing {
+        margin-top: 1px !important;
+        font-size: 9.5px !important;
+        gap: 4px !important;
+      }
+      .gift-free-price {
+        font-size: 9.5px !important;
+      }
+      .combo-card-buy-box {
+        padding: 5px 8px !important;
+        border-radius: 6px !important;
+        gap: 5px !important;
+      }
+      .combo-card-buy-box .price-container .current-price {
+        font-size: 1.2em !important;
+      }
+      .combo-card-buy-box .btn-primary,
+      .btn-flash-deal {
+        padding: 7px 12px !important;
+        font-size: 12.5px !important;
+        border-radius: 6px !important;
+      }
+
+      /* Tối ưu Sản phẩm lẻ Desktop */
       body.product-grid-2col #product-list {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 20px !important;
-        max-width: 720px !important;
+        gap: 14px !important;
+        max-width: 780px !important;
         margin: 0 auto !important;
       }
       body.product-grid-2col #product-list .product-card {
         width: 100% !important;
+        padding: 10px !important;
+        border-radius: 12px !important;
       }
+      body.product-grid-2col #product-list .carousel {
+        height: 155px !important;
+      }
+      body.product-grid-2col #product-list .product-card h3 {
+        font-size: 13.5px !important;
+        margin: 6px 0 4px 0 !important;
+        min-height: 32px !important;
+        line-height: 1.25 !important;
+      }
+      body.product-grid-2col #product-list .product-card p {
+        font-size: 11.5px !important;
+        margin-bottom: 6px !important;
+        -webkit-line-clamp: 2 !important;
+      }
+      body.product-grid-2col #product-list .current-price {
+        font-size: 1.1em !important;
+      }
+      body.product-grid-2col #product-list .btn-primary {
+        padding: 7px 10px !important;
+        font-size: 12.5px !important;
+      }
+      body.product-grid-2col #product-list .qty-wrapper {
+        gap: 4px !important;
+        margin-bottom: 6px !important;
+      }
+      body.product-grid-2col #product-list .qty-btn {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 14px !important;
+      }
+      body.product-grid-2col #product-list .qty-input {
+        width: 34px !important;
+        height: 26px !important;
+        font-size: 12px !important;
+      }
+
       body.product-grid-1col #product-list {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 20px !important;
-        max-width: 600px !important;
+        gap: 14px !important;
+        max-width: 620px !important;
         margin: 0 auto !important;
       }
       body.product-grid-1col #product-list .product-card {
         width: 100% !important;
-        max-width: 600px !important;
+        max-width: 620px !important;
+        padding: 12px !important;
+        border-radius: 12px !important;
+      }
+      body.product-grid-1col #product-list .carousel {
+        height: 175px !important;
       }
     }
 
-    /* Màn hình di động <= 640px */
+    /* Màn hình di động <= 640px: Tối ưu hiển thị sản phẩm ngay trên màn hình đầu tiên (Above-The-Fold) */
     @media (max-width: 640px) {
+      body {
+        padding: 6px 8px 90px 8px !important;
+      }
+      .theme-switcher-bar {
+        margin-bottom: 2px !important;
+      }
+      .theme-switcher select {
+        padding: 3px 8px !important;
+        font-size: 11px !important;
+        border-radius: 12px !important;
+      }
+      .top-marquee-bar {
+        margin: 0 auto 4px auto !important;
+        padding: 3px 6px !important;
+        font-size: 11px !important;
+      }
+      .marquee-badge {
+        font-size: 9.5px !important;
+        padding: 2px 5px !important;
+      }
+      .brand-hero-header {
+        margin: 0 auto 6px auto !important;
+        padding: 6px 8px 5px 8px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+      }
+      .brand-title-row {
+        gap: 6px !important;
+      }
+      .brand-logo-badge {
+        width: 28px !important;
+        height: 28px !important;
+      }
       .brand-hero-header h1 {
-        font-size: 19px;
+        font-size: 15px !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
+      }
+      .trust-badges-bar {
+        margin-top: 4px !important;
+        gap: 4px !important;
       }
       .trust-badge-item {
-        font-size: 11.5px;
-        padding: 4px 10px;
+        font-size: 10px !important;
+        padding: 2px 6px !important;
+        border-radius: 10px !important;
+        gap: 3px !important;
       }
+      .btn-hero-zalo {
+        font-size: 10px !important;
+        padding: 2px 8px !important;
+        border-radius: 10px !important;
+        gap: 3px !important;
+      }
+      .main-nav-tabs {
+        gap: 8px !important;
+        margin-bottom: 6px !important;
+      }
+      .tab-btn {
+        padding: 5px 12px !important;
+        font-size: 11.5px !important;
+        border-width: 1.5px !important;
+        border-radius: 16px !important;
+      }
+      .storefront-toolbar {
+        padding: 6px 8px !important;
+        margin: 0 auto 6px auto !important;
+        border-radius: 10px !important;
+        gap: 5px !important;
+      }
+      .storefront-search-input {
+        padding: 6px 28px 6px 9px !important;
+        font-size: 12px !important;
+        border-radius: 7px !important;
+      }
+      .btn-clear-search {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 10px !important;
+        right: 6px !important;
+      }
+      .storefront-filter-pills {
+        gap: 4px !important;
+        padding-bottom: 1px !important;
+      }
+      .sf-filter-pill {
+        padding: 3px 8px !important;
+        font-size: 10.5px !important;
+        border-radius: 12px !important;
+      }
+      .flash-deal-header-banner {
+        padding: 4px 8px !important;
+        margin-bottom: 6px !important;
+        border-radius: 8px !important;
+      }
+      .flash-deal-header-banner .f-title {
+        font-size: 11px !important;
+        gap: 3px !important;
+      }
+      .flash-deal-header-banner .f-icon {
+        font-size: 13px !important;
+      }
+      .flash-deal-header-banner .f-badge {
+        font-size: 8.5px !important;
+        padding: 1px 4px !important;
+      }
+      .flash-deal-header-banner .f-desc {
+        font-size: 9px !important;
+        margin-top: 1px !important;
+        line-height: 1.25 !important;
+      }
+      #flash-deal-section {
+        margin-bottom: 6px !important;
+      }
+      #flash-deal-section > div[style*="border-bottom"],
+      #combo-section > div[style*="border-bottom"] {
+        margin: 8px auto 6px auto !important;
+      }
+      #combo-section h2,
+      #regular-title {
+        font-size: 14px !important;
+        margin-top: 3px !important;
+        margin-bottom: 4px !important;
+      }
+      .combo-card {
+        padding: 6px 8px 8px 8px !important;
+        border-radius: 10px !important;
+      }
+      .combo-card-layout {
+        gap: 6px !important;
+      }
+      #flash-deal-list,
+      #combo-list {
+        gap: 8px !important;
+      }
+      .combo-card-media-col .carousel {
+        height: 130px !important;
+      }
+      .deal-top-header-bar {
+        margin: 0 -8px 4px -8px !important;
+        padding: 3px 8px !important;
+        font-size: 9.5px !important;
+      }
+      .deal-top-header-bar .tag-right {
+        font-size: 8.5px !important;
+        padding: 1px 4px !important;
+      }
+      .deal-countdown-box {
+        padding: 3px 6px !important;
+        margin: 3px 0 !important;
+        border-radius: 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        gap: 2px 6px !important;
+      }
+      .deal-countdown-box .cd-label {
+        font-size: 9px !important;
+        margin-bottom: 0 !important;
+        letter-spacing: 0 !important;
+      }
+      .countdown-timer {
+        gap: 2px !important;
+      }
+      .cd-seg {
+        padding: 1px 3px !important;
+        font-size: 10px !important;
+        min-width: 16px !important;
+        border-radius: 3px !important;
+      }
+      .cd-seg-label {
+        font-size: 7px !important;
+        margin-top: 0 !important;
+      }
+      .cd-colon {
+        font-size: 10px !important;
+        margin-bottom: 5px !important;
+      }
+      .deal-hot-status {
+        font-size: 8.5px !important;
+        padding: 1px 4px !important;
+        margin-top: 0 !important;
+      }
+      .combo-card-content-col h3 {
+        font-size: 13px !important;
+        margin-top: 2px !important;
+        margin-bottom: 3px !important;
+      }
+      .combo-card-content-col p {
+        font-size: 10.5px !important;
+        margin-bottom: 3px !important;
+        -webkit-line-clamp: 2 !important;
+      }
+      .combo-items-compact {
+        padding: 4px 6px !important;
+        margin-bottom: 3px !important;
+        border-radius: 6px !important;
+      }
+      .combo-items-heading {
+        font-size: 9.5px !important;
+        margin-bottom: 2px !important;
+      }
+      .combo-items-list {
+        gap: 2px !important;
+      }
+      .combo-item-entry {
+        font-size: 10px !important;
+        gap: 4px !important;
+        line-height: 1.2 !important;
+      }
+      .combo-item-qty {
+        padding: 0 3px !important;
+        font-size: 8.5px !important;
+        border-radius: 3px !important;
+      }
+      .btn-combo-toggle-items {
+        padding: 2px 4px !important;
+        font-size: 9px !important;
+        margin-top: 2px !important;
+      }
+      .combo-gift-container {
+        padding: 4px 6px !important;
+        margin: 3px 0 4px 0 !important;
+        border-radius: 6px !important;
+      }
+      .combo-gift-header {
+        font-size: 9px !important;
+        margin-bottom: 2px !important;
+      }
+      .gift-value-badge {
+        font-size: 8px !important;
+        padding: 1px 4px !important;
+      }
+      .combo-gift-item {
+        padding: 2px 4px !important;
+        gap: 5px !important;
+        border-radius: 4px !important;
+      }
+      .gift-thumb {
+        width: 26px !important;
+        height: 26px !important;
+        border-radius: 4px !important;
+      }
+      .gift-name {
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+      }
+      .gift-pricing {
+        margin-top: 0 !important;
+        font-size: 8.5px !important;
+        gap: 3px !important;
+      }
+      .gift-free-price {
+        font-size: 8.5px !important;
+      }
+      .combo-card-buy-box {
+        padding: 4px 6px !important;
+        border-radius: 6px !important;
+        gap: 4px !important;
+      }
+      .combo-card-buy-box .price-container .current-price {
+        font-size: 1.15em !important;
+      }
+      .combo-card-buy-box .btn-primary,
+      .btn-flash-deal {
+        padding: 6px 8px !important;
+        font-size: 11.5px !important;
+        border-radius: 6px !important;
+      }
+
       /* Chế độ 2 cột cho riêng sản phẩm lẻ */
       body.mobile-grid-2col #view-products #product-list,
       body.product-grid-2col #view-products #product-list {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 10px !important;
+        gap: 8px !important;
         width: 100% !important;
         max-width: 620px !important;
         margin: 0 auto !important;
@@ -2109,50 +2679,59 @@
       body.mobile-grid-2col #view-products #product-list .product-card,
       body.product-grid-2col #view-products #product-list .product-card {
         width: 100% !important;
-        padding: 10px !important;
-        border-radius: 12px !important;
+        padding: 8px !important;
+        border-radius: 10px !important;
       }
       body.mobile-grid-2col #view-products #product-list .carousel,
       body.product-grid-2col #view-products #product-list .carousel {
-        height: 145px !important;
+        height: 130px !important;
       }
       body.mobile-grid-2col #view-products #product-list .product-card h3,
       body.product-grid-2col #view-products #product-list .product-card h3 {
-        font-size: 13.5px !important;
-        margin: 8px 0 4px 0 !important;
-        min-height: 34px !important;
+        font-size: 12.5px !important;
+        margin: 5px 0 3px 0 !important;
+        min-height: 30px !important;
+        line-height: 1.25 !important;
       }
       body.mobile-grid-2col #view-products #product-list .product-card p,
       body.product-grid-2col #view-products #product-list .product-card p {
-        font-size: 11.5px !important;
-        margin-bottom: 8px !important;
+        font-size: 10.5px !important;
+        margin-bottom: 5px !important;
         -webkit-line-clamp: 2 !important;
       }
       body.mobile-grid-2col #view-products #product-list .current-price,
       body.product-grid-2col #view-products #product-list .current-price {
-        font-size: 1.1em !important;
+        font-size: 1.05em !important;
       }
       body.mobile-grid-2col #view-products #product-list .btn-primary,
       body.product-grid-2col #view-products #product-list .btn-primary {
-        padding: 8px 8px !important;
-        font-size: 13px !important;
+        padding: 6px 6px !important;
+        font-size: 12px !important;
       }
       body.mobile-grid-2col #view-products #product-list .qty-wrapper,
       body.product-grid-2col #view-products #product-list .qty-wrapper {
-        gap: 5px !important;
-        margin-bottom: 8px !important;
+        gap: 4px !important;
+        margin-bottom: 5px !important;
       }
       body.mobile-grid-2col #view-products #product-list .qty-btn,
       body.product-grid-2col #view-products #product-list .qty-btn {
-        width: 28px !important;
-        height: 28px !important;
-        font-size: 15px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 13px !important;
       }
       body.mobile-grid-2col #view-products #product-list .qty-input,
       body.product-grid-2col #view-products #product-list .qty-input {
-        width: 38px !important;
-        height: 28px !important;
-        font-size: 13px !important;
+        width: 32px !important;
+        height: 24px !important;
+        font-size: 11.5px !important;
+      }
+      .carousel-swipe-badge {
+        font-size: 9px !important;
+        padding: 2px 4px !important;
+      }
+      .carousel-swipe-badge .swipe-badge-counter {
+        font-size: 8.5px !important;
+        padding: 1px 3px !important;
       }
 
       /* Chế độ 1 cột cho sản phẩm lẻ */
@@ -2160,7 +2739,7 @@
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 14px !important;
+        gap: 10px !important;
         width: 100% !important;
         max-width: 580px !important;
         margin: 0 auto !important;
@@ -2169,10 +2748,10 @@
       body.product-grid-1col #view-products #product-list .product-card {
         width: 100% !important;
         max-width: 580px !important;
-        padding: 14px !important;
+        padding: 10px !important;
       }
       body.product-grid-1col #view-products #product-list .carousel {
-        height: 180px !important;
+        height: 160px !important;
       }
     }
 
