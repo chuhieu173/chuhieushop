@@ -7281,7 +7281,7 @@
       cart.forEach((item, index) => {
         let prefix = item.isCombo ? "[COMBO] " : "";
         let varText = item.variantName ? ` [Phân loại: ${item.variantName}]` : "";
-        orderText += `${index + 1}. ${prefix}${item.name}${varText}\n   Giá: ${formatMoney(item.price)}   |   Số lượng: x${item.qty}\n`; 
+        orderText += `${index + 1}. ${prefix}${item.name}${varText}\n   Giá: ${formatMoney(item.price)} | Số lượng: x${item.qty}\n`; 
         
         let sheetItemText = `- ${prefix}${item.name}${varText} (x${item.qty})`;
 
@@ -7289,14 +7289,14 @@
           let comboDetail = combosData.find(c => c.id === item.id);
           if (comboDetail && comboDetail.rawItems) {
             comboDetail.rawItems.forEach(subItem => {
-              orderText += `   ${subItem.name}\n      Giá: ${formatMoney(subItem.price)}   |   Số lượng: x${subItem.qty * item.qty}\n`;
+              orderText += `   ${subItem.name}\n   Giá: ${formatMoney(subItem.price)} | Số lượng: x${subItem.qty * item.qty}\n`;
             });
           }
           if (comboDetail && comboDetail.hasGift) {
             let fs = getComboFlashDealStatus(comboDetail);
             if (fs.isActive && fs.activeGifts && fs.activeGifts.length > 0) {
               fs.activeGifts.forEach(gift => {
-                orderText += `   [QUÀ TẶNG] ${gift.name}\n      Giá: 0đ   |   Số lượng: x${gift.qty * item.qty}\n`;
+                orderText += `   [QUÀ TẶNG] ${gift.name}\n   Giá: 0đ | Số lượng: x${gift.qty * item.qty}\n`;
               });
               let giftNamesStr = fs.activeGifts.map(g => `${g.name} x${g.qty * item.qty}`).join(', ');
               sheetItemText += ` [Quà tặng: ${giftNamesStr}]`;
