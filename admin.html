@@ -163,6 +163,25 @@
       border-bottom-right-radius: 10px;
     }
 
+    /* TRẠNG THÁI TÙY CHỈNH: MÀU TÍM INDIGO NHẠT */
+    .orders-table tbody tr.order-row-custom {
+      background-color: #faf5ff !important;
+    }
+    .orders-table tbody tr.order-row-custom td {
+      border-top: 1.5px solid #e9d5ff !important;
+      border-bottom: 1.5px solid #e9d5ff !important;
+    }
+    .orders-table tbody tr.order-row-custom td:first-child {
+      border-left: 6px solid #7c3aed !important;
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+    .orders-table tbody tr.order-row-custom td:last-child {
+      border-right: 2px solid #e9d5ff !important;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+
     /* Ô GHI CHÚ RIÊNG CỦA ADMIN TRÊN ĐƠN HÀNG */
     .admin-order-note-input {
       width: 100%;
@@ -262,6 +281,18 @@
       background: #ebf8ff;
       color: #1e40af;
       border: 1.5px solid #93c5fd;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .status-badge-custom {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #ede9fe;
+      color: #5b21b6;
+      border: 1.5px solid #c4b5fd;
       padding: 5px 10px;
       border-radius: 6px;
       font-weight: 800;
@@ -595,6 +626,11 @@
         border: 2px solid #fbd38d !important;
         border-left: 7px solid #dd6b20 !important;
         background: #fffaf0 !important;
+      }
+      .orders-table tbody tr.order-row-custom {
+        border: 2px solid #e9d5ff !important;
+        border-left: 7px solid #7c3aed !important;
+        background: #faf5ff !important;
       }
       .orders-table tbody td {
         border-top: none !important;
@@ -1720,11 +1756,13 @@
         <div class="orders-filter-row">
           <input type="text" id="orders-search-input" class="orders-search-input" placeholder="🔍 Tìm theo mã ĐH, tên khách, số điện thoại, địa chỉ..." oninput="onOrderSearchInput(this.value)">
           <div class="orders-status-filter-pills">
-            <div class="order-pill active" onclick="filterOrdersByStatus('all', this)">Tất cả <span id="pill-count-all" class="order-pill-badge">0</span></div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Khách đặt hàng', this)">Khách đặt hàng <span id="pill-count-new" class="order-pill-badge">0</span></div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Chưa đặt cọc', this)">Chưa đặt cọc <span id="pill-count-pending" class="order-pill-badge">0</span></div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Đã giao cho đơn vị vận chuyển', this)">Đã giao ĐVVC <span id="pill-count-shipping" class="order-pill-badge">0</span></div>
-            <div class="order-pill" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành <span id="pill-count-completed" class="order-pill-badge">0</span></div>
+            <div class="order-pill active" data-status-pill="all" onclick="filterOrdersByStatus('all', this)">Tất cả <span id="pill-count-all" class="order-pill-badge">0</span></div>
+            <div class="order-pill" data-status-pill="Khách đặt hàng" onclick="filterOrdersByStatus('Khách đặt hàng', this)">Khách đặt hàng <span id="pill-count-new" class="order-pill-badge">0</span></div>
+            <div class="order-pill" data-status-pill="Chưa đặt cọc" onclick="filterOrdersByStatus('Chưa đặt cọc', this)">Chưa đặt cọc <span id="pill-count-pending" class="order-pill-badge">0</span></div>
+            <div class="order-pill" data-status-pill="Đã giao cho đơn vị vận chuyển" onclick="filterOrdersByStatus('Đã giao cho đơn vị vận chuyển', this)">Đã giao ĐVVC <span id="pill-count-shipping" class="order-pill-badge">0</span></div>
+            <div class="order-pill" data-status-pill="Hoàn thành" onclick="filterOrdersByStatus('Hoàn thành', this)">Hoàn thành <span id="pill-count-completed" class="order-pill-badge">0</span></div>
+            <span id="custom-order-status-pills" style="display: contents;"></span>
+            <button type="button" id="btn-manage-custom-statuses" class="order-pill" onclick="openCustomStatusModal()" style="border: 1.5px dashed #8b5cf6; color: #6d28d9; background: #faf5ff; font-weight: 700;" title="Tạo &amp; quản lý các trạng thái đơn hàng tùy chỉnh">🏷️ + Trạng thái tùy chỉnh</button>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
             <button type="button" id="btn-open-order-logs" class="btn-update" onclick="openOrderLogsModal()" style="background: #b91c1c; color: #fff; font-weight: 700; padding: 7px 12px; border-radius: 6px; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(185, 28, 28, 0.25);" title="Xem nhật ký chẩn đoán đơn lỗi và khôi phục đơn hàng">
@@ -1767,11 +1805,12 @@
           </div>
           <div class="bulk-toolbar-actions">
             <span style="font-size: 13px; font-weight: 600; color: #4a5568;">Đổi thành:</span>
-            <select id="bulk-status-select" style="padding: 8px 12px; border-radius: 6px; border: 1.5px solid #63b3ed; font-weight: bold; color: #2b6cb0; font-size: 14px; background: white;">
+            <select id="bulk-status-select" onchange="onBulkStatusSelectChange(this)" style="padding: 8px 12px; border-radius: 6px; border: 1.5px solid #63b3ed; font-weight: bold; color: #2b6cb0; font-size: 14px; background: white;">
               <option value="Chưa đặt cọc">Chưa đặt cọc</option>
               <option value="Đã giao cho đơn vị vận chuyển">Đã giao cho đơn vị vận chuyển</option>
               <option value="Hoàn thành">Hoàn thành</option>
               <option value="Khách đặt hàng">Khách đặt hàng</option>
+              <option value="__CUSTOM_INPUT__">✍️ + Nhập trạng thái tùy chỉnh...</option>
             </select>
             <button id="btn-bulk-apply" class="btn-bulk-apply" onclick="applyBulkStatusUpdate()">
               ⚡ Áp Dụng Cho <span id="bulk-btn-count">0</span> Đơn
@@ -2893,6 +2932,56 @@
     </div>
   </div>
 
+  <!-- MODAL NHẬP & QUẢN LÝ TRẠNG THÁI ĐƠN HÀNG TÙY CHỈNH -->
+  <div id="custom-status-modal" class="edit-modal" style="display: none;">
+    <div class="edit-content" style="max-width: 520px; width: 95%; text-align: left;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 2px solid #f3e8ff; padding-bottom: 10px; margin-bottom: 14px;">
+        <h2 id="custom-status-modal-title" style="margin: 0; color: #6d28d9; font-size: 17px; border: none; padding: 0;">
+          🏷️ Trạng Thái Đơn Hàng Tùy Chỉnh
+        </h2>
+        <button type="button" onclick="closeCustomStatusModal()" style="background: #f1f5f9; color: #475569; border: none; border-radius: 6px; padding: 5px 10px; font-size: 13px; font-weight: 700; cursor: pointer;">✕</button>
+      </div>
+
+      <div id="custom-status-target-hint" style="display: none; background: #faf5ff; border: 1px solid #d8b4fe; border-radius: 8px; padding: 9px 12px; margin-bottom: 12px; font-size: 13px; color: #5b21b6; font-weight: 600;"></div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label for="custom-status-input" style="color: #4c1d95; font-weight: 700;">✍️ Nhập tên trạng thái tự do (tối đa 60 ký tự):</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="custom-status-input" maxlength="60" placeholder="VD: Đã đặt cọc 50%, Chờ linh kiện, Khách hẹn tuần sau..." onkeydown="if(event.key==='Enter'){event.preventDefault();confirmCustomStatusInput();}" style="flex: 1; border: 1.5px solid #c4b5fd; font-weight: 600; color: #1e293b;">
+          <button type="button" id="btn-confirm-custom-status" onclick="confirmCustomStatusInput()" style="background: #7c3aed; color: #fff; border: none; border-radius: 6px; padding: 0 16px; font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap;">+ Thêm / Áp dụng</button>
+        </div>
+        <label style="display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12.5px; color:#475569; font-weight:600; cursor:pointer;">
+          <input type="checkbox" id="custom-status-save-default" checked style="width:15px; height:15px; margin:0; accent-color:#7c3aed;">
+          Lưu vào danh sách gợi ý để dùng lại cho các đơn sau
+        </label>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 6px;">💡 Gợi ý nhanh (bấm để điền):</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <button type="button" class="btn-icon" onclick="fillQuickCustomStatus('Đã đặt cọc')" style="background:#f5f3ff; color:#5b21b6; border-color:#ddd6fe; font-weight:600;">Đã đặt cọc</button>
+          <button type="button" class="btn-icon" onclick="fillQuickCustomStatus('Đang chờ linh kiện')" style="background:#f5f3ff; color:#5b21b6; border-color:#ddd6fe; font-weight:600;">Đang chờ linh kiện</button>
+          <button type="button" class="btn-icon" onclick="fillQuickCustomStatus('Đang lắp ráp / Test mạch')" style="background:#f5f3ff; color:#5b21b6; border-color:#ddd6fe; font-weight:600;">Đang lắp ráp / Test mạch</button>
+          <button type="button" class="btn-icon" onclick="fillQuickCustomStatus('Khách hẹn gửi sau')" style="background:#f5f3ff; color:#5b21b6; border-color:#ddd6fe; font-weight:600;">Khách hẹn gửi sau</button>
+          <button type="button" class="btn-icon" onclick="fillQuickCustomStatus('Đơn bảo hành / Đổi trả')" style="background:#f5f3ff; color:#5b21b6; border-color:#ddd6fe; font-weight:600;">Đơn bảo hành / Đổi trả</button>
+          <button type="button" class="btn-icon" onclick="fillQuickCustomStatus('Đã hủy')" style="background:#fef2f2; color:#b91c1c; border-color:#fecaca; font-weight:600;">Đã hủy</button>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 12px;">
+        <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📋 Danh sách trạng thái tùy chỉnh đã lưu:</span>
+          <span id="custom-status-saved-count" style="font-size: 11.5px; color: #6d28d9; background: #f3e8ff; padding: 2px 8px; border-radius: 999px;">0</span>
+        </div>
+        <div id="custom-status-saved-list" style="max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
+      <div style="margin-top: 12px; padding: 8px 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 11.5px; color: #64748b; line-height: 1.45;">
+        ℹ️ <b>Lưu ý:</b> Tồn kho và Doanh thu thực nhận vẫn chỉ tự động tính khi đơn chuyển sang <b>"Đã giao cho đơn vị vận chuyển"</b> hoặc <b>"Hoàn thành"</b>.
+      </div>
+    </div>
+  </div>
+
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
@@ -3182,6 +3271,10 @@
         if (resData.leaderboardConfig) {
           currentLeaderboardConfig = Object.assign({}, DEFAULT_LEADERBOARD_CONFIG, resData.leaderboardConfig);
           try { localStorage.setItem('leaderboard_config_cache', JSON.stringify(currentLeaderboardConfig)); } catch(e) {}
+        }
+        if (Array.isArray(resData.customOrderStatuses) && typeof saveCustomOrderStatusesLocal === 'function') {
+          saveCustomOrderStatusesLocal(resData.customOrderStatuses);
+          if (typeof syncCustomOrderStatusUI === 'function') syncCustomOrderStatusUI();
         }
         let shipInput = document.getElementById("edit-shipping-fee");
         if (shipInput && resData.shippingFee !== undefined) shipInput.value = resData.shippingFee;
@@ -3926,11 +4019,12 @@
        ========================================================================= */
 
     function getStatusProgressRank(status) {
-      let st = (status || '').toLowerCase();
+      let st = (status || '').trim().toLowerCase();
+      if (!st || st === 'khách đặt hàng') return 1;
       if (st === 'hoàn thành') return 4;
       if (st === 'đã giao cho đơn vị vận chuyển') return 3;
       if (st === 'chưa đặt cọc' || st === 'đang chuẩn bị hàng') return 2;
-      return 1;
+      return 2.5;
     }
 
     function getOrderCachedCleanAddress(o) {
@@ -4450,7 +4544,15 @@
       let order = (globalOrdersData || []).find(o => o.row === rowIdx);
       if (!order) return;
       let val = selectEl.value;
-      let originalStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
+      let originalStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : (order.status || 'Khách đặt hàng');
+      if (val === '__CUSTOM_INPUT__') {
+        let currentEffective = pendingOrderChanges.has(rowIdx) ? pendingOrderChanges.get(rowIdx) : originalStatus;
+        selectEl.value = currentEffective;
+        if (typeof openCustomStatusModal === 'function') {
+          openCustomStatusModal({ mode: 'row', rowIdx: rowIdx });
+        }
+        return;
+      }
       if (val !== originalStatus) {
         pendingOrderChanges.set(rowIdx, val);
       } else {
@@ -4461,7 +4563,7 @@
 
       let rowEl = selectEl.closest('tr');
       if (rowEl) {
-        rowEl.classList.remove('order-row-completed', 'order-row-pending-deposit', 'order-row-shipping');
+        rowEl.classList.remove('order-row-completed', 'order-row-pending-deposit', 'order-row-shipping', 'order-row-custom');
         selectEl.classList.remove('completed');
         if (val === "Hoàn thành") {
           rowEl.classList.add('order-row-completed');
@@ -4470,12 +4572,36 @@
           rowEl.classList.add('order-row-pending-deposit');
         } else if (val === "Đã giao cho đơn vị vận chuyển") {
           rowEl.classList.add('order-row-shipping');
+        } else if (val && val !== "Khách đặt hàng") {
+          rowEl.classList.add('order-row-custom');
+        }
+
+        let statusCell = rowEl.querySelector('td[data-label="Trạng thái"]');
+        if (statusCell) {
+          let badgeSpan = statusCell.querySelector('.status-badge-completed, .status-badge-shipping, .status-badge-pending-deposit, .status-badge-new, .status-badge-custom');
+          if (badgeSpan) {
+            if (val === "Hoàn thành") {
+              badgeSpan.className = 'status-badge-completed';
+              badgeSpan.innerHTML = '✅ Hoàn thành';
+            } else if (val === "Đã giao cho đơn vị vận chuyển") {
+              badgeSpan.className = 'status-badge-shipping';
+              badgeSpan.innerHTML = '🚚 Đã giao ĐVVC';
+            } else if (val === "Chưa đặt cọc" || val === "Đang chuẩn bị hàng") {
+              badgeSpan.className = 'status-badge-pending-deposit';
+              badgeSpan.innerHTML = '⏳ Chưa đặt cọc';
+            } else if (!val || val === "Khách đặt hàng") {
+              badgeSpan.className = 'status-badge-new';
+              badgeSpan.innerHTML = '🛒 Khách đặt hàng';
+            } else {
+              badgeSpan.className = 'status-badge-custom';
+              badgeSpan.innerHTML = '🏷️ ' + escapeHtml(val);
+            }
+          }
         }
 
         if (pendingOrderChanges.has(rowIdx)) {
           rowEl.classList.add('row-pending-change');
           selectEl.classList.add('select-unsaved');
-          let statusCell = rowEl.querySelector('td[data-label="Trạng thái"]');
           if (statusCell && !statusCell.querySelector('.badge-unsaved')) {
             let b = document.createElement('div');
             b.className = 'badge-unsaved';
@@ -4499,17 +4625,21 @@
       let countPending = 0;
       let countShipping = 0;
       let countCompleted = 0;
+      let customCountsMap = {};
 
       source.forEach(order => {
         if (isDuplicateFilterActive && order.isDuplicateCopy) return;
         countAll++;
         let hasPending = pendingOrderChanges.has(order.row);
-        let normalizedStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
-        let st = hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus;
+        let normalizedStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : (order.status || 'Khách đặt hàng');
+        let st = String(hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus).trim();
         if (st === 'Hoàn thành') countCompleted++;
         else if (st === 'Đã giao cho đơn vị vận chuyển') countShipping++;
         else if (st === 'Chưa đặt cọc') countPending++;
-        else countNew++;
+        else if (!st || st === 'Khách đặt hàng') countNew++;
+        else {
+          customCountsMap[st] = (customCountsMap[st] || 0) + 1;
+        }
       });
 
       const elAll = document.getElementById('pill-count-all');
@@ -4525,8 +4655,14 @@
       if (elShipping) elShipping.innerText = String(countShipping);
       if (elCompleted) elCompleted.innerText = String(countCompleted);
 
+      if (typeof renderCustomOrderStatusPills === 'function') {
+        renderCustomOrderStatusPills(customCountsMap);
+      }
+
       if (navBadge) {
-        let attentionCount = countNew + countPending;
+        let customTotal = 0;
+        Object.keys(customCountsMap).forEach(k => { customTotal += customCountsMap[k]; });
+        let attentionCount = countNew + countPending + customTotal;
         if (attentionCount > 0) {
           navBadge.innerText = String(attentionCount);
           navBadge.style.display = 'inline-flex';
@@ -4607,6 +4743,9 @@
       const tbody = document.getElementById('orders-body');
       let filtered = getFilteredOrders();
       updateOrderStatusCounts(globalOrdersData);
+      if (typeof syncBulkStatusSelectOptions === 'function') {
+        syncBulkStatusSelectOptions();
+      }
 
       if (!filtered || filtered.length === 0) {
         tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding:25px; color:#718096;'>Không tìm thấy đơn hàng nào.</td></tr>";
@@ -4626,12 +4765,14 @@
 
       ordersToRender.forEach(order => {
         let hasPending = pendingOrderChanges.has(order.row);
-        let normalizedStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : order.status;
-        let currentEffectiveStatus = hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus;
+        let normalizedStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : (order.status || 'Khách đặt hàng');
+        let currentEffectiveStatus = String(hasPending ? pendingOrderChanges.get(order.row) : normalizedStatus).trim() || "Khách đặt hàng";
 
         let isCompleted = currentEffectiveStatus === "Hoàn thành";
         let isShipping = currentEffectiveStatus === "Đã giao cho đơn vị vận chuyển";
         let isPendingDeposit = currentEffectiveStatus === "Chưa đặt cọc";
+        let isNewOrder = currentEffectiveStatus === "Khách đặt hàng";
+        let isCustomStatus = !isCompleted && !isShipping && !isPendingDeposit && !isNewOrder;
         let isDupCopy = !!order.isDuplicateCopy;
         
         let rowClasses = [];
@@ -4639,6 +4780,7 @@
         if (isCompleted) rowClasses.push("order-row-completed");
         else if (isShipping) rowClasses.push("order-row-shipping");
         else if (isPendingDeposit) rowClasses.push("order-row-pending-deposit");
+        else if (isCustomStatus) rowClasses.push("order-row-custom");
         else if (isDupCopy) rowClasses.push("order-row-duplicate");
         let rowClass = rowClasses.join(" ");
 
@@ -4646,8 +4788,13 @@
 
         let selectHtml = `<select id="status-${order.row}" class="status-select ${hasPending ? 'select-unsaved' : ''} ${isCompleted ? 'completed' : ''}" onchange="onOrderStatusDropdownChange(${order.row}, this)">`;
         STATUS_OPTIONS.forEach(opt => {
-          selectHtml += `<option value="${opt}" ${currentEffectiveStatus === opt ? "selected" : ""}>${opt}</option>`;
+          selectHtml += `<option value="${escapeHtml(opt)}" ${currentEffectiveStatus === opt ? "selected" : ""}>${escapeHtml(opt)}</option>`;
         });
+        let customOpts = (typeof getAllCustomOrderStatuses === 'function') ? getAllCustomOrderStatuses(currentEffectiveStatus) : [];
+        customOpts.forEach(cOpt => {
+          selectHtml += `<option value="${escapeHtml(cOpt)}" ${currentEffectiveStatus === cOpt ? "selected" : ""}>🏷️ ${escapeHtml(cOpt)}</option>`;
+        });
+        selectHtml += `<option value="__CUSTOM_INPUT__">✍️ + Nhập trạng thái tùy chỉnh...</option>`;
         selectHtml += `</select>`;
 
         let statusBadgeHtml = '';
@@ -4657,6 +4804,8 @@
           statusBadgeHtml = `<span class="status-badge-shipping">🚚 Đã giao ĐVVC</span>`;
         } else if (currentEffectiveStatus === "Chưa đặt cọc") {
           statusBadgeHtml = `<span class="status-badge-pending-deposit">⏳ Chưa đặt cọc</span>`;
+        } else if (isCustomStatus) {
+          statusBadgeHtml = `<span class="status-badge-custom">🏷️ ${escapeHtml(currentEffectiveStatus)}</span>`;
         } else {
           statusBadgeHtml = `<span class="status-badge-new">🛒 Khách đặt hàng</span>`;
         }
@@ -5601,6 +5750,12 @@
     async function applyBulkStatusUpdate() {
       if (selectedOrderRows.size === 0) return;
       let newStatus = document.getElementById('bulk-status-select').value;
+      if (newStatus === '__CUSTOM_INPUT__') {
+        if (typeof openCustomStatusModal === 'function') {
+          openCustomStatusModal({ mode: 'bulk' });
+        }
+        return;
+      }
       if (!confirm(`Xác nhận đổi trạng thái của ${selectedOrderRows.size} đơn hàng đã chọn thành:\n"${newStatus}" ?\n\n(Chuyển sang "Đã giao..." hoặc "Hoàn thành" sẽ tự động trừ kho nếu chưa trừ)`)) return;
 
       let updates = Array.from(selectedOrderRows).map(r => ({ row: r, newStatus: newStatus }));
@@ -9676,6 +9831,376 @@
         await loadOrderLogs();
       } catch (e) {
         alert("Lỗi khi xoá nhật ký đơn lỗi!");
+      }
+    }
+
+    /* =========================================================================
+       PHÂN HỆ QUẢN LÝ & NHẬP TRẠNG THÁI ĐƠN HÀNG TÙY CHỈNH (CUSTOM ORDER STATUSES)
+       ========================================================================= */
+    const CUSTOM_ORDER_STATUSES_KEY = 'chuhieu_custom_order_statuses_v1';
+    let customOrderStatusesList = [];
+    let customStatusModalTarget = { mode: 'manage', rowIdx: null };
+
+    function normalizeCustomStatusClient(raw) {
+      let s = String(raw || '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!s || s === '__CUSTOM_INPUT__') return '';
+      if (s === 'Đang chuẩn bị hàng') return 'Chưa đặt cọc';
+      for (let i = 0; i < STATUS_OPTIONS.length; i++) {
+        if (STATUS_OPTIONS[i].toLowerCase() === s.toLowerCase()) {
+          return STATUS_OPTIONS[i];
+        }
+      }
+      if (s.length > 60) s = s.substring(0, 60).trim();
+      return s;
+    }
+
+    function isBuiltInOrderStatus(st) {
+      let norm = normalizeCustomStatusClient(st);
+      if (!norm) return true;
+      return STATUS_OPTIONS.indexOf(norm) !== -1;
+    }
+
+    function sanitizeCustomStatusListClient(rawList) {
+      if (!Array.isArray(rawList)) return [];
+      const seen = new Set();
+      const result = [];
+      for (let i = 0; i < rawList.length; i++) {
+        const s = normalizeCustomStatusClient(rawList[i]);
+        if (!s || isBuiltInOrderStatus(s)) continue;
+        const lower = s.toLowerCase();
+        if (seen.has(lower)) continue;
+        seen.add(lower);
+        result.push(s);
+        if (result.length >= 30) break;
+      }
+      return result;
+    }
+
+    function getSavedCustomOrderStatuses() {
+      if (Array.isArray(customOrderStatusesList) && customOrderStatusesList.length > 0) {
+        return customOrderStatusesList.slice();
+      }
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const raw = localStorage.getItem(CUSTOM_ORDER_STATUSES_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            customOrderStatusesList = sanitizeCustomStatusListClient(parsed);
+            return customOrderStatusesList.slice();
+          }
+        }
+      } catch (e) {}
+      return [];
+    }
+
+    function saveCustomOrderStatusesLocal(list) {
+      customOrderStatusesList = sanitizeCustomStatusListClient(list);
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(CUSTOM_ORDER_STATUSES_KEY, JSON.stringify(customOrderStatusesList));
+        }
+      } catch (e) {}
+      return customOrderStatusesList;
+    }
+
+    function getAllCustomOrderStatuses(extraStatus) {
+      const saved = getSavedCustomOrderStatuses();
+      const seen = new Set();
+      const combined = [];
+
+      function addCandidate(raw) {
+        const s = normalizeCustomStatusClient(raw);
+        if (!s || isBuiltInOrderStatus(s)) return;
+        const lower = s.toLowerCase();
+        if (seen.has(lower)) return;
+        seen.add(lower);
+        combined.push(s);
+      }
+
+      saved.forEach(addCandidate);
+      if (Array.isArray(globalOrdersData)) {
+        globalOrdersData.forEach(o => {
+          if (o && o.status) addCandidate(o.status);
+        });
+      }
+      if (typeof pendingOrderChanges !== 'undefined' && pendingOrderChanges && typeof pendingOrderChanges.forEach === 'function') {
+        pendingOrderChanges.forEach(val => addCandidate(val));
+      }
+      if (extraStatus) addCandidate(extraStatus);
+      return combined;
+    }
+
+    function syncBulkStatusSelectOptions(selectedVal) {
+      if (typeof document === 'undefined') return;
+      const bulkSelect = document.getElementById('bulk-status-select');
+      if (!bulkSelect) return;
+      const prevVal = selectedVal !== undefined ? selectedVal : bulkSelect.value;
+      const customOpts = getAllCustomOrderStatuses(prevVal !== '__CUSTOM_INPUT__' ? prevVal : '');
+
+      let html = '';
+      STATUS_OPTIONS.forEach(opt => {
+        html += `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`;
+      });
+      customOpts.forEach(cOpt => {
+        html += `<option value="${escapeHtml(cOpt)}">🏷️ ${escapeHtml(cOpt)}</option>`;
+      });
+      html += `<option value="__CUSTOM_INPUT__">✍️ + Nhập trạng thái tùy chỉnh...</option>`;
+      bulkSelect.innerHTML = html;
+
+      if (prevVal && prevVal !== '__CUSTOM_INPUT__' && (STATUS_OPTIONS.indexOf(prevVal) !== -1 || customOpts.indexOf(prevVal) !== -1)) {
+        bulkSelect.value = prevVal;
+      } else {
+        bulkSelect.value = "Đã giao cho đơn vị vận chuyển";
+      }
+    }
+
+    function renderCustomOrderStatusPills(countsMap) {
+      if (typeof document === 'undefined') return;
+      const container = document.getElementById('custom-order-status-pills');
+      if (!container) return;
+
+      const map = countsMap || {};
+      const allCustom = getAllCustomOrderStatuses();
+      Object.keys(map).forEach(k => {
+        const norm = normalizeCustomStatusClient(k);
+        if (norm && !isBuiltInOrderStatus(norm) && !allCustom.some(x => x.toLowerCase() === norm.toLowerCase())) {
+          allCustom.push(norm);
+        }
+      });
+
+      container.innerHTML = '';
+      allCustom.forEach(st => {
+        const count = map[st] || 0;
+        // Hiển thị pill nếu trạng thái đã lưu trong danh sách, hoặc đang có đơn mang trạng thái đó, hoặc đang được chọn lọc
+        const isSaved = getSavedCustomOrderStatuses().some(x => x.toLowerCase() === st.toLowerCase());
+        if (!isSaved && count <= 0 && currentOrderStatusFilter !== st) return;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'order-pill' + (currentOrderStatusFilter === st ? ' active' : '');
+        btn.setAttribute('data-status-pill', st);
+        btn.onclick = function() { filterOrdersByStatus(st, btn); };
+        btn.innerHTML = `🏷️ ${escapeHtml(st)} <span class="pill-count">${count}</span>`;
+        container.appendChild(btn);
+      });
+    }
+
+    function syncCustomOrderStatusUI() {
+      syncBulkStatusSelectOptions();
+      updateOrderStatusCounts(globalOrdersData);
+      renderCustomStatusSavedList();
+    }
+
+    function onBulkStatusSelectChange(selectEl) {
+      if (!selectEl) return;
+      if (selectEl.value === '__CUSTOM_INPUT__') {
+        selectEl.value = "Đã giao cho đơn vị vận chuyển";
+        openCustomStatusModal({ mode: 'bulk' });
+      }
+    }
+
+    async function persistCustomOrderStatusesToServer(list) {
+      const clean = saveCustomOrderStatusesLocal(list);
+      const token = getAdminToken();
+      if (!token) return clean;
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: "updateCustomOrderStatuses",
+            token: token,
+            customStatuses: clean
+          })
+        });
+        const data = await res.json();
+        if (data && data.status === "success" && Array.isArray(data.customOrderStatuses)) {
+          saveCustomOrderStatusesLocal(data.customOrderStatuses);
+        }
+      } catch (e) {}
+      return getSavedCustomOrderStatuses();
+    }
+
+    function openCustomStatusModal(targetOpt) {
+      if (typeof document === 'undefined') return;
+      const modal = document.getElementById('custom-status-modal');
+      if (!modal) return;
+
+      const mode = (targetOpt && targetOpt.mode) ? targetOpt.mode : 'manage';
+      const rowIdx = (targetOpt && targetOpt.rowIdx) ? Number(targetOpt.rowIdx) : null;
+      customStatusModalTarget = { mode: mode, rowIdx: rowIdx };
+
+      const hintEl = document.getElementById('custom-status-target-hint');
+      const titleEl = document.getElementById('custom-status-modal-title');
+      const applyBtn = document.getElementById('btn-confirm-custom-status');
+      const inputEl = document.getElementById('custom-status-input');
+      void titleEl;
+
+      if (mode === 'row' && rowIdx) {
+        const ord = (globalOrdersData || []).find(o => o.row === rowIdx);
+        const ordLabel = ord && ord.orderId ? `đơn #${ord.orderId}` : `dòng #${rowIdx}`;
+        if (hintEl) {
+          hintEl.style.display = 'block';
+          hintEl.innerText = `🎯 Nhập hoặc chọn trạng thái bên dưới để gán ngay cho ${ordLabel}.`;
+        }
+        if (applyBtn) applyBtn.innerText = `✅ Gán cho ${ordLabel}`;
+      } else if (mode === 'bulk') {
+        if (hintEl) {
+          hintEl.style.display = 'block';
+          hintEl.innerText = `🎯 Nhập hoặc chọn trạng thái bên dưới để chuẩn bị áp dụng hàng loạt (${selectedOrderRows.size} đơn đang chọn).`;
+        }
+        if (applyBtn) applyBtn.innerText = '✅ Chọn cho thao tác hàng loạt';
+      } else {
+        if (hintEl) {
+          hintEl.style.display = 'block';
+          hintEl.innerText = '💡 Thêm trạng thái tùy chỉnh mới vào danh sách tái sử dụng hoặc bấm chọn để lọc / gán nhanh.';
+        }
+        if (applyBtn) applyBtn.innerText = '➕ Lưu trạng thái';
+      }
+
+      if (inputEl) {
+        inputEl.value = '';
+      }
+      renderCustomStatusSavedList();
+      modal.style.display = 'flex';
+      setTimeout(() => {
+        if (inputEl) inputEl.focus();
+      }, 60);
+    }
+
+    function closeCustomStatusModal() {
+      if (typeof document === 'undefined') return;
+      const modal = document.getElementById('custom-status-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function fillQuickCustomStatus(text) {
+      if (typeof document === 'undefined') return;
+      const inputEl = document.getElementById('custom-status-input');
+      if (inputEl) {
+        inputEl.value = text || '';
+        inputEl.focus();
+      }
+    }
+
+    function renderCustomStatusSavedList() {
+      if (typeof document === 'undefined') return;
+      const listEl = document.getElementById('custom-status-saved-list');
+      const countEl = document.getElementById('custom-status-saved-count');
+      if (!listEl) return;
+
+      const saved = getAllCustomOrderStatuses();
+      if (countEl) countEl.innerText = String(saved.length);
+      if (saved.length === 0) {
+        listEl.innerHTML = `<div style="color:#94a3b8; font-size:12.5px; font-style:italic; padding:6px 2px;">Chưa có trạng thái tùy chỉnh nào được lưu. Hãy nhập ở ô phía trên hoặc chọn mẫu gợi ý nhanh!</div>`;
+        return;
+      }
+
+      const isAssignMode = customStatusModalTarget && (customStatusModalTarget.mode === 'row' || customStatusModalTarget.mode === 'bulk');
+      listEl.innerHTML = '';
+
+      saved.forEach(st => {
+        const chip = document.createElement('div');
+        chip.style.cssText = 'display:inline-flex; align-items:center; gap:6px; background:#f5f3ff; border:1px solid #c4b5fd; color:#5b21b6; border-radius:999px; padding:5px 10px; font-size:12.5px; font-weight:700;';
+
+        const labelBtn = document.createElement('button');
+        labelBtn.type = 'button';
+        labelBtn.style.cssText = 'background:none; border:none; color:#5b21b6; font-weight:700; font-size:12.5px; cursor:pointer; padding:0;';
+        labelBtn.title = isAssignMode ? `Bấm để chọn "${st}"` : `Bấm để điền "${st}"`;
+        labelBtn.textContent = '🏷️ ' + st;
+        labelBtn.onclick = function() {
+          applySavedCustomStatusFromModal(st);
+        };
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.style.cssText = 'background:#ede9fe; border:none; color:#6d28d9; width:18px; height:18px; border-radius:50%; font-size:11px; font-weight:800; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;';
+        delBtn.title = `Xóa "${st}" khỏi danh sách gợi ý`;
+        delBtn.textContent = '×';
+        delBtn.onclick = function(e) {
+          e.stopPropagation();
+          removeSavedCustomStatus(st);
+        };
+
+        chip.appendChild(labelBtn);
+        chip.appendChild(delBtn);
+        listEl.appendChild(chip);
+      });
+    }
+
+    async function applySavedCustomStatusFromModal(statusText) {
+      const norm = normalizeCustomStatusClient(statusText);
+      if (!norm) return;
+      const inputEl = document.getElementById('custom-status-input');
+      if (inputEl) inputEl.value = norm;
+      await confirmCustomStatusInput();
+    }
+
+    async function removeSavedCustomStatus(statusText) {
+      const norm = normalizeCustomStatusClient(statusText);
+      if (!norm) return;
+      const current = getSavedCustomOrderStatuses().filter(s => s.toLowerCase() !== norm.toLowerCase());
+      await persistCustomOrderStatusesToServer(current);
+      if (currentOrderStatusFilter === norm) {
+        const allPill = document.querySelector('.order-pill[data-status-pill="all"]');
+        filterOrdersByStatus('all', allPill);
+      } else {
+        renderOrders(globalOrdersData);
+      }
+      renderCustomStatusSavedList();
+      showToast(`🗑️ Đã xóa trạng thái tùy chỉnh "${norm}" khỏi danh sách lưu`, 'info');
+    }
+
+    async function confirmCustomStatusInput() {
+      const inputEl = document.getElementById('custom-status-input');
+      const saveDefaultCb = document.getElementById('custom-status-save-default');
+      const rawVal = inputEl ? inputEl.value : '';
+      const cleanStatus = normalizeCustomStatusClient(rawVal);
+
+      if (!cleanStatus) {
+        alert("Vui lòng nhập tên trạng thái đơn hàng!");
+        if (inputEl) inputEl.focus();
+        return;
+      }
+
+      const shouldSave = !saveDefaultCb || saveDefaultCb.checked;
+      if (shouldSave && !isBuiltInOrderStatus(cleanStatus)) {
+        const list = getSavedCustomOrderStatuses();
+        if (!list.some(s => s.toLowerCase() === cleanStatus.toLowerCase())) {
+          list.push(cleanStatus);
+          persistCustomOrderStatusesToServer(list);
+        }
+      }
+
+      const target = customStatusModalTarget || { mode: 'manage', rowIdx: null };
+      closeCustomStatusModal();
+
+      if (target.mode === 'row' && target.rowIdx) {
+        const rowIdx = target.rowIdx;
+        const order = (globalOrdersData || []).find(o => o.row === rowIdx);
+        if (order) {
+          const originalStatus = (order.status === 'Đang chuẩn bị hàng') ? 'Chưa đặt cọc' : (order.status || 'Khách đặt hàng');
+          if (cleanStatus !== originalStatus) {
+            pendingOrderChanges.set(rowIdx, cleanStatus);
+          } else {
+            pendingOrderChanges.delete(rowIdx);
+          }
+        }
+        renderOrders(globalOrdersData);
+        const sel = document.getElementById(`status-${rowIdx}`);
+        if (sel) {
+          sel.value = cleanStatus;
+          onOrderStatusDropdownChange(rowIdx, sel);
+        }
+        showToast(`🏷️ Đã chọn trạng thái "${cleanStatus}" (Bấm Lưu để ghi vào Sheet)`, 'info');
+      } else if (target.mode === 'bulk') {
+        syncBulkStatusSelectOptions(cleanStatus);
+        const bulkSelect = document.getElementById('bulk-status-select');
+        if (bulkSelect) bulkSelect.value = cleanStatus;
+        renderOrders(globalOrdersData);
+        showToast(`🏷️ Đã chọn "${cleanStatus}" cho thao tác hàng loạt`, 'info');
+      } else {
+        renderOrders(globalOrdersData);
+        showToast(`✅ Đã thêm trạng thái tùy chỉnh "${cleanStatus}"!`, 'success');
       }
     }
   </script>
