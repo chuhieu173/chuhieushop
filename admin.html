@@ -2607,6 +2607,24 @@
         </div>
       </div>
 
+      <!-- CẤU HÌNH GIÁ GỐC COMBO (TẠO HIỆU ỨNG GIẢM GIÁ) -->
+      <div style="background: #f0fdf4; border: 1.5px solid #86efac; padding: 14px 15px; border-radius: 8px; margin-bottom: 14px;">
+        <label for="combo-orig-price" style="display: block; font-weight: 700; color: #166534; font-size: 13.5px; margin-bottom: 6px;">
+          🏷️ Giá Gốc Khi Mua Lẻ / Giá Niêm Yết Cũ (Tuỳ chọn — để gạch ngang tạo cảm giác giảm giá):
+        </label>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <input type="number" id="combo-orig-price" min="0" step="1000" placeholder="VD: 350000 (Để trống hoặc 0 nếu không gạch giá)" oninput="updateComboSummary()" style="flex: 1; min-width: 200px; padding: 9px 12px; border: 1.5px solid #86efac; border-radius: 6px; font-size: 14px; font-weight: 700; color: #1e293b; background: #fff; box-sizing: border-box;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button type="button" class="btn-icon" onclick="suggestComboOriginalPrice('sum_orig')" style="background:#dcfce7; color:#166534; border-color:#86efac; font-weight:700; font-size:12px;" title="Cộng tổng giá gốc của các linh kiện trong Combo">⚡ Theo giá gốc linh kiện</button>
+            <button type="button" class="btn-icon" onclick="suggestComboOriginalPrice('plus_15')" style="background:#dcfce7; color:#166534; border-color:#86efac; font-weight:700; font-size:12px;">+15%</button>
+            <button type="button" class="btn-icon" onclick="suggestComboOriginalPrice('plus_25')" style="background:#dcfce7; color:#166534; border-color:#86efac; font-weight:700; font-size:12px;">+25%</button>
+          </div>
+        </div>
+        <div id="combo-discount-preview" style="font-size: 12.5px; color: #15803d; margin-top: 7px; font-weight: 600;">
+          💡 Nhập số lớn hơn Tổng Giá Bán để trang chủ hiển thị giá gạch ngang &amp; phần trăm tiết kiệm.
+        </div>
+      </div>
+
       <div style="display:flex; justify-content:space-between; background:#edf2f7; padding:15px; border-radius:8px; font-weight:bold; margin-bottom: 20px;">
         <div>Tổng Giá Bán: <span id="combo-preview-price" style="color:#e53e3e; font-size:18px;">0đ</span></div>
         <div>Tồn Kho Tối Đa: <span id="combo-preview-stock" style="color:#2f855a; font-size:18px;">0</span></div>
@@ -5513,7 +5531,19 @@
               <div style="font-size:12px; color:#718096; margin-top:5px;">${itemsHtml}</div>
               ${giftDetailHtml}
             </td>
-            <td data-label="Giá Tự Động"><div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(c.price)}</div></td>
+            <td data-label="Giá Tự Động">
+              ${(() => {
+                let cOrig = getComboEffectiveOriginalPrice(c);
+                let cSell = Number(c.price) || 0;
+                if (cOrig > cSell && cSell > 0) {
+                  let pct = Math.round(((cOrig - cSell) / cOrig) * 100);
+                  return `<div style="color:#a0aec0; text-decoration:line-through; font-size:12.5px;">${formatMoney(cOrig)}</div>` +
+                         `<div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(cSell)}</div>` +
+                         `<span style="display:inline-block; margin-top:2px; background:#fff5f5; color:#c53030; border:1px solid #feb2b2; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px;">Giảm -${pct}%</span>`;
+                }
+                return `<div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(cSell)}</div>`;
+              })()}
+            </td>
             <td data-label="Kho Tự Động">${stockHtml}</td>
             <td data-label="Thao tác">
               <button class="btn-update" onclick="openComboModal('${c.id}')" style="margin-bottom:5px;">Sửa</button>
@@ -6093,6 +6123,57 @@
       });
     }
 
+    function getComboEffectiveOriginalPrice(combo) {
+      if (!combo) return 0;
+      let direct = parseInt(String(combo.originalPrice || '').replace(/\D/g, ''), 10) || 0;
+      if (direct > 0) return direct;
+      if (combo.rawJson) {
+        try {
+          let parsed = JSON.parse(combo.rawJson);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0] && parsed[0].comboOriginalPrice !== undefined) {
+            return parseInt(String(parsed[0].comboOriginalPrice).replace(/\D/g, ''), 10) || 0;
+          }
+        } catch (e) {}
+      }
+      return 0;
+    }
+
+    function suggestComboOriginalPrice(mode) {
+      let totalSell = 0;
+      let totalOrig = 0;
+      currentComboItems.forEach(it => {
+        let p = (globalProductsData || []).find(prod => String(prod.id) === String(it.id));
+        if (p) {
+          let itemPrice = Number(p.price) || 0;
+          let itemOrig = Number(p.originalPrice) || itemPrice;
+          if (it.variantId && p.variants && p.variants.length > 0) {
+            let v = p.variants.find(x => String(x.id) === String(it.variantId));
+            if (v) {
+              itemPrice = Number(v.price) || 0;
+              itemOrig = Number(v.originalPrice) || itemPrice;
+            }
+          }
+          if (itemOrig < itemPrice) itemOrig = itemPrice;
+          totalSell += itemPrice * (Number(it.qty) || 1);
+          totalOrig += itemOrig * (Number(it.qty) || 1);
+        }
+      });
+
+      let suggested = 0;
+      if (mode === 'sum_orig') {
+        suggested = totalOrig > totalSell ? totalOrig : Math.round((totalSell * 1.15) / 1000) * 1000;
+      } else if (mode === 'plus_15') {
+        suggested = Math.round((totalSell * 1.15) / 1000) * 1000;
+      } else if (mode === 'plus_25') {
+        suggested = Math.round((totalSell * 1.25) / 1000) * 1000;
+      }
+      const origInput = document.getElementById('combo-orig-price');
+      if (origInput) {
+        origInput.value = suggested > 0 ? suggested : '';
+      }
+      updateComboSummary();
+    }
+
     function updateComboSummary() {
       let totalPrice = 0;
       let maxStock = Infinity;
@@ -6132,12 +6213,30 @@
       const countEl = document.getElementById("combo-selected-count");
       const totalCountEl = document.getElementById("combo-total-count");
       const selectAllChk = document.getElementById("combo-select-all");
+      const origInput = document.getElementById("combo-orig-price");
+      const discPreviewEl = document.getElementById("combo-discount-preview");
 
       if (priceEl) priceEl.innerText = formatMoney(totalPrice);
       if (stockEl) stockEl.innerText = maxStock;
       if (countEl) countEl.innerText = selectedCount;
       if (totalCountEl) totalCountEl.innerText = totalCount;
       if (selectAllChk) selectAllChk.checked = (totalCount > 0 && selectedCount === totalCount);
+
+      if (discPreviewEl) {
+        let origVal = origInput ? (parseInt(String(origInput.value || '').replace(/\D/g, ''), 10) || 0) : 0;
+        if (origVal > totalPrice && totalPrice > 0) {
+          let pct = Math.round(((origVal - totalPrice) / origVal) * 100);
+          let saved = origVal - totalPrice;
+          discPreviewEl.style.color = '#c53030';
+          discPreviewEl.innerHTML = `🔥 Hiển thị trên Web: <span style="text-decoration:line-through; color:#718096;">${formatMoney(origVal)}</span> ➔ <b style="color:#e53e3e;">${formatMoney(totalPrice)}</b> (Giảm <b>-${pct}%</b> • Tiết kiệm <b>${formatMoney(saved)}</b>)`;
+        } else if (origVal > 0 && origVal <= totalPrice) {
+          discPreviewEl.style.color = '#d97706';
+          discPreviewEl.innerHTML = `⚠️ Giá gốc (${formatMoney(origVal)}) cần lớn hơn Tổng Giá Bán (${formatMoney(totalPrice)}) để hiển thị giảm giá.`;
+        } else {
+          discPreviewEl.style.color = '#15803d';
+          discPreviewEl.innerHTML = `💡 Nhập số lớn hơn Tổng Giá Bán (${formatMoney(totalPrice)}) để trang chủ hiển thị giá gạch ngang &amp; phần trăm tiết kiệm.`;
+        }
+      }
     }
 
     // Tương thích ngược với lời gọi cũ
@@ -6394,6 +6493,7 @@
       const startTimeInput = document.getElementById("combo-start-time");
       const endTimeInput = document.getElementById("combo-end-time");
       const expireActionSelect = document.getElementById("combo-expire-action");
+      const origPriceInput = document.getElementById("combo-orig-price");
 
       if(comboId) {
          let combo = globalCombosData.find(c => c.id === comboId); if(!combo) return;
@@ -6401,6 +6501,8 @@
          document.getElementById("combo-edit-id").value = combo.id; 
          document.getElementById("combo-name").value = combo.name; 
          document.getElementById("combo-desc").value = combo.desc;
+         let effOrig = getComboEffectiveOriginalPrice(combo);
+         if (origPriceInput) origPriceInput.value = effOrig > 0 ? effOrig : "";
          currentComboEditImages = combo.rawManualImages ? combo.rawManualImages.split('\n').map(i => i.trim()).filter(i => i !== "") : [];
          currentComboEditVideos = Array.isArray(combo.videos) ? combo.videos.slice() : (combo.rawVideos ? combo.rawVideos.split('\n').map(v => v.trim()).filter(v => isSafeComboVideoUrlClient(v)) : []);
          try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
@@ -6427,6 +6529,7 @@
          document.getElementById("combo-edit-id").value = ""; 
          document.getElementById("combo-name").value = ""; 
          document.getElementById("combo-desc").value = "";
+         if (origPriceInput) origPriceInput.value = "";
          currentComboEditImages = [];
          currentComboEditVideos = [];
          currentComboItems = [];
@@ -6488,13 +6591,23 @@
       }
       
       showLoading(true); closeComboModal();
+      let origPriceEl = document.getElementById("combo-orig-price");
+      let comboOrigPrice = origPriceEl ? (parseInt(String(origPriceEl.value || '').replace(/\D/g, ''), 10) || 0) : 0;
+      let itemsPayloadList = currentComboItems.map((it, idx) => {
+        let clone = { id: it.id, variantId: it.variantId || '', qty: it.qty };
+        if (idx === 0 && comboOrigPrice > 0) {
+          clone.comboOriginalPrice = comboOrigPrice;
+        }
+        return clone;
+      });
       let payload = {
         action: "saveCombo",
         token: getAdminToken(),
         comboId: cId,
         name: cName,
         desc: cDesc,
-        items: JSON.stringify(currentComboItems),
+        originalPrice: comboOrigPrice,
+        items: JSON.stringify(itemsPayloadList),
         images: currentComboEditImages.join('\n'),
         videos: currentComboEditVideos.join('\n'),
         giftItems: hasGift ? JSON.stringify(giftItems) : "",
