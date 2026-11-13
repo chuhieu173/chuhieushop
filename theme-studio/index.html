@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XiaoZhi Theme Studio — Thiết kế & Nạp Theme WebUSB</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">🤖</div>
+      <div>
+        <h1>XiaoZhi Theme Studio</h1>
+        <p>Tạo, xem trước &amp; nạp Theme trực tiếp qua WebSerial</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <label class="btn btn-secondary" title="Mở file assets.bin có sẵn để chỉnh sửa">
+        📂 Mở assets.bin
+        <input type="file" id="importBinInput" accept=".bin" hidden />
+      </label>
+      <div class="preset-picker">
+        <select id="presetSelect" class="preset-select" title="Chọn gói Theme có sẵn">
+          <option value="robot_cyan" selected>🤖 Robot Neon — Xanh Cyan (Khuyên dùng)</option>
+          <option value="robot_amber">🤖 Robot Neon — Vàng Hổ Phách Cyber</option>
+          <option value="robot_matrix">🤖 Robot Neon — Xanh Lá Matrix</option>
+          <option value="robot_purple">🤖 Robot Neon — Hồng / Tím Neon</option>
+          <option value="ai_minimalist">🤍 AI Minimalist — EVE / Baymax</option>
+          <option value="anime_chibi">✨ Anime Chibi / Kawaii Cute</option>
+          <option value="pixel_retro">👾 Pixel Art Retro (8-bit / 16-bit)</option>
+          <option value="light_baymax">☀️ Chế Độ Sáng — Baymax Tối Giản (Nền Trắng)</option>
+          <option value="light_cute">☀️ Chế Độ Sáng — Chibi Cute (Nền Trắng)</option>
+        </select>
+        <button id="loadPresetBtn" class="btn btn-cyan">✨ Nạp Preset</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- CỘT TRÁI: CẤU HÌNH & 21 CẢM XÚC -->
+    <section class="panel left-panel">
+      <!-- Cấu hình chung -->
+      <div class="card">
+        <h2>1. Cấu hình hiển thị &amp; Giao diện</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="resolutionSelect">Độ phân giải màn hình</label>
+            <select id="resolutionSelect">
+              <option value="320x240" selected>320 × 240 (Ngang — Freenove 2.8")</option>
+              <option value="240x320">240 × 320 (Dọc — ST7789 2.4")</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fitModeSelect">Chế độ căn ảnh nền (Fit)</label>
+            <select id="fitModeSelect">
+              <option value="cover" selected>Cover (Tràn viền 100%)</option>
+              <option value="pad">Pad (Giữ tỷ lệ)</option>
+              <option value="stretch">Stretch (Kéo giãn)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="toggles">
+          <label class="toggle-item">
+            <input type="checkbox" id="noBgCheck" checked />
+            <span><strong>Bỏ ảnh nền (--no-bg)</strong> — Dùng màu đen thuần giúp icon Pin &amp; WiFi rõ nét</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" id="hideSubtitleCheck" checked />
+            <span><strong>Ẩn phụ đề khi trò chuyện (hide_subtitle)</strong> — Giữ nguyên kích thước mắt Robot</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" id="includeSrmodelsCheck" checked />
+            <span><strong>Tích hợp Wake Word (srmodels.bin)</strong> — Giữ lệnh gọi đánh thức "Hi ESP / XiaoZhi"</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" id="omitFontCheck" />
+            <span><strong>Lược bỏ Font mở rộng</strong> — Tiết kiệm ~1.25 MB cho mạch Flash 8MB</span>
+          </label>
+        </div>
+
+        <div class="grid-2 colors-row">
+          <div class="color-box">
+            <h3>Chế độ Sáng (Light - Mặc định)</h3>
+            <div class="color-inputs">
+              <label>Màu chữ / Icon:
+                <input type="color" id="lightTextColor" value="#ffffff" />
+                <code id="lightTextHex">#FFFFFF</code>
+              </label>
+              <label>Màu nền:
+                <input type="color" id="lightBgColor" value="#000000" />
+                <code id="lightBgHex">#000000</code>
+              </label>
+            </div>
+          </div>
+          <div class="color-box">
+            <h3>Chế độ Tối (Dark)</h3>
+            <div class="color-inputs">
+              <label>Màu chữ / Icon:
+                <input type="color" id="darkTextColor" value="#ffffff" />
+                <code id="darkTextHex">#FFFFFF</code>
+              </label>
+              <label>Màu nền:
+                <input type="color" id="darkBgColor" value="#000000" />
+                <code id="darkBgHex">#000000</code>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vùng kéo thả ảnh nền (hiện khi bỏ tick no-bg) -->
+        <div id="bgUploadSection" class="bg-upload-grid hidden">
+          <div class="dropzone" id="bgLightDrop">
+            <input type="file" id="bgLightInput" accept="image/*" hidden />
+            <div class="drop-content">
+              <span class="drop-icon">☀️</span>
+              <strong>Ảnh nền Light</strong>
+              <small id="bgLightName">Kéo thả hoặc bấm để chọn (.jpg/.png)</small>
+            </div>
+          </div>
+          <div class="dropzone" id="bgDarkDrop">
+            <input type="file" id="bgDarkInput" accept="image/*" hidden />
+            <div class="drop-content">
+              <span class="drop-icon">🌙</span>
+              <strong>Ảnh nền Dark</strong>
+              <small id="bgDarkName">Kéo thả hoặc bấm để chọn (.jpg/.png)</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 21 Cảm xúc -->
+      <div class="card">
+        <div class="card-header">
+          <h2>2. Bộ 21 Biểu Cảm (Kéo thả GIF/PNG)</h2>
+          <label class="btn btn-sm btn-secondary" title="Chọn nhiều file cùng lúc để tự động khớp tên cảm xúc">
+            📥 Nhập hàng loạt
+            <input type="file" id="bulkEmojiInput" accept=".gif,.png,.jpg,.jpeg" multiple hidden />
+          </label>
+        </div>
+        <div id="bulkDropZone" class="bulk-drop-hint">
+          💡 Mẹo: Kéo thả cùng lúc nhiều file GIF/PNG vào đây (ví dụ <code>happy.gif</code>, <code>cuoito.gif</code>, <code>angry.gif</code>...) để tự động gán vào 21 cảm xúc!
+        </div>
+        <div id="emotionGrid" class="emotion-grid"></div>
+      </div>
+    </section>
+
+    <!-- CỘT PHẢI: MÀN HÌNH ẢO & NẠP WEBSERIAL -->
+    <section class="panel right-panel">
+      <!-- Màn hình ảo -->
+      <div class="card preview-card">
+        <div class="card-header">
+          <h2>3. Xem trước màn hình ảo (<span id="resBadge">320×240</span>)</h2>
+          <div class="preview-controls">
+            <button id="toggleSkinBtn" class="btn btn-sm btn-secondary">🌙 Đang xem: Light</button>
+          </div>
+        </div>
+
+        <div class="lcd-bezel">
+          <div id="virtualScreen" class="virtual-screen size-320x240">
+            <img id="virtualBgImg" class="virtual-bg hidden" alt="" />
+            <!-- Top Bar giả lập -->
+            <div id="virtualTopBar" class="virtual-topbar">
+              <span class="v-icon" id="vWifi">📶</span>
+              <span class="v-status" id="vStatusText">Đang lắng nghe...</span>
+              <span class="v-icon" id="vBattery">🔋 92%</span>
+            </div>
+            <!-- Emoji ở giữa -->
+            <div class="virtual-emoji-wrap">
+              <img id="virtualEmojiImg" class="virtual-emoji" alt="Emoji Preview" />
+              <div id="virtualEmojiPlaceholder" class="virtual-placeholder hidden">Chưa có ảnh</div>
+            </div>
+            <!-- Subtitle ở đáy -->
+            <div id="virtualBottomBar" class="virtual-bottombar hidden">
+              Xin chào! Hôm nay bạn cần tôi giúp gì nào?
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-footer">
+          <span>Đang xem cảm xúc: <strong id="activeEmotionLabel">neutral</strong></span>
+          <span id="packageStats">Ước tính: ~0 KB (0 files)</span>
+        </div>
+      </div>
+
+      <!-- Xuất & Nạp USB WebSerial -->
+      <div class="card flash-card">
+        <h2>4. Xuất file &amp; Nạp thẳng qua USB (esptool-js)</h2>
+
+        <div class="action-buttons">
+          <button id="exportBinBtn" class="btn btn-primary">
+            📦 Xuất &amp; Tải assets.bin
+          </button>
+          <button id="flashUsbBtn" class="btn btn-flash">
+            ⚡ Nạp thẳng vào ESP32 qua USB
+          </button>
+        </div>
+
+        <div class="grid-2 flash-options">
+          <div class="field">
+            <label for="flashOffsetInput">Địa chỉ phân vùng (Offset)</label>
+            <input type="text" id="flashOffsetInput" value="0x800000" />
+          </div>
+          <div class="field">
+            <label for="baudRateSelect">Tốc độ Baud</label>
+            <select id="baudRateSelect">
+              <option value="921600" selected>921600 bps (Nhanh)</option>
+              <option value="460800">460800 bps</option>
+              <option value="115200">115200 bps (Ổn định)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="progress-wrap hidden" id="progressWrap">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <span id="progressText">0%</span>
+        </div>
+
+        <div class="terminal" id="terminalLog">
+          <div class="log-line info">Sẵn sàng. Dùng Chrome / Edge hỗ trợ WebSerial để nạp qua USB.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
