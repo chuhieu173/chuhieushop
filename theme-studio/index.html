@@ -21,16 +21,30 @@
         <input type="file" id="importBinInput" accept=".bin" hidden />
       </label>
       <div class="preset-picker">
-        <select id="presetSelect" class="preset-select" title="Chọn gói Theme có sẵn">
-          <option value="robot_cyan" selected>🤖 Robot Neon — Xanh Cyan (Khuyên dùng)</option>
-          <option value="robot_amber">🤖 Robot Neon — Vàng Hổ Phách Cyber</option>
-          <option value="robot_matrix">🤖 Robot Neon — Xanh Lá Matrix</option>
-          <option value="robot_purple">🤖 Robot Neon — Hồng / Tím Neon</option>
-          <option value="ai_minimalist">🤍 AI Minimalist — EVE / Baymax</option>
-          <option value="anime_chibi">✨ Anime Chibi / Kawaii Cute</option>
-          <option value="pixel_retro">👾 Pixel Art Retro (8-bit / 16-bit)</option>
-          <option value="light_baymax">☀️ Chế Độ Sáng — Baymax Tối Giản (Nền Trắng)</option>
-          <option value="light_cute">☀️ Chế Độ Sáng — Chibi Cute (Nền Trắng)</option>
+        <select id="presetSelect" class="preset-select" title="Chọn gói Theme Robot có sẵn">
+          <optgroup label="🌟 Robot Đặc Biệt (3D / HUD / Cyber)">
+            <option value="robot_eve" selected>🤍 EVE (WALL-E) — Mắt Scanline Xanh + Miệng</option>
+            <option value="robot_astro_3d">🌟 Astro Bot 3D — Mắt Thủy Tinh &amp; Sparkle</option>
+            <option value="robot_jarvis_hud">🎯 Iron-Bot HUD — Lò Phản Ứng Xoay &amp; Sóng Âm</option>
+            <option value="robot_cyber_glitch">⚡ Cyber-Bot Neon — Kính Thực Tế Ảo 2 Màu</option>
+            <option value="robot_pixel_pet">👾 Retro Pet 16-bit — Thú Cưng Robot Pixel</option>
+          </optgroup>
+          <optgroup label="🤖 Robot Gật Đầu (Mắt + Má + Miệng)">
+            <option value="robot_kawaii">🤖 Robot Gật Đầu Kawaii (Eilik Style)</option>
+            <option value="robot_visor">🕶️ Robot Kính Visor &amp; Sóng Âm</option>
+            <option value="robot_dotmatrix">📟 Robot LED Dot-Matrix (Chấm Ma Trận)</option>
+            <option value="robot_mecha">⚡ Robot Mecha / HUD Chiến Binh</option>
+            <option value="robot_neko">🐱 Robot Mèo Neko-Bot</option>
+          </optgroup>
+          <optgroup label="💠 Robot Neon Nâng Cấp (Có Miệng &amp; Glow)">
+            <option value="robot_cyan">🤖 Robot Neon — Xanh Cyan</option>
+            <option value="robot_amber">🤖 Robot Neon — Vàng Hổ Phách Cyber</option>
+            <option value="robot_matrix">🤖 Robot Neon — Xanh Lá Matrix</option>
+            <option value="robot_purple">🤖 Robot Neon — Hồng / Tím Neon</option>
+          </optgroup>
+          <optgroup label="☀️ Chế Độ Sáng (Nền Trắng)">
+            <option value="light_baymax">☀️ Robot Baymax Trắng (Có Miệng &amp; Má Hồng)</option>
+          </optgroup>
         </select>
         <button id="loadPresetBtn" class="btn btn-cyan">✨ Nạp Preset</button>
       </div>
