@@ -50,7 +50,9 @@ const state = {
   noBg: true,
   hideSubtitle: true,
   includeSrmodels: true,
+  wakeWordId: "wn9_hitelly_tts",
   omitFont: false,
+  emoDragMode: "copy", // "copy" | "swap"
   previewSkin: "light", // "light" | "dark"
   activeEmotion: "neutral",
   skin: {
@@ -63,7 +65,8 @@ const state = {
   fontBytes: null,
   fontName: "font_noto_sans_common_20_4.bin",
   fontMeta: { charset: "common", size: 20, bpp: 4, bundle: "noto-v1" },
-  emojis: {} // { [emotion]: { filename, bytes: Uint8Array, url, width, height } }
+  emojis: {}, // { [emotion]: { filename, bytes: Uint8Array, url, width, height } }
+  defaultEmojis: {} // snapshot của preset hiện tại để Reset mặc định
 };
 
 // DOM elements
@@ -73,6 +76,9 @@ const els = {
   noBgCheck: document.getElementById("noBgCheck"),
   hideSubtitleCheck: document.getElementById("hideSubtitleCheck"),
   includeSrmodelsCheck: document.getElementById("includeSrmodelsCheck"),
+  wakeWordBox: document.getElementById("wakeWordBox"),
+  wakeWordSelect: document.getElementById("wakeWordSelect"),
+  customSrmodelInput: document.getElementById("customSrmodelInput"),
   omitFontCheck: document.getElementById("omitFontCheck"),
   lightTextColor: document.getElementById("lightTextColor"),
   lightTextHex: document.getElementById("lightTextHex"),
@@ -90,6 +96,8 @@ const els = {
   bgDarkInput: document.getElementById("bgDarkInput"),
   bgDarkName: document.getElementById("bgDarkName"),
   emotionGrid: document.getElementById("emotionGrid"),
+  emoDragModeBtn: document.getElementById("emoDragModeBtn"),
+  resetAllEmoBtn: document.getElementById("resetAllEmoBtn"),
   bulkEmojiInput: document.getElementById("bulkEmojiInput"),
   bulkDropZone: document.getElementById("bulkDropZone"),
   importBinInput: document.getElementById("importBinInput"),
@@ -391,21 +399,41 @@ async function buildAssetsBinary() {
 // 4. UI RENDERING & PREVIEW SYNC
 // ==========================================
 
+let draggedEmotion = null;
+
+function safeRevokeBlobUrl(url) {
+  if (!url || !url.startsWith("blob:")) return;
+  const inUse =
+    Object.values(state.emojis).some((it) => it?.url === url) ||
+    Object.values(state.defaultEmojis).some((it) => it?.url === url);
+  if (!inUse) {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function renderEmotionGrid() {
   els.emotionGrid.innerHTML = "";
   for (const emo of STANDARD_EMOTIONS) {
-    const card = document.createElement("div");
-    card.className = `emo-card ${state.activeEmotion === emo ? "active" : ""}`;
-    card.dataset.emo = emo;
-
     const item = state.emojis[emo];
+    const defItem = state.defaultEmojis[emo];
+    const isModified = Boolean(defItem && item && item.bytes !== defItem.bytes);
+
+    const card = document.createElement("div");
+    card.className = `emo-card ${state.activeEmotion === emo ? "active" : ""} ${isModified ? "modified" : ""}`;
+    card.dataset.emo = emo;
+    card.draggable = Boolean(item);
+
     const thumbHtml = item
-      ? `<img class="emo-thumb" src="${item.url}" alt="${emo}" />`
+      ? `<img class="emo-thumb" src="${item.url}" alt="${emo}" draggable="false" />`
       : `<div class="emo-thumb" style="display:grid;place-items:center;color:#475569;font-size:10px;">Trống</div>`;
 
     const sizeText = item ? `${Math.max(1, Math.round(item.bytes.length / 1024))} KB` : "Kéo thả GIF";
+    const resetBtnHtml = isModified
+      ? `<button type="button" class="emo-reset-btn" title="Khôi phục '${emo}' về mặc định">↺</button>`
+      : "";
 
     card.innerHTML = `
+      ${resetBtnHtml}
       ${thumbHtml}
       <div class="emo-name">${emo}</div>
       <div class="emo-meta">${sizeText}</div>
@@ -413,8 +441,24 @@ function renderEmotionGrid() {
     `;
 
     const fileInput = card.querySelector("input");
+    const resetBtn = card.querySelector(".emo-reset-btn");
+
+    if (resetBtn) {
+      resetBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const prevUrl = state.emojis[emo]?.url;
+        state.emojis[emo] = { ...defItem };
+        safeRevokeBlobUrl(prevUrl);
+        state.activeEmotion = emo;
+        log(`Đã khôi phục biểu cảm "${emo}" về mặc định.`, "info");
+        renderEmotionGrid();
+        updateVirtualScreen();
+        updateStats();
+      });
+    }
 
     card.addEventListener("click", (e) => {
+      if (e.target === resetBtn) return;
       if (state.activeEmotion === emo && e.target !== fileInput) {
         fileInput.click();
       } else {
@@ -432,7 +476,24 @@ function renderEmotionGrid() {
       }
     });
 
-    // Drag & Drop vào từng ô
+    // Kéo thả từ ô này sang ô khác
+    card.addEventListener("dragstart", (e) => {
+      if (!state.emojis[emo]) {
+        e.preventDefault();
+        return;
+      }
+      draggedEmotion = emo;
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "copyMove";
+      e.dataTransfer.setData("text/plain", emo);
+    });
+
+    card.addEventListener("dragend", () => {
+      draggedEmotion = null;
+      card.classList.remove("dragging");
+    });
+
+    // Drag & Drop vào từng ô (file ngoài hoặc ô khác)
     card.addEventListener("dragover", (e) => {
       e.preventDefault();
       card.classList.add("dragover");
@@ -441,8 +502,27 @@ function renderEmotionGrid() {
     card.addEventListener("drop", async (e) => {
       e.preventDefault();
       card.classList.remove("dragover");
-      if (e.dataTransfer.files[0]) {
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
         await assignEmotionFile(emo, e.dataTransfer.files[0]);
+      } else if (draggedEmotion && draggedEmotion !== emo && state.emojis[draggedEmotion]) {
+        const src = draggedEmotion;
+        if (state.emoDragMode === "swap") {
+          const tmp = state.emojis[emo];
+          state.emojis[emo] = state.emojis[src];
+          if (tmp) state.emojis[src] = tmp;
+          else delete state.emojis[src];
+          log(`Đã đổi chỗ biểu cảm "${src}" ↔ "${emo}".`, "ok");
+        } else {
+          const prevUrl = state.emojis[emo]?.url;
+          state.emojis[emo] = { ...state.emojis[src] };
+          safeRevokeBlobUrl(prevUrl);
+          log(`Đã sao chép mặt "${src}" sang "${emo}".`, "ok");
+        }
+        draggedEmotion = null;
+        state.activeEmotion = emo;
+        renderEmotionGrid();
+        updateVirtualScreen();
+        updateStats();
       }
     });
 
@@ -455,10 +535,7 @@ async function assignEmotionFile(emo, file) {
   const bytes = new Uint8Array(buf);
   const [w, h] = await getImageDimensions(bytes, file.type || "image/gif");
 
-  if (state.emojis[emo]?.url?.startsWith("blob:")) {
-    URL.revokeObjectURL(state.emojis[emo].url);
-  }
-
+  const prevUrl = state.emojis[emo]?.url;
   state.emojis[emo] = {
     filename: file.name,
     bytes,
@@ -466,6 +543,7 @@ async function assignEmotionFile(emo, file) {
     width: w,
     height: h
   };
+  safeRevokeBlobUrl(prevUrl);
   state.activeEmotion = emo;
   renderEmotionGrid();
   updateVirtualScreen();
@@ -594,16 +672,32 @@ function updateStats() {
 
 let presetLoadToken = 0;
 
+async function loadWakeWordModel(modelId) {
+  state.wakeWordId = modelId;
+  try {
+    let res = await fetch(`presets/srmodels/${modelId}.bin`);
+    if (!res.ok && modelId === "wn9_hitelly_tts") {
+      res = await fetch("presets/srmodels.bin");
+    }
+    if (!res.ok) throw new Error(`Không tải được model ${modelId}`);
+    state.srmodelsBytes = new Uint8Array(await res.arrayBuffer());
+    const label = els.wakeWordSelect?.selectedOptions?.[0]?.text || modelId;
+    log(`Đã chọn Wake Word: ${label} (${Math.round(state.srmodelsBytes.length / 1024)} KB).`, "ok");
+    updateStats();
+  } catch (err) {
+    log(`Lỗi tải Wake Word: ${err.message}`, "err");
+  }
+}
+
 async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "robot_cyan") {
   const myToken = ++presetLoadToken;
   try {
-    if (!state.srmodelsBytes || !state.fontBytes) {
-      log("Đang tải Wake Word (srmodels.bin) & Font tiếng Việt mặc định...", "info");
-      const [srRes, fontRes] = await Promise.all([
-        fetch("presets/srmodels.bin"),
-        fetch("presets/font_noto_sans_common_20_4.bin")
-      ]);
-      if (srRes.ok) state.srmodelsBytes = new Uint8Array(await srRes.arrayBuffer());
+    if (!state.srmodelsBytes) {
+      await loadWakeWordModel(state.wakeWordId);
+    }
+    if (!state.fontBytes) {
+      log("Đang tải Font tiếng Việt mặc định...", "info");
+      const fontRes = await fetch("presets/font_noto_sans_common_20_4.bin");
       if (fontRes.ok) state.fontBytes = new Uint8Array(await fontRes.arrayBuffer());
     }
 
@@ -635,17 +729,20 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
     for (const item of loaded) {
       if (!item) continue;
       const { emo, bytes } = item;
-      if (state.emojis[emo]?.url?.startsWith("blob:")) {
-        URL.revokeObjectURL(state.emojis[emo].url);
-      }
+      const prevUrl = state.emojis[emo]?.url;
+      const prevDefUrl = state.defaultEmojis[emo]?.url;
       const url = URL.createObjectURL(new Blob([bytes], { type: "image/gif" }));
-      state.emojis[emo] = {
+      const entry = {
         filename: `${emo}.gif`,
         bytes,
         url,
         width: 320,
         height: 240
       };
+      state.emojis[emo] = entry;
+      state.defaultEmojis[emo] = { ...entry };
+      safeRevokeBlobUrl(prevUrl);
+      safeRevokeBlobUrl(prevDefUrl);
     }
 
     log(`Đã nạp xong Theme "${presetLabel}"! Bạn có thể xem trước hoặc bấm Nạp thẳng vào ESP32.`, "ok");
@@ -887,6 +984,39 @@ function init() {
 
   els.includeSrmodelsCheck.addEventListener("change", (e) => {
     state.includeSrmodels = e.target.checked;
+    els.wakeWordBox?.classList.toggle("hidden", !state.includeSrmodels);
+    updateStats();
+  });
+
+  els.wakeWordSelect?.addEventListener("change", (e) => {
+    loadWakeWordModel(e.target.value);
+  });
+
+  els.customSrmodelInput?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    state.srmodelsBytes = new Uint8Array(await file.arrayBuffer());
+    log(`Đã nạp file Wake Word tùy chỉnh: ${file.name} (${Math.round(state.srmodelsBytes.length / 1024)} KB).`, "ok");
+    updateStats();
+  });
+
+  els.emoDragModeBtn?.addEventListener("click", () => {
+    state.emoDragMode = state.emoDragMode === "copy" ? "swap" : "copy";
+    els.emoDragModeBtn.textContent =
+      state.emoDragMode === "copy" ? "🔀 Kéo thả: Sao chép" : "🔄 Kéo thả: Đổi chỗ";
+  });
+
+  els.resetAllEmoBtn?.addEventListener("click", () => {
+    const keys = Object.keys(state.defaultEmojis);
+    if (!keys.length) return;
+    for (const emo of keys) {
+      const prevUrl = state.emojis[emo]?.url;
+      state.emojis[emo] = { ...state.defaultEmojis[emo] };
+      safeRevokeBlobUrl(prevUrl);
+    }
+    log("Đã khôi phục toàn bộ 21 biểu cảm về mặc định của Preset.", "ok");
+    renderEmotionGrid();
+    updateVirtualScreen();
     updateStats();
   });
 

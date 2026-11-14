@@ -87,8 +87,45 @@
           </label>
           <label class="toggle-item">
             <input type="checkbox" id="includeSrmodelsCheck" checked />
-            <span><strong>Tích hợp Wake Word (srmodels.bin)</strong> — Giữ lệnh gọi đánh thức "Hi ESP / XiaoZhi"</span>
+            <span><strong>Tích hợp Wake Word (srmodels.bin)</strong> — Chọn lệnh gọi đánh thức cho XiaoZhi</span>
           </label>
+          <div id="wakeWordBox" class="wakeword-box">
+            <div class="wakeword-row">
+              <select id="wakeWordSelect" class="wakeword-select" title="Chọn lệnh đánh thức WakeNet9">
+                <optgroup label="🌟 Phổ biến / Robot">
+                  <option value="wn9_hitelly_tts" selected>🗣️ Hi, Telly (Mặc định XiaoZhi)</option>
+                  <option value="wn9_hiesp">🗣️ Hi, ESP</option>
+                  <option value="wn9_hiwalle_tts2">🤍 Hi, WALL-E (Hợp theme EVE)</option>
+                  <option value="wn9_jarvis_tts">🎯 Jarvis (Hợp theme Iron-Bot)</option>
+                  <option value="wn9_alexa">🗣️ Alexa</option>
+                  <option value="wn9_computer_tts">💻 Computer</option>
+                  <option value="wn9_sophia_tts">🗣️ Sophia</option>
+                  <option value="wn9_mycroft_tts">🗣️ Mycroft</option>
+                </optgroup>
+                <optgroup label="🎙️ Tên gọi Tiếng Anh khác">
+                  <option value="wn9_heyivy_tts2">🗣️ Hey, Ivy</option>
+                  <option value="wn9_heywanda_tts">🗣️ Hey, Wanda</option>
+                  <option value="wn9_heywillow_tts">🗣️ Hey, Willow</option>
+                  <option value="wn9_heyily_tts2">🗣️ Hey, Ily</option>
+                  <option value="wn9_heykira_tts3">🗣️ Hey, Kira</option>
+                  <option value="wn9_hijoy_tts">🗣️ Hi, Joy</option>
+                  <option value="wn9_hijason_tts2">🗣️ Hi, Jason</option>
+                  <option value="wn9_hiandy_tts2">🗣️ Hi, Andy</option>
+                  <option value="wn9_hijolly_tts2">🗣️ Hi, Jolly</option>
+                  <option value="wn9_hilili_tts">🗣️ Hi, Lili</option>
+                  <option value="wn9_hilexin">🗣️ Hi, Lexin</option>
+                </optgroup>
+                <optgroup label="🇨🇳 Tiếng Trung (XiaoZhi gốc)">
+                  <option value="wn9_nihaoxiaozhi_tts">🗣️ Ni Hao Xiao Zhi (你好小智)</option>
+                  <option value="wn9_xiaoaitongxue">🗣️ Xiao Ai Tong Xue (小爱同学)</option>
+                </optgroup>
+              </select>
+              <label class="btn btn-sm btn-secondary" title="Tải lên file srmodels.bin tùy chỉnh của riêng bạn">
+                📂 srmodels.bin riêng
+                <input type="file" id="customSrmodelInput" accept=".bin" hidden />
+              </label>
+            </div>
+          </div>
           <label class="toggle-item">
             <input type="checkbox" id="omitFontCheck" />
             <span><strong>Lược bỏ Font mở rộng</strong> — Tiết kiệm ~1.25 MB cho mạch Flash 8MB</span>
@@ -149,13 +186,21 @@
       <div class="card">
         <div class="card-header">
           <h2>2. Bộ 21 Biểu Cảm (Kéo thả GIF/PNG)</h2>
-          <label class="btn btn-sm btn-secondary" title="Chọn nhiều file cùng lúc để tự động khớp tên cảm xúc">
-            📥 Nhập hàng loạt
-            <input type="file" id="bulkEmojiInput" accept=".gif,.png,.jpg,.jpeg" multiple hidden />
-          </label>
+          <div class="emo-toolbar">
+            <button id="emoDragModeBtn" class="btn btn-sm btn-secondary" title="Chuyển chế độ khi kéo thả giữa các ô cảm xúc">
+              🔀 Kéo thả: Sao chép
+            </button>
+            <button id="resetAllEmoBtn" class="btn btn-sm btn-secondary" title="Khôi phục toàn bộ 21 biểu cảm về mặc định của Preset">
+              ↺ Reset mặc định
+            </button>
+            <label class="btn btn-sm btn-secondary" title="Chọn nhiều file cùng lúc để tự động khớp tên cảm xúc">
+              📥 Nhập hàng loạt
+              <input type="file" id="bulkEmojiInput" accept=".gif,.png,.jpg,.jpeg" multiple hidden />
+            </label>
+          </div>
         </div>
         <div id="bulkDropZone" class="bulk-drop-hint">
-          💡 Mẹo: Kéo thả cùng lúc nhiều file GIF/PNG vào đây (ví dụ <code>happy.gif</code>, <code>cuoito.gif</code>, <code>angry.gif</code>...) để tự động gán vào 21 cảm xúc!
+          💡 Mẹo: Kéo thả nhiều file GIF/PNG vào đây để tự động khớp tên, hoặc <strong>kéo thả trực tiếp từ ô biểu cảm này sang ô khác</strong> để sao chép / đổi chỗ!
         </div>
         <div id="emotionGrid" class="emotion-grid"></div>
       </div>
