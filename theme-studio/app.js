@@ -592,7 +592,10 @@ function updateStats() {
 // 5. LOAD PRESETS & IMPORT .BIN
 // ==========================================
 
+let presetLoadToken = 0;
+
 async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "robot_cyan") {
+  const myToken = ++presetLoadToken;
   try {
     if (!state.srmodelsBytes || !state.fontBytes) {
       log("Đang tải Wake Word (srmodels.bin) & Font tiếng Việt mặc định...", "info");
@@ -603,6 +606,8 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
       if (srRes.ok) state.srmodelsBytes = new Uint8Array(await srRes.arrayBuffer());
       if (fontRes.ok) state.fontBytes = new Uint8Array(await fontRes.arrayBuffer());
     }
+
+    if (myToken !== presetLoadToken) return;
 
     const presetLabel = els.presetSelect?.selectedOptions?.[0]?.text || presetId;
     log(`Đang nạp bộ 21 biểu cảm: ${presetLabel}...`, "info");
@@ -616,25 +621,32 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
       syncColorInputs();
     }
 
-    await Promise.all(
+    const loaded = await Promise.all(
       STANDARD_EMOTIONS.map(async (emo) => {
-        const res = await fetch(`presets/${presetId}/${emo}.gif`);
-        if (res.ok) {
-          const bytes = new Uint8Array(await res.arrayBuffer());
-          if (state.emojis[emo]?.url?.startsWith("blob:")) {
-            URL.revokeObjectURL(state.emojis[emo].url);
-          }
-          const url = URL.createObjectURL(new Blob([bytes], { type: "image/gif" }));
-          state.emojis[emo] = {
-            filename: `${emo}.gif`,
-            bytes,
-            url,
-            width: 320,
-            height: 240
-          };
-        }
+        const res = await fetch(`presets/${presetId}/${emo}.gif`, { cache: "no-store" });
+        if (!res.ok) return null;
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        return { emo, bytes };
       })
     );
+
+    if (myToken !== presetLoadToken) return;
+
+    for (const item of loaded) {
+      if (!item) continue;
+      const { emo, bytes } = item;
+      if (state.emojis[emo]?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(state.emojis[emo].url);
+      }
+      const url = URL.createObjectURL(new Blob([bytes], { type: "image/gif" }));
+      state.emojis[emo] = {
+        filename: `${emo}.gif`,
+        bytes,
+        url,
+        width: 320,
+        height: 240
+      };
+    }
 
     log(`Đã nạp xong Theme "${presetLabel}"! Bạn có thể xem trước hoặc bấm Nạp thẳng vào ESP32.`, "ok");
     renderEmotionGrid();
