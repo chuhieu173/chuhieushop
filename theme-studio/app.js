@@ -112,6 +112,7 @@ const els = {
   flashUsbBtn: document.getElementById("flashUsbBtn"),
   flashOffsetInput: document.getElementById("flashOffsetInput"),
   baudRateSelect: document.getElementById("baudRateSelect"),
+  safeFlashCheck: document.getElementById("safeFlashCheck"),
   progressWrap: document.getElementById("progressWrap"),
   progressFill: document.getElementById("progressFill"),
   progressText: document.getElementById("progressText"),
@@ -777,14 +778,23 @@ async function flashViaWebSerial() {
     els.progressFill.style.width = "0%";
     els.progressText.textContent = "0%";
 
-    const bstr = uint8ToBinaryString(packedBytes);
+    const paddedLen = Math.ceil(packedBytes.length / 4) * 4;
+    let flashBytes = packedBytes;
+    if (paddedLen !== packedBytes.length) {
+      flashBytes = new Uint8Array(paddedLen);
+      flashBytes.fill(0xff);
+      flashBytes.set(packedBytes);
+    }
 
-    log(`Đang ghi ${packedBytes.length} bytes xuống địa chỉ ${offsetStr}...`, "info");
+    const bstr = uint8ToBinaryString(flashBytes);
+    const useCompress = !(els.safeFlashCheck?.checked ?? true);
+
+    log(`Đang ghi ${flashBytes.length} bytes (${(flashBytes.length / 1024 / 1024).toFixed(2)} MB) xuống ${offsetStr} [compress=${useCompress}]...`, "info");
     await esploader.writeFlash({
       fileArray: [{ data: bstr, address: flashAddr }],
       flashSize: "keep",
       eraseAll: false,
-      compress: true,
+      compress: useCompress,
       reportProgress: (fileIndex, written, total) => {
         const pct = Math.min(100, Math.round((written / total) * 100));
         els.progressFill.style.width = `${pct}%`;

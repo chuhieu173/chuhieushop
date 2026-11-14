@@ -220,12 +220,17 @@
           <div class="field">
             <label for="baudRateSelect">Tốc độ Baud</label>
             <select id="baudRateSelect">
-              <option value="921600" selected>921600 bps (Nhanh)</option>
-              <option value="460800">460800 bps</option>
-              <option value="115200">115200 bps (Ổn định)</option>
+              <option value="921600">921600 bps (Nhanh)</option>
+              <option value="460800" selected>460800 bps (Khuyên dùng)</option>
+              <option value="115200">115200 bps (Chậm - Ổn định)</option>
             </select>
           </div>
         </div>
+
+        <label class="toggle-item" style="margin-bottom: 12px;">
+          <input type="checkbox" id="safeFlashCheck" checked />
+          <span><strong>Chế độ nạp an toàn (Tắt nén zlib)</strong> — Chống lỗi hỏng byte GIF trên ESP32-S3 khi bật/tắt Font</span>
+        </label>
 
         <div class="progress-wrap hidden" id="progressWrap">
           <div class="progress-bar">
