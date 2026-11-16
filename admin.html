@@ -2607,6 +2607,20 @@
         </div>
       </div>
 
+      <!-- CẤU HÌNH GIÁ BÁN COMBO TÙY CHỈNH -->
+      <div style="background: #eff6ff; border: 1.5px solid #93c5fd; padding: 14px 15px; border-radius: 8px; margin-bottom: 14px;">
+        <label for="combo-custom-price" style="display: block; font-weight: 700; color: #1e40af; font-size: 13.5px; margin-bottom: 6px;">
+          💰 Giá Bán Combo Tùy Chỉnh (Tuỳ chọn — bỏ trống hoặc 0 để tự cộng giá linh kiện):
+        </label>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <input type="number" id="combo-custom-price" min="0" step="1000" placeholder="Để trống = tự động cộng giá các linh kiện" oninput="updateComboSummary()" style="flex: 1; min-width: 200px; padding: 9px 12px; border: 1.5px solid #93c5fd; border-radius: 6px; font-size: 14px; font-weight: 700; color: #1e293b; background: #fff; box-sizing: border-box;">
+          <button type="button" class="btn-icon" onclick="resetComboCustomPrice()" style="background:#dbeafe; color:#1e40af; border-color:#93c5fd; font-weight:700; font-size:12px;" title="Xóa giá tự nhập để quay lại cộng tự động">↺ Dùng giá tự động</button>
+        </div>
+        <div id="combo-auto-price-hint" style="font-size: 12.5px; color: #1d4ed8; margin-top: 7px; font-weight: 600;">
+          🧮 Tổng giá cộng từng linh kiện: <b>0đ</b>
+        </div>
+      </div>
+
       <!-- CẤU HÌNH GIÁ GỐC COMBO (TẠO HIỆU ỨNG GIẢM GIÁ) -->
       <div style="background: #f0fdf4; border: 1.5px solid #86efac; padding: 14px 15px; border-radius: 8px; margin-bottom: 14px;">
         <label for="combo-orig-price" style="display: block; font-weight: 700; color: #166534; font-size: 13.5px; margin-bottom: 6px;">
@@ -5531,17 +5545,22 @@
               <div style="font-size:12px; color:#718096; margin-top:5px;">${itemsHtml}</div>
               ${giftDetailHtml}
             </td>
-            <td data-label="Giá Tự Động">
+            <td data-label="Giá Bán">
               ${(() => {
                 let cOrig = getComboEffectiveOriginalPrice(c);
+                let cCustom = getComboEffectiveCustomPrice(c);
                 let cSell = Number(c.price) || 0;
+                let customBadge = cCustom > 0 ? `<span style="display:inline-block; margin-top:3px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px;">✏️ Giá tự nhập</span>` : '';
                 if (cOrig > cSell && cSell > 0) {
                   let pct = Math.round(((cOrig - cSell) / cOrig) * 100);
                   return `<div style="color:#a0aec0; text-decoration:line-through; font-size:12.5px;">${formatMoney(cOrig)}</div>` +
                          `<div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(cSell)}</div>` +
-                         `<span style="display:inline-block; margin-top:2px; background:#fff5f5; color:#c53030; border:1px solid #feb2b2; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px;">Giảm -${pct}%</span>`;
+                         `<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px;">` +
+                           `<span style="display:inline-block; background:#fff5f5; color:#c53030; border:1px solid #feb2b2; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px;">Giảm -${pct}%</span>` +
+                           customBadge +
+                         `</div>`;
                 }
-                return `<div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(cSell)}</div>`;
+                return `<div style="color:#e53e3e; font-weight:bold; font-size:15px;">${formatMoney(cSell)}</div>${customBadge}`;
               })()}
             </td>
             <td data-label="Kho Tự Động">${stockHtml}</td>
@@ -6123,6 +6142,27 @@
       });
     }
 
+    function getComboEffectiveCustomPrice(combo) {
+      if (!combo) return 0;
+      let direct = parseInt(String(combo.customPrice || '').replace(/\D/g, ''), 10) || 0;
+      if (direct > 0) return direct;
+      if (combo.rawJson) {
+        try {
+          let parsed = JSON.parse(combo.rawJson);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0] && parsed[0].comboCustomPrice !== undefined) {
+            return parseInt(String(parsed[0].comboCustomPrice).replace(/\D/g, ''), 10) || 0;
+          }
+        } catch (e) {}
+      }
+      return 0;
+    }
+
+    function resetComboCustomPrice() {
+      const customInput = document.getElementById('combo-custom-price');
+      if (customInput) customInput.value = '';
+      updateComboSummary();
+    }
+
     function getComboEffectiveOriginalPrice(combo) {
       if (!combo) return 0;
       let direct = parseInt(String(combo.originalPrice || '').replace(/\D/g, ''), 10) || 0;
@@ -6159,13 +6199,19 @@
         }
       });
 
+      const customInput = document.getElementById('combo-custom-price');
+      let customVal = customInput ? (parseInt(String(customInput.value || '').replace(/\D/g, ''), 10) || 0) : 0;
+      let effectiveSell = customVal > 0 ? customVal : totalSell;
+
       let suggested = 0;
       if (mode === 'sum_orig') {
-        suggested = totalOrig > totalSell ? totalOrig : Math.round((totalSell * 1.15) / 1000) * 1000;
+        if (totalOrig > effectiveSell) suggested = totalOrig;
+        else if (totalSell > effectiveSell) suggested = totalSell;
+        else suggested = Math.round((effectiveSell * 1.15) / 1000) * 1000;
       } else if (mode === 'plus_15') {
-        suggested = Math.round((totalSell * 1.15) / 1000) * 1000;
+        suggested = Math.round((effectiveSell * 1.15) / 1000) * 1000;
       } else if (mode === 'plus_25') {
-        suggested = Math.round((totalSell * 1.25) / 1000) * 1000;
+        suggested = Math.round((effectiveSell * 1.25) / 1000) * 1000;
       }
       const origInput = document.getElementById('combo-orig-price');
       if (origInput) {
@@ -6213,10 +6259,24 @@
       const countEl = document.getElementById("combo-selected-count");
       const totalCountEl = document.getElementById("combo-total-count");
       const selectAllChk = document.getElementById("combo-select-all");
+      const customInput = document.getElementById("combo-custom-price");
+      const autoHintEl = document.getElementById("combo-auto-price-hint");
       const origInput = document.getElementById("combo-orig-price");
       const discPreviewEl = document.getElementById("combo-discount-preview");
 
-      if (priceEl) priceEl.innerText = formatMoney(totalPrice);
+      let customVal = customInput ? (parseInt(String(customInput.value || '').replace(/\D/g, ''), 10) || 0) : 0;
+      let effectiveSellPrice = customVal > 0 ? customVal : totalPrice;
+
+      if (priceEl) {
+        priceEl.innerHTML = customVal > 0
+          ? `${formatMoney(effectiveSellPrice)} <span style="font-size:12px; color:#1d4ed8; font-weight:600;">(Tự nhập)</span>`
+          : `${formatMoney(effectiveSellPrice)} <span style="font-size:12px; color:#64748b; font-weight:600;">(Tự động)</span>`;
+      }
+      if (autoHintEl) {
+        autoHintEl.innerHTML = customVal > 0
+          ? `🧮 Tổng giá cộng từng linh kiện: <b>${formatMoney(totalPrice)}</b> • Đang áp dụng giá tự nhập: <b style="color:#e53e3e;">${formatMoney(customVal)}</b>`
+          : `🧮 Tổng giá cộng từng linh kiện: <b>${formatMoney(totalPrice)}</b> (Đang dùng giá tự động)`;
+      }
       if (stockEl) stockEl.innerText = maxStock;
       if (countEl) countEl.innerText = selectedCount;
       if (totalCountEl) totalCountEl.innerText = totalCount;
@@ -6224,17 +6284,17 @@
 
       if (discPreviewEl) {
         let origVal = origInput ? (parseInt(String(origInput.value || '').replace(/\D/g, ''), 10) || 0) : 0;
-        if (origVal > totalPrice && totalPrice > 0) {
-          let pct = Math.round(((origVal - totalPrice) / origVal) * 100);
-          let saved = origVal - totalPrice;
+        if (origVal > effectiveSellPrice && effectiveSellPrice > 0) {
+          let pct = Math.round(((origVal - effectiveSellPrice) / origVal) * 100);
+          let saved = origVal - effectiveSellPrice;
           discPreviewEl.style.color = '#c53030';
-          discPreviewEl.innerHTML = `🔥 Hiển thị trên Web: <span style="text-decoration:line-through; color:#718096;">${formatMoney(origVal)}</span> ➔ <b style="color:#e53e3e;">${formatMoney(totalPrice)}</b> (Giảm <b>-${pct}%</b> • Tiết kiệm <b>${formatMoney(saved)}</b>)`;
-        } else if (origVal > 0 && origVal <= totalPrice) {
+          discPreviewEl.innerHTML = `🔥 Hiển thị trên Web: <span style="text-decoration:line-through; color:#718096;">${formatMoney(origVal)}</span> ➔ <b style="color:#e53e3e;">${formatMoney(effectiveSellPrice)}</b> (Giảm <b>-${pct}%</b> • Tiết kiệm <b>${formatMoney(saved)}</b>)`;
+        } else if (origVal > 0 && origVal <= effectiveSellPrice) {
           discPreviewEl.style.color = '#d97706';
-          discPreviewEl.innerHTML = `⚠️ Giá gốc (${formatMoney(origVal)}) cần lớn hơn Tổng Giá Bán (${formatMoney(totalPrice)}) để hiển thị giảm giá.`;
+          discPreviewEl.innerHTML = `⚠️ Giá gốc (${formatMoney(origVal)}) cần lớn hơn Tổng Giá Bán (${formatMoney(effectiveSellPrice)}) để hiển thị giảm giá.`;
         } else {
           discPreviewEl.style.color = '#15803d';
-          discPreviewEl.innerHTML = `💡 Nhập số lớn hơn Tổng Giá Bán (${formatMoney(totalPrice)}) để trang chủ hiển thị giá gạch ngang &amp; phần trăm tiết kiệm.`;
+          discPreviewEl.innerHTML = `💡 Nhập số lớn hơn Tổng Giá Bán (${formatMoney(effectiveSellPrice)}) để trang chủ hiển thị giá gạch ngang &amp; phần trăm tiết kiệm.`;
         }
       }
     }
@@ -6494,6 +6554,7 @@
       const endTimeInput = document.getElementById("combo-end-time");
       const expireActionSelect = document.getElementById("combo-expire-action");
       const origPriceInput = document.getElementById("combo-orig-price");
+      const customPriceInput = document.getElementById("combo-custom-price");
 
       if(comboId) {
          let combo = globalCombosData.find(c => c.id === comboId); if(!combo) return;
@@ -6501,6 +6562,8 @@
          document.getElementById("combo-edit-id").value = combo.id; 
          document.getElementById("combo-name").value = combo.name; 
          document.getElementById("combo-desc").value = combo.desc;
+         let effCustom = getComboEffectiveCustomPrice(combo);
+         if (customPriceInput) customPriceInput.value = effCustom > 0 ? effCustom : "";
          let effOrig = getComboEffectiveOriginalPrice(combo);
          if (origPriceInput) origPriceInput.value = effOrig > 0 ? effOrig : "";
          currentComboEditImages = combo.rawManualImages ? combo.rawManualImages.split('\n').map(i => i.trim()).filter(i => i !== "") : [];
@@ -6529,6 +6592,7 @@
          document.getElementById("combo-edit-id").value = ""; 
          document.getElementById("combo-name").value = ""; 
          document.getElementById("combo-desc").value = "";
+         if (customPriceInput) customPriceInput.value = "";
          if (origPriceInput) origPriceInput.value = "";
          currentComboEditImages = [];
          currentComboEditVideos = [];
@@ -6591,12 +6655,17 @@
       }
       
       showLoading(true); closeComboModal();
+      let customPriceEl = document.getElementById("combo-custom-price");
+      let comboCustomPrice = customPriceEl ? (parseInt(String(customPriceEl.value || '').replace(/\D/g, ''), 10) || 0) : 0;
       let origPriceEl = document.getElementById("combo-orig-price");
       let comboOrigPrice = origPriceEl ? (parseInt(String(origPriceEl.value || '').replace(/\D/g, ''), 10) || 0) : 0;
       let itemsPayloadList = currentComboItems.map((it, idx) => {
         let clone = { id: it.id, variantId: it.variantId || '', qty: it.qty };
         if (idx === 0 && comboOrigPrice > 0) {
           clone.comboOriginalPrice = comboOrigPrice;
+        }
+        if (idx === 0 && comboCustomPrice > 0) {
+          clone.comboCustomPrice = comboCustomPrice;
         }
         return clone;
       });
@@ -6606,6 +6675,7 @@
         comboId: cId,
         name: cName,
         desc: cDesc,
+        customPrice: comboCustomPrice,
         originalPrice: comboOrigPrice,
         items: JSON.stringify(itemsPayloadList),
         images: currentComboEditImages.join('\n'),
