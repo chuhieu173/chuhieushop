@@ -291,10 +291,10 @@
           <span id="packageStats">Ước tính: ~0 KB (0 files)</span>
         </div>
 
-        <!-- Công cụ căn chỉnh vị trí ảnh (Dịch Trái/Phải, Lên/Xuống) -->
+        <!-- Công cụ căn chỉnh vị trí & kích thước ảnh (Dịch Trái/Phải, Lên/Xuống, Phóng to/Thu nhỏ) -->
         <div class="align-box">
           <div class="align-header">
-            <strong>🎯 Căn chỉnh vị trí ảnh (<span id="alignTargetLabel">neutral</span>)</strong>
+            <strong>🎯 Căn chỉnh vị trí &amp; kích thước (<span id="alignTargetLabel">neutral</span>)</strong>
             <div class="align-step-wrap">
               <span>Bước:</span>
               <select id="shiftStepSelect" class="align-step-select">
@@ -311,7 +311,9 @@
             <button type="button" id="shiftUpBtn" class="btn btn-sm btn-secondary" title="Dịch lên trên">⬆️ Lên</button>
             <button type="button" id="shiftDownBtn" class="btn btn-sm btn-secondary" title="Dịch xuống dưới">⬇️ Xuống</button>
             <button type="button" id="shiftRightBtn" class="btn btn-sm btn-secondary" title="Dịch sang phải">➡️ Phải</button>
-            <button type="button" id="shiftResetBtn" class="btn btn-sm btn-secondary" title="Đưa về vị trí gốc (0, 0)">↺ Gốc (0,0)</button>
+            <button type="button" id="zoomOutBtn" class="btn btn-sm btn-secondary" title="Thu nhỏ ảnh">🔍− Thu nhỏ</button>
+            <button type="button" id="zoomInBtn" class="btn btn-sm btn-secondary" title="Phóng to ảnh">🔍+ Phóng to</button>
+            <button type="button" id="shiftResetBtn" class="btn btn-sm btn-secondary" title="Đưa về vị trí &amp; kích thước gốc (0, 0 • 100%)">↺ Gốc</button>
           </div>
 
           <div class="align-sliders">
@@ -325,17 +327,22 @@
               <input type="range" id="shiftYRange" min="-120" max="120" step="1" value="0" />
               <code id="shiftYVal">0px</code>
             </label>
+            <label class="align-slider-row">
+              <span>Thu/Phóng:</span>
+              <input type="range" id="zoomRange" min="50" max="200" step="1" value="100" />
+              <code id="zoomVal">100%</code>
+            </label>
           </div>
 
           <div class="align-Batch-row">
-            <button type="button" id="applyShiftAllBtn" class="btn btn-sm btn-cyan" title="Áp dụng độ lệch (X, Y) hiện tại đồng loạt cho cả 21 biểu cảm trong Theme">
-              📐 Áp dụng (X, Y) này cho cả 21 biểu cảm
+            <button type="button" id="applyShiftAllBtn" class="btn btn-sm btn-cyan" title="Áp dụng độ lệch (X, Y) và tỉ lệ Thu/Phóng hiện tại đồng loạt cho cả 21 biểu cảm trong Theme">
+              📐 Áp dụng (X, Y, Thu/Phóng) cho cả 21 biểu cảm
             </button>
-            <button type="button" id="resetShiftAllBtn" class="btn btn-sm btn-secondary" title="Đặt lại vị trí (0, 0) cho toàn bộ 21 biểu cảm">
-              ↺ Reset vị trí cả 21 ô
+            <button type="button" id="resetShiftAllBtn" class="btn btn-sm btn-secondary" title="Đặt lại vị trí (0, 0) và 100% cho toàn bộ 21 biểu cảm">
+              ↺ Reset cả 21 ô
             </button>
           </div>
-          <small class="align-tip">💡 Bạn cũng có thể <strong>giữ chuột kéo trực tiếp biểu cảm ngay trên màn hình ảo</strong> để căn chỉnh vị trí (tự động ghi thẳng vào file GIF khi nạp ESP32).</small>
+          <small class="align-tip">💡 Bạn có thể <strong>giữ chuột kéo trực tiếp biểu cảm</strong> hoặc <strong>cuộn chuột trên màn hình ảo</strong> để dịch vị trí &amp; phóng to/thu nhỏ (tự động ghi thẳng vào file GIF khi nạp ESP32).</small>
         </div>
       </div>
 

@@ -65,7 +65,7 @@ const state = {
   fontBytes: null,
   fontName: "font_noto_sans_common_20_4.bin",
   fontMeta: { charset: "common", size: 20, bpp: 4, bundle: "noto-v1" },
-  emojis: {}, // { [emotion]: { filename, rawBytes, bytes: Uint8Array, url, width, height, offsetX, offsetY } }
+  emojis: {}, // { [emotion]: { filename, rawBytes, bytes: Uint8Array, url, width, height, offsetX, offsetY, scale } }
   defaultEmojis: {}, // snapshot của preset hiện tại để Reset mặc định
   donorPresetId: "",
   donorEmojis: {} // { [emotion]: { filename, rawBytes, bytes, url, width, height, presetId } }
@@ -131,11 +131,15 @@ const els = {
   shiftUpBtn: document.getElementById("shiftUpBtn"),
   shiftDownBtn: document.getElementById("shiftDownBtn"),
   shiftRightBtn: document.getElementById("shiftRightBtn"),
+  zoomOutBtn: document.getElementById("zoomOutBtn"),
+  zoomInBtn: document.getElementById("zoomInBtn"),
   shiftResetBtn: document.getElementById("shiftResetBtn"),
   shiftXRange: document.getElementById("shiftXRange"),
   shiftXVal: document.getElementById("shiftXVal"),
   shiftYRange: document.getElementById("shiftYRange"),
   shiftYVal: document.getElementById("shiftYVal"),
+  zoomRange: document.getElementById("zoomRange"),
+  zoomVal: document.getElementById("zoomVal"),
   applyShiftAllBtn: document.getElementById("applyShiftAllBtn"),
   resetShiftAllBtn: document.getElementById("resetShiftAllBtn"),
   exportBinBtn: document.getElementById("exportBinBtn"),
@@ -512,10 +516,11 @@ function lzwEncode(minCodeSize, indexStream) {
   return new Uint8Array(bytes);
 }
 
-function shiftGifBytes(u8, dx, dy) {
+function shiftGifBytes(u8, dx, dy, scale = 100) {
   dx = Math.round(dx) || 0;
   dy = Math.round(dy) || 0;
-  if (dx === 0 && dy === 0) return u8;
+  scale = Math.max(50, Math.min(200, Math.round(scale) || 100));
+  if (dx === 0 && dy === 0 && scale === 100) return u8;
   if (!u8 || u8.length < 14 || u8.length > MAX_IMAGE_FILE_BYTES) return u8;
   if (u8[0] !== 0x47 || u8[1] !== 0x49 || u8[2] !== 0x46) return u8;
 
@@ -621,13 +626,16 @@ function shiftGifBytes(u8, dx, dy) {
 
       const shifted = new Uint8Array(width * height);
       shifted.fill(bgFillIdx);
+      const s = scale / 100;
+      const cx = (width - 1) / 2;
+      const cy = (height - 1) / 2;
       for (let y = 0; y < height; y++) {
-        const sy = y - dy;
+        const sy = s === 1 ? y - dy : Math.round(cy + (y - cy - dy) / s);
         if (sy < 0 || sy >= height) continue;
         const dstRow = y * width;
         const srcRow = sy * width;
         for (let x = 0; x < width; x++) {
-          const sx = x - dx;
+          const sx = s === 1 ? x - dx : Math.round(cx + (x - cx - dx) / s);
           if (sx >= 0 && sx < width) {
             shifted[dstRow + x] = canvas[srcRow + sx];
           }
@@ -768,10 +776,11 @@ function shiftGifBytes(u8, dx, dy) {
   return result;
 }
 
-async function shiftStaticImageBytes(rawBytes, dx, dy, mime = "image/png") {
+async function shiftStaticImageBytes(rawBytes, dx, dy, scale = 100, mime = "image/png") {
   dx = Math.round(dx) || 0;
   dy = Math.round(dy) || 0;
-  if (dx === 0 && dy === 0) return rawBytes;
+  scale = Math.max(50, Math.min(200, Math.round(scale) || 100));
+  if (dx === 0 && dy === 0 && scale === 100) return rawBytes;
   const blob = new Blob([rawBytes], { type: mime });
   const url = URL.createObjectURL(blob);
   const img = new Image();
@@ -789,16 +798,20 @@ async function shiftStaticImageBytes(rawBytes, dx, dy, mime = "image/png") {
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = state.skin[state.previewSkin]?.background_color || "#000000";
   ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(img, dx, dy);
+  const s = scale / 100;
+  const dw = w * s;
+  const dh = h * s;
+  ctx.drawImage(img, (w - dw) / 2 + dx, (h - dh) / 2 + dy, dw, dh);
   const outBlob = await new Promise((r) => canvas.toBlob(r, "image/png"));
   return new Uint8Array(await outBlob.arrayBuffer());
 }
 
-async function computeShiftedBytes(rawBytes, filename, dx, dy) {
-  if (!dx && !dy) return rawBytes;
+async function computeShiftedBytes(rawBytes, filename, dx, dy, scale = 100) {
+  scale = Math.max(50, Math.min(200, Math.round(scale) || 100));
+  if (!dx && !dy && scale === 100) return rawBytes;
   const isGif = filename.toLowerCase().endsWith(".gif") || (rawBytes[0] === 0x47 && rawBytes[1] === 0x49);
-  if (isGif) return shiftGifBytes(rawBytes, dx, dy);
-  return shiftStaticImageBytes(rawBytes, dx, dy, "image/png");
+  if (isGif) return shiftGifBytes(rawBytes, dx, dy, scale);
+  return shiftStaticImageBytes(rawBytes, dx, dy, scale, "image/png");
 }
 
 // ==========================================
@@ -910,7 +923,8 @@ function assignFromDonor(targetEmo, donorEmo) {
     width: donorItem.width || state.width,
     height: donorItem.height || state.height,
     offsetX: 0,
-    offsetY: 0
+    offsetY: 0,
+    scale: 100
   };
   safeRevokeBlobUrl(prevUrl);
   state.activeEmotion = targetEmo;
@@ -1001,19 +1015,21 @@ async function loadDonorPreset(presetId) {
   }
 }
 
-async function applyEmotionOffset(emo, newX, newY, silent = false) {
+async function applyEmotionOffset(emo, newX, newY, newScale = null, silent = false) {
   const item = state.emojis[emo];
   if (!item) return;
   const dx = Math.max(-120, Math.min(120, Math.round(newX) || 0));
   const dy = Math.max(-120, Math.min(120, Math.round(newY) || 0));
+  const sc = Math.max(50, Math.min(200, Math.round(newScale == null ? (item.scale ?? 100) : newScale) || 100));
   const raw = item.rawBytes || item.bytes;
-  const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy);
+  const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy, sc);
   const mime = (item.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
   const prevUrl = item.url;
   item.rawBytes = raw;
   item.bytes = shiftedBytes;
   item.offsetX = dx;
   item.offsetY = dy;
+  item.scale = sc;
   item.url = URL.createObjectURL(new Blob([shiftedBytes], { type: mime }));
   safeRevokeBlobUrl(prevUrl);
 
@@ -1024,10 +1040,11 @@ async function applyEmotionOffset(emo, newX, newY, silent = false) {
   }
 }
 
-async function applyShiftToAll(dx, dy) {
+async function applyShiftToAll(dx, dy, scale = 100) {
   dx = Math.max(-120, Math.min(120, Math.round(dx) || 0));
   dy = Math.max(-120, Math.min(120, Math.round(dy) || 0));
-  log(`Đang căn chỉnh vị trí (X=${dx >= 0 ? "+" : ""}${dx}px, Y=${dy >= 0 ? "+" : ""}${dy}px) cho toàn bộ 21 biểu cảm...`, "info");
+  const sc = Math.max(50, Math.min(200, Math.round(scale) || 100));
+  log(`Đang căn chỉnh (X=${dx >= 0 ? "+" : ""}${dx}px, Y=${dy >= 0 ? "+" : ""}${dy}px, Tỉ lệ=${sc}%) cho toàn bộ 21 biểu cảm...`, "info");
   // Tránh xử lý lặp nếu nhiều biểu cảm dùng chung cùng 1 rawBytes
   const cache = new Map();
   for (const emo of STANDARD_EMOTIONS) {
@@ -1036,7 +1053,7 @@ async function applyShiftToAll(dx, dy) {
     const raw = item.rawBytes || item.bytes;
     let cached = cache.get(raw);
     if (!cached) {
-      const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy);
+      const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy, sc);
       const mime = (item.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
       const url = URL.createObjectURL(new Blob([shiftedBytes], { type: mime }));
       cached = { shiftedBytes, url };
@@ -1047,10 +1064,11 @@ async function applyShiftToAll(dx, dy) {
     item.bytes = cached.shiftedBytes;
     item.offsetX = dx;
     item.offsetY = dy;
+    item.scale = sc;
     item.url = cached.url;
     safeRevokeBlobUrl(prevUrl);
   }
-  log(`Đã cập nhật vị trí (X=${dx >= 0 ? "+" : ""}${dx}px, Y=${dy >= 0 ? "+" : ""}${dy}px) cho cả 21 biểu cảm!`, "ok");
+  log(`Đã cập nhật (X=${dx >= 0 ? "+" : ""}${dx}px, Y=${dy >= 0 ? "+" : ""}${dy}px, Tỉ lệ=${sc}%) cho cả 21 biểu cảm!`, "ok");
   renderEmotionGrid();
   updateVirtualScreen();
   updateStats();
@@ -1061,12 +1079,15 @@ function syncAlignControls() {
   const item = state.emojis[emo];
   const ox = item?.offsetX || 0;
   const oy = item?.offsetY || 0;
+  const sc = item?.scale ?? 100;
   if (els.alignTargetLabel) els.alignTargetLabel.textContent = emo;
   if (els.donorTargetEmoLabel) els.donorTargetEmoLabel.textContent = emo;
   if (els.shiftXRange) els.shiftXRange.value = ox;
   if (els.shiftYRange) els.shiftYRange.value = oy;
+  if (els.zoomRange) els.zoomRange.value = sc;
   if (els.shiftXVal) els.shiftXVal.textContent = `${ox > 0 ? "+" : ""}${ox}px`;
   if (els.shiftYVal) els.shiftYVal.textContent = `${oy > 0 ? "+" : ""}${oy}px`;
+  if (els.zoomVal) els.zoomVal.textContent = `${sc}%`;
 }
 
 function renderEmotionGrid() {
@@ -1075,7 +1096,8 @@ function renderEmotionGrid() {
     const item = state.emojis[emo];
     const defItem = state.defaultEmojis[emo];
     const isModified = Boolean(defItem && item && item.bytes !== defItem.bytes);
-    const hasOffset = Boolean(item && (item.offsetX || item.offsetY));
+    const sc = item?.scale ?? 100;
+    const hasTransform = Boolean(item && (item.offsetX || item.offsetY || sc !== 100));
 
     const card = document.createElement("div");
     card.className = `emo-card ${state.activeEmotion === emo ? "active" : ""} ${isModified ? "modified" : ""}`;
@@ -1087,8 +1109,11 @@ function renderEmotionGrid() {
       : `<div class="emo-thumb" style="display:grid;place-items:center;color:#475569;font-size:10px;">Trống</div>`;
 
     const sizeText = item ? `${Math.max(1, Math.round(item.bytes.length / 1024))} KB` : "Kéo thả GIF";
-    const offsetBadgeHtml = hasOffset
-      ? `<span class="emo-offset-badge" title="Đã dịch chuyển vị trí">${item.offsetX || 0},${item.offsetY || 0}</span>`
+    const badgeParts = [];
+    if (item && (item.offsetX || item.offsetY)) badgeParts.push(`${item.offsetX || 0},${item.offsetY || 0}`);
+    if (sc !== 100) badgeParts.push(`${sc}%`);
+    const offsetBadgeHtml = hasTransform
+      ? `<span class="emo-offset-badge" title="Đã căn chỉnh vị trí / kích thước">${badgeParts.join("•")}</span>`
       : "";
     const resetBtnHtml = isModified
       ? `<button type="button" class="emo-reset-btn" title="Khôi phục '${emo}' về mặc định">↺</button>`
@@ -1216,7 +1241,8 @@ async function assignEmotionFile(emo, file) {
     width: w,
     height: h,
     offsetX: 0,
-    offsetY: 0
+    offsetY: 0,
+    scale: 100
   };
   safeRevokeBlobUrl(prevUrl);
   state.activeEmotion = emo;
@@ -1253,7 +1279,7 @@ async function handleBulkFiles(fileList) {
       const url = URL.createObjectURL(new Blob([bytes], { type: file.type || "image/gif" }));
 
       for (const emo of matchedEmos) {
-        state.emojis[emo] = { filename: file.name, rawBytes: bytes, bytes, url, width: w, height: h, offsetX: 0, offsetY: 0 };
+        state.emojis[emo] = { filename: file.name, rawBytes: bytes, bytes, url, width: w, height: h, offsetX: 0, offsetY: 0, scale: 100 };
       }
       matchedCount++;
     }
@@ -1420,7 +1446,8 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
         width: 320,
         height: 240,
         offsetX: 0,
-        offsetY: 0
+        offsetY: 0,
+        scale: 100
       };
       state.emojis[emo] = entry;
       state.defaultEmojis[emo] = { ...entry };
@@ -1498,7 +1525,8 @@ async function importBinFile(file) {
             width: w,
             height: h,
             offsetX: 0,
-            offsetY: 0
+            offsetY: 0,
+            scale: 100
           };
           safeRevokeBlobUrl(prevUrl);
         }
@@ -1851,21 +1879,30 @@ function init() {
   });
 
   // ==========================================
-  // CĂN CHỈNH VỊ TRÍ ẢNH (DỊCH TRÁI/PHẢI, LÊN/XUỐNG)
+  // CĂN CHỈNH VỊ TRÍ & KÍCH THƯỚC ẢNH (TRÁI/PHẢI, LÊN/XUỐNG, THU/PHÓNG)
   // ==========================================
   const getStep = () => parseInt(els.shiftStepSelect?.value || "5", 10) || 5;
+  const getZoomStep = () => (getStep() <= 5 ? 5 : 10);
   const nudgeActive = async (dx, dy) => {
     const emo = state.activeEmotion;
     const item = state.emojis[emo];
     if (!item) return;
-    await applyEmotionOffset(emo, (item.offsetX || 0) + dx, (item.offsetY || 0) + dy);
+    await applyEmotionOffset(emo, (item.offsetX || 0) + dx, (item.offsetY || 0) + dy, item.scale ?? 100);
+  };
+  const zoomActive = async (deltaScale) => {
+    const emo = state.activeEmotion;
+    const item = state.emojis[emo];
+    if (!item) return;
+    await applyEmotionOffset(emo, item.offsetX || 0, item.offsetY || 0, (item.scale ?? 100) + deltaScale);
   };
 
   els.shiftLeftBtn?.addEventListener("click", () => nudgeActive(-getStep(), 0));
   els.shiftRightBtn?.addEventListener("click", () => nudgeActive(getStep(), 0));
   els.shiftUpBtn?.addEventListener("click", () => nudgeActive(0, -getStep()));
   els.shiftDownBtn?.addEventListener("click", () => nudgeActive(0, getStep()));
-  els.shiftResetBtn?.addEventListener("click", () => applyEmotionOffset(state.activeEmotion, 0, 0));
+  els.zoomOutBtn?.addEventListener("click", () => zoomActive(-getZoomStep()));
+  els.zoomInBtn?.addEventListener("click", () => zoomActive(getZoomStep()));
+  els.shiftResetBtn?.addEventListener("click", () => applyEmotionOffset(state.activeEmotion, 0, 0, 100));
 
   els.shiftXRange?.addEventListener("input", (e) => {
     const v = parseInt(e.target.value, 10) || 0;
@@ -1874,7 +1911,7 @@ function init() {
   els.shiftXRange?.addEventListener("change", (e) => {
     const v = parseInt(e.target.value, 10) || 0;
     const item = state.emojis[state.activeEmotion];
-    if (item) applyEmotionOffset(state.activeEmotion, v, item.offsetY || 0);
+    if (item) applyEmotionOffset(state.activeEmotion, v, item.offsetY || 0, item.scale ?? 100);
   });
 
   els.shiftYRange?.addEventListener("input", (e) => {
@@ -1884,18 +1921,61 @@ function init() {
   els.shiftYRange?.addEventListener("change", (e) => {
     const v = parseInt(e.target.value, 10) || 0;
     const item = state.emojis[state.activeEmotion];
-    if (item) applyEmotionOffset(state.activeEmotion, item.offsetX || 0, v);
+    if (item) applyEmotionOffset(state.activeEmotion, item.offsetX || 0, v, item.scale ?? 100);
+  });
+
+  els.zoomRange?.addEventListener("input", (e) => {
+    const v = Math.max(50, Math.min(200, parseInt(e.target.value, 10) || 100));
+    if (els.zoomVal) els.zoomVal.textContent = `${v}%`;
+    const item = state.emojis[state.activeEmotion];
+    if (item && els.virtualEmojiImg) {
+      const ratio = v / (item.scale ?? 100);
+      els.virtualEmojiImg.style.transform = `scale(${ratio})`;
+    }
+  });
+  els.zoomRange?.addEventListener("change", (e) => {
+    const v = Math.max(50, Math.min(200, parseInt(e.target.value, 10) || 100));
+    if (els.virtualEmojiImg) els.virtualEmojiImg.style.transform = "";
+    const item = state.emojis[state.activeEmotion];
+    if (item) applyEmotionOffset(state.activeEmotion, item.offsetX || 0, item.offsetY || 0, v);
   });
 
   els.applyShiftAllBtn?.addEventListener("click", () => {
     const item = state.emojis[state.activeEmotion];
     if (!item) return;
-    applyShiftToAll(item.offsetX || 0, item.offsetY || 0);
+    applyShiftToAll(item.offsetX || 0, item.offsetY || 0, item.scale ?? 100);
   });
 
   els.resetShiftAllBtn?.addEventListener("click", () => {
-    applyShiftToAll(0, 0);
+    applyShiftToAll(0, 0, 100);
   });
+
+  // Cuộn chuột trên màn hình ảo để phóng to / thu nhỏ nhanh
+  let wheelZoomTimer = null;
+  let pendingWheelScale = null;
+  els.virtualScreen?.addEventListener("wheel", (e) => {
+    const item = state.emojis[state.activeEmotion];
+    if (!item) return;
+    e.preventDefault();
+    const baseScale = pendingWheelScale ?? (item.scale ?? 100);
+    const delta = e.deltaY < 0 ? 5 : -5;
+    pendingWheelScale = Math.max(50, Math.min(200, baseScale + delta));
+    if (els.zoomRange) els.zoomRange.value = pendingWheelScale;
+    if (els.zoomVal) els.zoomVal.textContent = `${pendingWheelScale}%`;
+    if (els.virtualEmojiImg) {
+      const ratio = pendingWheelScale / (item.scale ?? 100);
+      els.virtualEmojiImg.style.transform = `scale(${ratio})`;
+    }
+    clearTimeout(wheelZoomTimer);
+    wheelZoomTimer = setTimeout(async () => {
+      const targetScale = pendingWheelScale;
+      pendingWheelScale = null;
+      if (els.virtualEmojiImg) els.virtualEmojiImg.style.transform = "";
+      if (targetScale != null) {
+        await applyEmotionOffset(state.activeEmotion, item.offsetX || 0, item.offsetY || 0, targetScale);
+      }
+    }, 150);
+  }, { passive: false });
 
   // Kéo trực tiếp biểu cảm trên màn hình ảo (#virtualEmojiImg)
   let panState = null;
