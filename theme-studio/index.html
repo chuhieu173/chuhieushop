@@ -73,6 +73,10 @@
         </select>
         <button id="loadPresetBtn" class="btn btn-cyan">✨ Nạp Preset</button>
       </div>
+      <div class="draft-pill" id="draftPill">
+        <span id="draftStatusBadge" class="draft-status">💾 Tự động lưu nháp</span>
+        <button type="button" id="clearDraftBtn" class="btn btn-sm btn-secondary" title="Xóa bản nháp đã lưu trên trình duyệt và tải lại Theme mặc định">🗑️ Xóa nháp</button>
+      </div>
     </div>
   </header>
 
@@ -332,6 +336,33 @@
               <input type="range" id="zoomRange" min="50" max="200" step="1" value="100" />
               <code id="zoomVal">100%</code>
             </label>
+          </div>
+
+          <div class="tint-box">
+            <div class="tint-header">
+              <span>🎨 Đổi màu ảnh (Nhuộm bảng màu):</span>
+              <code id="tintColorVal">Màu gốc</code>
+            </div>
+            <div class="tint-swatches">
+              <button type="button" class="tint-swatch active" data-tint="" title="Giữ màu gốc">✕ Gốc</button>
+              <button type="button" class="tint-swatch" data-tint="#00E5FF" style="--swatch:#00E5FF" title="Xanh Cyan"></button>
+              <button type="button" class="tint-swatch" data-tint="#3B82F6" style="--swatch:#3B82F6" title="Xanh Dương"></button>
+              <button type="button" class="tint-swatch" data-tint="#22C55E" style="--swatch:#22C55E" title="Xanh Lục"></button>
+              <button type="button" class="tint-swatch" data-tint="#EF4444" style="--swatch:#EF4444" title="Đỏ"></button>
+              <button type="button" class="tint-swatch" data-tint="#FACC15" style="--swatch:#FACC15" title="Vàng"></button>
+              <button type="button" class="tint-swatch" data-tint="#F97316" style="--swatch:#F97316" title="Cam"></button>
+              <button type="button" class="tint-swatch" data-tint="#EC4899" style="--swatch:#EC4899" title="Hồng"></button>
+              <button type="button" class="tint-swatch" data-tint="#A855F7" style="--swatch:#A855F7" title="Tím"></button>
+              <input type="color" id="tintColorPicker" class="tint-picker" value="#00e5ff" title="Chọn màu tùy ý" />
+            </div>
+            <div class="align-Batch-row">
+              <button type="button" id="applyTintAllBtn" class="btn btn-sm btn-cyan" title="Áp dụng màu đang chọn cho toàn bộ 21 biểu cảm">
+                🎨 Nhuộm màu cả 21 biểu cảm
+              </button>
+              <button type="button" id="resetTintAllBtn" class="btn btn-sm btn-secondary" title="Khôi phục màu gốc cho cả 21 biểu cảm">
+                ↺ Màu gốc cả 21 ô
+              </button>
+            </div>
           </div>
 
           <div class="align-Batch-row">

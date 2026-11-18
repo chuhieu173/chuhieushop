@@ -140,6 +140,12 @@ const els = {
   shiftYVal: document.getElementById("shiftYVal"),
   zoomRange: document.getElementById("zoomRange"),
   zoomVal: document.getElementById("zoomVal"),
+  tintColorVal: document.getElementById("tintColorVal"),
+  tintColorPicker: document.getElementById("tintColorPicker"),
+  applyTintAllBtn: document.getElementById("applyTintAllBtn"),
+  resetTintAllBtn: document.getElementById("resetTintAllBtn"),
+  draftStatusBadge: document.getElementById("draftStatusBadge"),
+  clearDraftBtn: document.getElementById("clearDraftBtn"),
   applyShiftAllBtn: document.getElementById("applyShiftAllBtn"),
   resetShiftAllBtn: document.getElementById("resetShiftAllBtn"),
   exportBinBtn: document.getElementById("exportBinBtn"),
@@ -776,11 +782,85 @@ function shiftGifBytes(u8, dx, dy, scale = 100) {
   return result;
 }
 
-async function shiftStaticImageBytes(rawBytes, dx, dy, scale = 100, mime = "image/png") {
+function parseHexRgb(hex) {
+  const clean = String(hex || "").trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+  return [
+    parseInt(clean.slice(0, 2), 16),
+    parseInt(clean.slice(2, 4), 16),
+    parseInt(clean.slice(4, 6), 16)
+  ];
+}
+
+function tintGifBytes(u8, hexColor) {
+  const rgb = parseHexRgb(hexColor);
+  if (!rgb || !u8 || u8.length < 14) return u8;
+  if (u8[0] !== 0x47 || u8[1] !== 0x49 || u8[2] !== 0x46) return u8;
+  const out = u8.slice();
+  const [tr, tg, tb] = rgb;
+  const tintPaletteSlice = (start, count) => {
+    for (let i = 0; i < count; i++) {
+      const idx = start + i * 3;
+      if (idx + 2 >= out.length) break;
+      const r = out[idx];
+      const g = out[idx + 1];
+      const b = out[idx + 2];
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      out[idx] = Math.min(255, Math.round(tr * lum));
+      out[idx + 1] = Math.min(255, Math.round(tg * lum));
+      out[idx + 2] = Math.min(255, Math.round(tb * lum));
+    }
+  };
+
+  const packed = out[10];
+  const gctFlag = (packed & 0x80) !== 0;
+  const gctCount = gctFlag ? 1 << ((packed & 7) + 1) : 0;
+  let pos = 13;
+  if (gctFlag) {
+    tintPaletteSlice(pos, gctCount);
+    pos += gctCount * 3;
+  }
+
+  const skipSubBlocks = () => {
+    while (pos < out.length) {
+      const sz = out[pos++];
+      if (sz === 0) break;
+      pos += sz;
+    }
+  };
+
+  while (pos < out.length) {
+    const b = out[pos++];
+    if (b === 0x3b) break;
+    if (b === 0x21) {
+      pos++; // extension label
+      skipSubBlocks();
+    } else if (b === 0x2c) {
+      if (pos + 9 > out.length) break;
+      const fPacked = out[pos + 8];
+      pos += 9;
+      if ((fPacked & 0x80) !== 0) {
+        const lctCount = 1 << ((fPacked & 7) + 1);
+        tintPaletteSlice(pos, lctCount);
+        pos += lctCount * 3;
+      }
+      if (pos < out.length) {
+        pos++; // LZW minCodeSize
+        skipSubBlocks();
+      }
+    } else {
+      break;
+    }
+  }
+  return out;
+}
+
+async function shiftStaticImageBytes(rawBytes, dx, dy, scale = 100, tintColor = "", mime = "image/png") {
   dx = Math.round(dx) || 0;
   dy = Math.round(dy) || 0;
   scale = Math.max(50, Math.min(200, Math.round(scale) || 100));
-  if (dx === 0 && dy === 0 && scale === 100) return rawBytes;
+  const rgb = parseHexRgb(tintColor);
+  if (dx === 0 && dy === 0 && scale === 100 && !rgb) return rawBytes;
   const blob = new Blob([rawBytes], { type: mime });
   const url = URL.createObjectURL(blob);
   const img = new Image();
@@ -802,16 +882,32 @@ async function shiftStaticImageBytes(rawBytes, dx, dy, scale = 100, mime = "imag
   const dw = w * s;
   const dh = h * s;
   ctx.drawImage(img, (w - dw) / 2 + dx, (h - dh) / 2 + dy, dw, dh);
+  if (rgb) {
+    const [tr, tg, tb] = rgb;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const lum = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
+      data[i] = Math.min(255, Math.round(tr * lum));
+      data[i + 1] = Math.min(255, Math.round(tg * lum));
+      data[i + 2] = Math.min(255, Math.round(tb * lum));
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
   const outBlob = await new Promise((r) => canvas.toBlob(r, "image/png"));
   return new Uint8Array(await outBlob.arrayBuffer());
 }
 
-async function computeShiftedBytes(rawBytes, filename, dx, dy, scale = 100) {
+async function computeShiftedBytes(rawBytes, filename, dx, dy, scale = 100, tintColor = "") {
   scale = Math.max(50, Math.min(200, Math.round(scale) || 100));
-  if (!dx && !dy && scale === 100) return rawBytes;
+  const rgb = parseHexRgb(tintColor);
+  if (!dx && !dy && scale === 100 && !rgb) return rawBytes;
   const isGif = filename.toLowerCase().endsWith(".gif") || (rawBytes[0] === 0x47 && rawBytes[1] === 0x49);
-  if (isGif) return shiftGifBytes(rawBytes, dx, dy, scale);
-  return shiftStaticImageBytes(rawBytes, dx, dy, scale, "image/png");
+  if (isGif) {
+    const geomBytes = (!dx && !dy && scale === 100) ? rawBytes : shiftGifBytes(rawBytes, dx, dy, scale);
+    return rgb ? tintGifBytes(geomBytes, tintColor) : geomBytes;
+  }
+  return shiftStaticImageBytes(rawBytes, dx, dy, scale, tintColor, "image/png");
 }
 
 // ==========================================
@@ -892,6 +988,222 @@ async function buildAssetsBinary() {
 }
 
 // ==========================================
+// 3.5. AUTO-SAVE DRAFT (INDEXEDDB)
+// ==========================================
+
+const DRAFT_DB_NAME = "chuhieu_theme_studio_db";
+const DRAFT_STORE = "drafts";
+const DRAFT_KEY = "current_draft";
+let draftSaveTimer = null;
+
+function openDraftDb() {
+  if (typeof indexedDB === "undefined") return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(DRAFT_DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(DRAFT_STORE)) {
+          db.createObjectStore(DRAFT_STORE);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function saveDraftToDb() {
+  const db = await openDraftDb();
+  if (!db) return;
+  try {
+    const emojisPayload = {};
+    for (const emo of STANDARD_EMOTIONS) {
+      const it = state.emojis[emo];
+      if (!it || !it.bytes) continue;
+      emojisPayload[emo] = {
+        filename: it.filename || `${emo}.gif`,
+        rawBytes: it.rawBytes || it.bytes,
+        bytes: it.bytes,
+        width: it.width || state.width,
+        height: it.height || state.height,
+        offsetX: it.offsetX || 0,
+        offsetY: it.offsetY || 0,
+        scale: it.scale ?? 100,
+        tintColor: it.tintColor || ""
+      };
+    }
+    const readBgFile = async (bgObj) => {
+      if (!bgObj?.file) return null;
+      const buf = await bgObj.file.arrayBuffer();
+      return { name: bgObj.name || bgObj.file.name || "bg.png", type: bgObj.file.type || "image/png", bytes: new Uint8Array(buf) };
+    };
+    const draft = {
+      savedAt: Date.now(),
+      presetId: els.presetSelect?.value || "robot_eve",
+      width: state.width,
+      height: state.height,
+      fitMode: state.fitMode,
+      noBg: state.noBg,
+      hideSubtitle: state.hideSubtitle,
+      omitFont: state.omitFont,
+      includeSrmodels: state.includeSrmodels,
+      wakeWordId: state.wakeWordId,
+      previewSkin: state.previewSkin,
+      activeEmotion: state.activeEmotion,
+      skin: {
+        light: { ...state.skin.light },
+        dark: { ...state.skin.dark }
+      },
+      emojis: emojisPayload,
+      bgLight: await readBgFile(state.bgLightFile),
+      bgDark: await readBgFile(state.bgDarkFile)
+    };
+    await new Promise((resolve) => {
+      const tx = db.transaction(DRAFT_STORE, "readwrite");
+      tx.objectStore(DRAFT_STORE).put(draft, DRAFT_KEY);
+      tx.oncomplete = resolve;
+      tx.onerror = resolve;
+    });
+    if (els.draftStatusBadge) {
+      const t = new Date().toLocaleTimeString("vi-VN", { hour12: false });
+      els.draftStatusBadge.textContent = `💾 Đã lưu nháp (${t})`;
+      els.draftStatusBadge.classList.add("saved");
+    }
+  } catch {
+    // ignore storage quota / private mode errors
+  } finally {
+    db.close();
+  }
+}
+
+function scheduleSaveDraft() {
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    saveDraftToDb();
+  }, 450);
+}
+
+async function loadDraftFromDb() {
+  const db = await openDraftDb();
+  if (!db) return null;
+  try {
+    return await new Promise((resolve) => {
+      const tx = db.transaction(DRAFT_STORE, "readonly");
+      const req = tx.objectStore(DRAFT_STORE).get(DRAFT_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  } finally {
+    db.close();
+  }
+}
+
+async function clearDraftFromDb() {
+  const db = await openDraftDb();
+  if (!db) return;
+  try {
+    await new Promise((resolve) => {
+      const tx = db.transaction(DRAFT_STORE, "readwrite");
+      tx.objectStore(DRAFT_STORE).delete(DRAFT_KEY);
+      tx.oncomplete = resolve;
+      tx.onerror = resolve;
+    });
+    if (els.draftStatusBadge) {
+      els.draftStatusBadge.textContent = "💾 Tự động lưu nháp";
+      els.draftStatusBadge.classList.remove("saved");
+    }
+  } catch {
+    // ignore
+  } finally {
+    db.close();
+  }
+}
+
+async function restoreDraftFromDb() {
+  const draft = await loadDraftFromDb();
+  if (!draft || !draft.emojis || Object.keys(draft.emojis).length === 0) return false;
+
+  if (draft.presetId && els.presetSelect) els.presetSelect.value = draft.presetId;
+  if (draft.width && draft.height) {
+    state.width = draft.width;
+    state.height = draft.height;
+    if (els.resolutionSelect) els.resolutionSelect.value = `${draft.width}x${draft.height}`;
+    if (els.resBadge) els.resBadge.textContent = `${draft.width}×${draft.height}`;
+  }
+  if (draft.fitMode) {
+    state.fitMode = draft.fitMode;
+    if (els.bgFitSelect) els.bgFitSelect.value = draft.fitMode;
+  }
+  state.noBg = Boolean(draft.noBg);
+  if (els.noBgCheck) els.noBgCheck.checked = state.noBg;
+  state.hideSubtitle = Boolean(draft.hideSubtitle);
+  if (els.hideSubtitleCheck) els.hideSubtitleCheck.checked = state.hideSubtitle;
+  state.omitFont = Boolean(draft.omitFont);
+  if (els.omitFontCheck) els.omitFontCheck.checked = state.omitFont;
+  state.includeSrmodels = Boolean(draft.includeSrmodels);
+  if (els.includeSrmodelsCheck) els.includeSrmodelsCheck.checked = state.includeSrmodels;
+  if (draft.wakeWordId) {
+    state.wakeWordId = draft.wakeWordId;
+    if (els.wakeWordSelect) els.wakeWordSelect.value = draft.wakeWordId;
+  }
+  if (draft.previewSkin) state.previewSkin = draft.previewSkin;
+  if (draft.activeEmotion && STANDARD_EMOTIONS.includes(draft.activeEmotion)) {
+    state.activeEmotion = draft.activeEmotion;
+  }
+  if (draft.skin?.light) state.skin.light = { ...state.skin.light, ...draft.skin.light };
+  if (draft.skin?.dark) state.skin.dark = { ...state.skin.dark, ...draft.skin.dark };
+  syncColorInputs();
+
+  for (const emo of STANDARD_EMOTIONS) {
+    const it = draft.emojis[emo];
+    if (!it || !it.bytes) continue;
+    const bytes = it.bytes instanceof Uint8Array ? it.bytes : new Uint8Array(it.bytes);
+    const rawBytes = it.rawBytes ? (it.rawBytes instanceof Uint8Array ? it.rawBytes : new Uint8Array(it.rawBytes)) : bytes;
+    const mime = (it.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+    state.emojis[emo] = {
+      filename: it.filename || `${emo}.gif`,
+      rawBytes,
+      bytes,
+      url,
+      width: it.width || state.width,
+      height: it.height || state.height,
+      offsetX: it.offsetX || 0,
+      offsetY: it.offsetY || 0,
+      scale: it.scale ?? 100,
+      tintColor: it.tintColor || ""
+    };
+  }
+
+  const restoreBg = (bgData, key, nameEl) => {
+    if (!bgData?.bytes) return;
+    const bytes = bgData.bytes instanceof Uint8Array ? bgData.bytes : new Uint8Array(bgData.bytes);
+    const blob = new Blob([bytes], { type: bgData.type || "image/png" });
+    const file = new File([blob], bgData.name || "bg.png", { type: bgData.type || "image/png" });
+    state[key] = { name: file.name, file, url: URL.createObjectURL(file) };
+    if (nameEl) nameEl.textContent = file.name;
+  };
+  restoreBg(draft.bgLight, "bgLightFile", els.bgLightName);
+  restoreBg(draft.bgDark, "bgDarkFile", els.bgDarkName);
+
+  if (els.draftStatusBadge) {
+    const t = new Date(draft.savedAt || Date.now()).toLocaleTimeString("vi-VN", { hour12: false });
+    els.draftStatusBadge.textContent = `💾 Đã khôi phục nháp (${t})`;
+    els.draftStatusBadge.classList.add("saved");
+  }
+  log("💾 Đã khôi phục bản nháp Theme bạn đang chỉnh sửa trước khi tải lại trang!", "ok");
+  renderEmotionGrid();
+  updateVirtualScreen();
+  updateStats();
+  return true;
+}
+
+// ==========================================
 // 4. UI RENDERING & PREVIEW SYNC
 // ==========================================
 
@@ -924,7 +1236,8 @@ function assignFromDonor(targetEmo, donorEmo) {
     height: donorItem.height || state.height,
     offsetX: 0,
     offsetY: 0,
-    scale: 100
+    scale: 100,
+    tintColor: ""
   };
   safeRevokeBlobUrl(prevUrl);
   state.activeEmotion = targetEmo;
@@ -932,6 +1245,7 @@ function assignFromDonor(targetEmo, donorEmo) {
   renderEmotionGrid();
   updateVirtualScreen();
   updateStats();
+  scheduleSaveDraft();
 }
 
 function renderDonorGrid() {
@@ -1015,14 +1329,15 @@ async function loadDonorPreset(presetId) {
   }
 }
 
-async function applyEmotionOffset(emo, newX, newY, newScale = null, silent = false) {
+async function applyEmotionOffset(emo, newX, newY, newScale = null, silent = false, newTint = undefined) {
   const item = state.emojis[emo];
   if (!item) return;
   const dx = Math.max(-120, Math.min(120, Math.round(newX) || 0));
   const dy = Math.max(-120, Math.min(120, Math.round(newY) || 0));
   const sc = Math.max(50, Math.min(200, Math.round(newScale == null ? (item.scale ?? 100) : newScale) || 100));
+  const tint = newTint !== undefined ? (newTint ? sanitizeHexColor(newTint, "") : "") : (item.tintColor || "");
   const raw = item.rawBytes || item.bytes;
-  const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy, sc);
+  const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy, sc, tint);
   const mime = (item.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
   const prevUrl = item.url;
   item.rawBytes = raw;
@@ -1030,6 +1345,7 @@ async function applyEmotionOffset(emo, newX, newY, newScale = null, silent = fal
   item.offsetX = dx;
   item.offsetY = dy;
   item.scale = sc;
+  item.tintColor = tint;
   item.url = URL.createObjectURL(new Blob([shiftedBytes], { type: mime }));
   safeRevokeBlobUrl(prevUrl);
 
@@ -1037,6 +1353,7 @@ async function applyEmotionOffset(emo, newX, newY, newScale = null, silent = fal
     renderEmotionGrid();
     updateVirtualScreen();
     updateStats();
+    scheduleSaveDraft();
   }
 }
 
@@ -1045,19 +1362,21 @@ async function applyShiftToAll(dx, dy, scale = 100) {
   dy = Math.max(-120, Math.min(120, Math.round(dy) || 0));
   const sc = Math.max(50, Math.min(200, Math.round(scale) || 100));
   log(`Đang căn chỉnh (X=${dx >= 0 ? "+" : ""}${dx}px, Y=${dy >= 0 ? "+" : ""}${dy}px, Tỉ lệ=${sc}%) cho toàn bộ 21 biểu cảm...`, "info");
-  // Tránh xử lý lặp nếu nhiều biểu cảm dùng chung cùng 1 rawBytes
   const cache = new Map();
   for (const emo of STANDARD_EMOTIONS) {
     const item = state.emojis[emo];
     if (!item) continue;
     const raw = item.rawBytes || item.bytes;
-    let cached = cache.get(raw);
+    const tint = item.tintColor || "";
+    const cacheKey = `${tint}`;
+    let cached = cache.get(raw)?.get(cacheKey);
     if (!cached) {
-      const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy, sc);
+      const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy, sc, tint);
       const mime = (item.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
       const url = URL.createObjectURL(new Blob([shiftedBytes], { type: mime }));
       cached = { shiftedBytes, url };
-      cache.set(raw, cached);
+      if (!cache.has(raw)) cache.set(raw, new Map());
+      cache.get(raw).set(cacheKey, cached);
     }
     const prevUrl = item.url;
     item.rawBytes = raw;
@@ -1072,6 +1391,42 @@ async function applyShiftToAll(dx, dy, scale = 100) {
   renderEmotionGrid();
   updateVirtualScreen();
   updateStats();
+  scheduleSaveDraft();
+}
+
+async function applyTintToAll(tintColor) {
+  const tint = tintColor ? sanitizeHexColor(tintColor, "") : "";
+  log(tint ? `Đang nhuộm màu ${tint} cho toàn bộ 21 biểu cảm...` : "Đang khôi phục màu gốc cho cả 21 biểu cảm...", "info");
+  const cache = new Map();
+  for (const emo of STANDARD_EMOTIONS) {
+    const item = state.emojis[emo];
+    if (!item) continue;
+    const raw = item.rawBytes || item.bytes;
+    const dx = item.offsetX || 0;
+    const dy = item.offsetY || 0;
+    const sc = item.scale ?? 100;
+    const key = `${dx}|${dy}|${sc}`;
+    let cached = cache.get(raw)?.get(key);
+    if (!cached) {
+      const shiftedBytes = await computeShiftedBytes(raw, item.filename || `${emo}.gif`, dx, dy, sc, tint);
+      const mime = (item.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
+      const url = URL.createObjectURL(new Blob([shiftedBytes], { type: mime }));
+      cached = { shiftedBytes, url };
+      if (!cache.has(raw)) cache.set(raw, new Map());
+      cache.get(raw).set(key, cached);
+    }
+    const prevUrl = item.url;
+    item.rawBytes = raw;
+    item.bytes = cached.shiftedBytes;
+    item.tintColor = tint;
+    item.url = cached.url;
+    safeRevokeBlobUrl(prevUrl);
+  }
+  log(tint ? `Đã nhuộm màu ${tint} cho cả 21 biểu cảm!` : "Đã khôi phục màu gốc cho cả 21 biểu cảm!", "ok");
+  renderEmotionGrid();
+  updateVirtualScreen();
+  updateStats();
+  scheduleSaveDraft();
 }
 
 function syncAlignControls() {
@@ -1080,6 +1435,7 @@ function syncAlignControls() {
   const ox = item?.offsetX || 0;
   const oy = item?.offsetY || 0;
   const sc = item?.scale ?? 100;
+  const tint = item?.tintColor || "";
   if (els.alignTargetLabel) els.alignTargetLabel.textContent = emo;
   if (els.donorTargetEmoLabel) els.donorTargetEmoLabel.textContent = emo;
   if (els.shiftXRange) els.shiftXRange.value = ox;
@@ -1088,6 +1444,12 @@ function syncAlignControls() {
   if (els.shiftXVal) els.shiftXVal.textContent = `${ox > 0 ? "+" : ""}${ox}px`;
   if (els.shiftYVal) els.shiftYVal.textContent = `${oy > 0 ? "+" : ""}${oy}px`;
   if (els.zoomVal) els.zoomVal.textContent = `${sc}%`;
+  if (els.tintColorVal) els.tintColorVal.textContent = tint || "Màu gốc";
+  if (els.tintColorPicker && tint) els.tintColorPicker.value = tint;
+  document.querySelectorAll(".tint-swatch").forEach((btn) => {
+    const val = (btn.dataset.tint || "").toUpperCase();
+    btn.classList.toggle("active", val === tint.toUpperCase());
+  });
 }
 
 function renderEmotionGrid() {
@@ -1097,7 +1459,8 @@ function renderEmotionGrid() {
     const defItem = state.defaultEmojis[emo];
     const isModified = Boolean(defItem && item && item.bytes !== defItem.bytes);
     const sc = item?.scale ?? 100;
-    const hasTransform = Boolean(item && (item.offsetX || item.offsetY || sc !== 100));
+    const tint = item?.tintColor || "";
+    const hasTransform = Boolean(item && (item.offsetX || item.offsetY || sc !== 100 || tint));
 
     const card = document.createElement("div");
     card.className = `emo-card ${state.activeEmotion === emo ? "active" : ""} ${isModified ? "modified" : ""}`;
@@ -1112,8 +1475,9 @@ function renderEmotionGrid() {
     const badgeParts = [];
     if (item && (item.offsetX || item.offsetY)) badgeParts.push(`${item.offsetX || 0},${item.offsetY || 0}`);
     if (sc !== 100) badgeParts.push(`${sc}%`);
+    if (tint) badgeParts.push("🎨");
     const offsetBadgeHtml = hasTransform
-      ? `<span class="emo-offset-badge" title="Đã căn chỉnh vị trí / kích thước">${badgeParts.join("•")}</span>`
+      ? `<span class="emo-offset-badge" title="Đã căn chỉnh vị trí / kích thước / màu">${badgeParts.join("•")}</span>`
       : "";
     const resetBtnHtml = isModified
       ? `<button type="button" class="emo-reset-btn" title="Khôi phục '${emo}' về mặc định">↺</button>`
@@ -1215,6 +1579,7 @@ function renderEmotionGrid() {
         renderEmotionGrid();
         updateVirtualScreen();
         updateStats();
+        scheduleSaveDraft();
       }
     });
 
@@ -1242,13 +1607,15 @@ async function assignEmotionFile(emo, file) {
     height: h,
     offsetX: 0,
     offsetY: 0,
-    scale: 100
+    scale: 100,
+    tintColor: ""
   };
   safeRevokeBlobUrl(prevUrl);
   state.activeEmotion = emo;
   renderEmotionGrid();
   updateVirtualScreen();
   updateStats();
+  scheduleSaveDraft();
 }
 
 async function handleBulkFiles(fileList) {
@@ -1697,7 +2064,7 @@ function setBgFile(file, nameEl, key) {
   updateStats();
 }
 
-function init() {
+async function init() {
   els.resolutionSelect.addEventListener("change", (e) => {
     const [w, h] = e.target.value.split("x").map(Number);
     state.width = w;
@@ -1763,11 +2130,13 @@ function init() {
     renderEmotionGrid();
     updateVirtualScreen();
     updateStats();
+    scheduleSaveDraft();
   });
 
   els.omitFontCheck.addEventListener("change", (e) => {
     state.omitFont = e.target.checked;
     updateStats();
+    scheduleSaveDraft();
   });
 
   // Color pickers
@@ -2020,8 +2389,72 @@ function init() {
   els.virtualEmojiImg?.addEventListener("pointerup", finishPan);
   els.virtualEmojiImg?.addEventListener("pointercancel", finishPan);
 
+  // ==========================================
+  // ĐỔI MÀU ẢNH (PALETTE TINTING) & LƯU NHÁP LOCAL
+  // ==========================================
+  document.querySelectorAll(".tint-swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const hex = btn.dataset.tint || "";
+      const item = state.emojis[state.activeEmotion];
+      if (!item) return;
+      applyEmotionOffset(state.activeEmotion, item.offsetX || 0, item.offsetY || 0, item.scale ?? 100, false, hex);
+    });
+  });
+
+  els.tintColorPicker?.addEventListener("change", (e) => {
+    const hex = e.target.value.toUpperCase();
+    const item = state.emojis[state.activeEmotion];
+    if (!item) return;
+    applyEmotionOffset(state.activeEmotion, item.offsetX || 0, item.offsetY || 0, item.scale ?? 100, false, hex);
+  });
+
+  els.applyTintAllBtn?.addEventListener("click", () => {
+    const item = state.emojis[state.activeEmotion];
+    const hex = item?.tintColor || els.tintColorPicker?.value || "#00E5FF";
+    applyTintToAll(hex);
+  });
+
+  els.resetTintAllBtn?.addEventListener("click", () => {
+    applyTintToAll("");
+  });
+
+  els.clearDraftBtn?.addEventListener("click", async () => {
+    await clearDraftFromDb();
+    log("🗑️ Đã xóa bản nháp lưu tạm. Đang tải lại Theme mặc định...", "info");
+    await loadBaseAssetsAndPreset(els.presetSelect?.value || "robot_eve");
+  });
+
+  // Lưu nháp khi đổi cấu hình hiển thị / màu skin / preset
+  [els.resolutionSelect, els.bgFitSelect, els.noBgCheck, els.hideSubtitleCheck, els.includeSrmodelsCheck, els.wakeWordSelect].forEach((el) => {
+    el?.addEventListener("change", scheduleSaveDraft);
+  });
+  [els.lightTextColor, els.lightBgColor, els.darkTextColor, els.darkBgColor].forEach((el) => {
+    el?.addEventListener("change", scheduleSaveDraft);
+  });
+  [els.bgLightInput, els.bgDarkInput].forEach((el) => {
+    el?.addEventListener("change", scheduleSaveDraft);
+  });
+  els.presetSelect?.addEventListener("change", scheduleSaveDraft);
+
   renderEmotionGrid();
-  loadBaseAssetsAndPreset();
+  const restored = await restoreDraftFromDb();
+  if (restored) {
+    // Vẫn nạp nền Font & Wake Word nếu chưa có trong bộ nhớ
+    if (!state.srmodelsBytes) loadWakeWordModel(state.wakeWordId);
+    if (!state.fontBytes) {
+      fetch("presets/font_noto_sans_common_20_4.bin")
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .then((b) => {
+          if (b) {
+            state.fontBytes = new Uint8Array(b);
+            updateStats();
+          }
+        })
+        .catch(() => {});
+    }
+  } else {
+    loadBaseAssetsAndPreset();
+  }
 }
 
 init();
