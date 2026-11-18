@@ -1151,7 +1151,11 @@ async function restoreDraftFromDb() {
   const draft = await loadDraftFromDb();
   if (!draft || !draft.emojis || Object.keys(draft.emojis).length === 0) return false;
 
-  if (draft.presetId && els.presetSelect) els.presetSelect.value = draft.presetId;
+  if (draft.presetId && els.presetSelect) {
+    const hasOpt = Array.from(els.presetSelect.options).some((o) => o.value === draft.presetId);
+    if (hasOpt) els.presetSelect.value = draft.presetId;
+    try { localStorage.setItem("theme_studio_last_preset", draft.presetId); } catch {}
+  }
   if (draft.width && draft.height) {
     state.width = draft.width;
     state.height = draft.height;
@@ -1785,9 +1789,10 @@ async function loadWakeWordModel(modelId) {
   }
 }
 
-async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "robot_cyan") {
+async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "robot_eve", saveAfterLoad = true) {
   const myToken = ++presetLoadToken;
   try {
+    try { localStorage.setItem("theme_studio_last_preset", presetId); } catch {}
     if (!state.srmodelsBytes) {
       await loadWakeWordModel(state.wakeWordId);
     }
@@ -1837,7 +1842,8 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
         height: 240,
         offsetX: 0,
         offsetY: 0,
-        scale: 100
+        scale: 100,
+        tintColor: ""
       };
       state.emojis[emo] = entry;
       state.defaultEmojis[emo] = { ...entry };
@@ -1849,6 +1855,7 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
     renderEmotionGrid();
     updateVirtualScreen();
     updateStats();
+    if (saveAfterLoad) scheduleSaveDraft();
   } catch (err) {
     log(`Lỗi tải preset: ${err.message}`, "err");
   }
@@ -2448,10 +2455,10 @@ async function init() {
   els.clearDraftBtn?.addEventListener("click", async () => {
     await clearDraftFromDb();
     log("🗑️ Đã xóa bản nháp lưu tạm. Đang tải lại Theme mặc định...", "info");
-    await loadBaseAssetsAndPreset(els.presetSelect?.value || "robot_eve");
+    await loadBaseAssetsAndPreset(els.presetSelect?.value || "robot_eve", false);
   });
 
-  // Lưu nháp khi đổi cấu hình hiển thị / màu skin / preset
+  // Lưu nháp khi đổi cấu hình hiển thị / màu skin
   [els.resolutionSelect, els.bgFitSelect, els.noBgCheck, els.hideSubtitleCheck, els.includeSrmodelsCheck, els.wakeWordSelect].forEach((el) => {
     el?.addEventListener("change", scheduleSaveDraft);
   });
@@ -2461,7 +2468,6 @@ async function init() {
   [els.bgLightInput, els.bgDarkInput].forEach((el) => {
     el?.addEventListener("change", scheduleSaveDraft);
   });
-  els.presetSelect?.addEventListener("change", scheduleSaveDraft);
 
   renderEmotionGrid();
   let restored = false;
@@ -2486,7 +2492,13 @@ async function init() {
         .catch(() => {});
     }
   } else {
-    loadBaseAssetsAndPreset();
+    try {
+      const lastPreset = localStorage.getItem("theme_studio_last_preset");
+      if (lastPreset && els.presetSelect && Array.from(els.presetSelect.options).some((o) => o.value === lastPreset)) {
+        els.presetSelect.value = lastPreset;
+      }
+    } catch {}
+    loadBaseAssetsAndPreset(els.presetSelect?.value || "robot_eve", false);
   }
 }
 
