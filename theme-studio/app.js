@@ -915,6 +915,12 @@ async function computeShiftedBytes(rawBytes, filename, dx, dy, scale = 100, tint
 // ==========================================
 
 async function buildAssetsBinary() {
+  if (state.includeSrmodels && !state.srmodelsBytes) {
+    await loadWakeWordModel(state.wakeWordId);
+  }
+  if (!state.omitFont && !state.fontBytes) {
+    await ensureDefaultFontLoaded();
+  }
   const files = {};
   const dimensions = {};
 
@@ -1359,9 +1365,8 @@ async function loadDonorPreset(presetId) {
   try {
     const loaded = await Promise.all(
       STANDARD_EMOTIONS.map(async (emo) => {
-        const res = await fetchWithTimeout(`presets/${presetId}/${emo}.gif`, 15000);
-        if (!res.ok) return null;
-        const bytes = new Uint8Array(await res.arrayBuffer());
+        const bytes = await fetchArrayBufferWithTimeout(`presets/${presetId}/${emo}.gif`, 15000);
+        if (!bytes) return null;
         return { emo, bytes };
       })
     );
@@ -1802,16 +1807,59 @@ function updateStats() {
 // ==========================================
 
 let presetLoadToken = 0;
+let activePresetAbort = null;
+let fontLoadPromise = null;
+
+async function ensureDefaultFontLoaded() {
+  if (state.fontBytes) return state.fontBytes;
+  if (fontLoadPromise) return fontLoadPromise;
+  fontLoadPromise = (async () => {
+    try {
+      const bytes = await fetchArrayBufferWithTimeout("presets/font_noto_sans_common_20_4.bin", 25000);
+      if (bytes && !state.fontBytes) {
+        state.fontBytes = bytes;
+        updateStats();
+      }
+      return state.fontBytes;
+    } catch {
+      return null;
+    } finally {
+      fontLoadPromise = null;
+    }
+  })();
+  return fontLoadPromise;
+}
+
+async function fetchArrayBufferWithTimeout(url, timeoutMs = 15000, externalSignal = null) {
+  const ctrl = new AbortController();
+  const onAbort = () => ctrl.abort();
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      ctrl.abort();
+    } else {
+      externalSignal.addEventListener("abort", onAbort, { once: true });
+    }
+  }
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } finally {
+    clearTimeout(timer);
+    if (externalSignal) externalSignal.removeEventListener("abort", onAbort);
+  }
+}
 
 async function loadWakeWordModel(modelId) {
   state.wakeWordId = modelId;
   try {
-    let res = await fetch(`presets/srmodels/${modelId}.bin`);
-    if (!res.ok && modelId === "wn9_hitelly_tts") {
-      res = await fetch("presets/srmodels.bin");
+    let bytes = await fetchArrayBufferWithTimeout(`presets/srmodels/${modelId}.bin`, 20000);
+    if (!bytes && modelId === "wn9_hitelly_tts") {
+      bytes = await fetchArrayBufferWithTimeout("presets/srmodels.bin", 20000);
     }
-    if (!res.ok) throw new Error(`Không tải được model ${modelId}`);
-    state.srmodelsBytes = new Uint8Array(await res.arrayBuffer());
+    if (!bytes) throw new Error(`Không tải được model ${modelId}`);
+    state.srmodelsBytes = bytes;
     const label = els.wakeWordSelect?.selectedOptions?.[0]?.text || modelId;
     log(`Đã chọn Wake Word: ${label} (${Math.round(state.srmodelsBytes.length / 1024)} KB).`, "ok");
     updateStats();
@@ -1820,38 +1868,16 @@ async function loadWakeWordModel(modelId) {
   }
 }
 
-async function fetchWithTimeout(url, timeoutMs = 15000) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    return await fetch(url, { signal: ctrl.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "robot_eve", saveAfterLoad = true) {
   const myToken = ++presetLoadToken;
-  const origBtnText = els.loadPresetBtn?.textContent;
+  activePresetAbort?.abort();
+  const abortCtrl = new AbortController();
+  activePresetAbort = abortCtrl;
+  const origBtnText = "✨ Nạp Preset";
   if (els.loadPresetBtn) els.loadPresetBtn.textContent = "⏳ Đang tải...";
+
   try {
     try { localStorage.setItem("theme_studio_last_preset", presetId); } catch {}
-
-    // Tải nền Wake Word & Font song song, không chặn hiển thị 21 biểu cảm
-    if (!state.srmodelsBytes) {
-      loadWakeWordModel(state.wakeWordId);
-    }
-    if (!state.fontBytes) {
-      fetchWithTimeout("presets/font_noto_sans_common_20_4.bin", 20000)
-        .then((r) => (r.ok ? r.arrayBuffer() : null))
-        .then((buf) => {
-          if (buf && !state.fontBytes) {
-            state.fontBytes = new Uint8Array(buf);
-            updateStats();
-          }
-        })
-        .catch(() => {});
-    }
 
     const presetLabel = els.presetSelect?.selectedOptions?.[0]?.text || presetId;
     log(`Đang nạp bộ 21 biểu cảm: ${presetLabel}...`, "info");
@@ -1865,51 +1891,83 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
       syncColorInputs();
     }
 
-    const results = await Promise.allSettled(
-      STANDARD_EMOTIONS.map(async (emo) => {
-        const res = await fetchWithTimeout(`presets/${presetId}/${emo}.gif`, 15000);
-        if (!res.ok) return null;
-        const bytes = new Uint8Array(await res.arrayBuffer());
-        return { emo, bytes };
-      })
-    );
-    const loaded = results.map((r) => (r.status === "fulfilled" ? r.value : null));
+    // Ưu tiên tải activeEmotion / neutral trước, giới hạn 4 kết nối song song để không nghẽn trình duyệt
+    const priority = [state.activeEmotion, "neutral"].filter((v, i, a) => v && STANDARD_EMOTIONS.includes(v) && a.indexOf(v) === i);
+    const queue = [...priority, ...STANDARD_EMOTIONS.filter((e) => !priority.includes(e))];
+    let loadedCount = 0;
+    let uiFlushTimer = null;
+    const flushUi = () => {
+      uiFlushTimer = null;
+      if (myToken !== presetLoadToken) return;
+      renderEmotionGrid();
+      updateVirtualScreen();
+      updateStats();
+    };
 
-    if (myToken !== presetLoadToken) return;
+    const worker = async () => {
+      while (queue.length > 0) {
+        if (myToken !== presetLoadToken || abortCtrl.signal.aborted) return;
+        const emo = queue.shift();
+        if (!emo) continue;
+        try {
+          const bytes = await fetchArrayBufferWithTimeout(`presets/${presetId}/${emo}.gif`, 15000, abortCtrl.signal);
+          if (!bytes || myToken !== presetLoadToken || abortCtrl.signal.aborted) continue;
+          const prevUrl = state.emojis[emo]?.url;
+          const prevDefUrl = state.defaultEmojis[emo]?.url;
+          const url = URL.createObjectURL(new Blob([bytes], { type: "image/gif" }));
+          const entry = {
+            filename: `${emo}.gif`,
+            rawBytes: bytes,
+            bytes,
+            url,
+            width: 320,
+            height: 240,
+            offsetX: 0,
+            offsetY: 0,
+            scale: 100,
+            tintColor: ""
+          };
+          state.emojis[emo] = entry;
+          state.defaultEmojis[emo] = { ...entry };
+          safeRevokeBlobUrl(prevUrl);
+          safeRevokeBlobUrl(prevDefUrl);
+          loadedCount++;
+          if (emo === state.activeEmotion) {
+            updateVirtualScreen();
+          }
+          if (!uiFlushTimer) {
+            uiFlushTimer = setTimeout(flushUi, 120);
+          }
+        } catch {
+          // Bỏ qua lỗi/abort từng file để không treo cả bộ
+        }
+      }
+    };
 
-    for (const item of loaded) {
-      if (!item) continue;
-      const { emo, bytes } = item;
-      const prevUrl = state.emojis[emo]?.url;
-      const prevDefUrl = state.defaultEmojis[emo]?.url;
-      const url = URL.createObjectURL(new Blob([bytes], { type: "image/gif" }));
-      const entry = {
-        filename: `${emo}.gif`,
-        rawBytes: bytes,
-        bytes,
-        url,
-        width: 320,
-        height: 240,
-        offsetX: 0,
-        offsetY: 0,
-        scale: 100,
-        tintColor: ""
-      };
-      state.emojis[emo] = entry;
-      state.defaultEmojis[emo] = { ...entry };
-      safeRevokeBlobUrl(prevUrl);
-      safeRevokeBlobUrl(prevDefUrl);
+    const CONCURRENCY = 4;
+    await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+    if (uiFlushTimer) {
+      clearTimeout(uiFlushTimer);
+      uiFlushTimer = null;
     }
 
-    log(`Đã nạp xong Theme "${presetLabel}"! Bạn có thể xem trước hoặc bấm Nạp thẳng vào ESP32.`, "ok");
+    if (myToken !== presetLoadToken || abortCtrl.signal.aborted) return;
+
+    log(`Đã nạp xong ${loadedCount}/21 biểu cảm của Theme "${presetLabel}"!`, loadedCount > 0 ? "ok" : "err");
     renderEmotionGrid();
     updateVirtualScreen();
     updateStats();
     if (saveAfterLoad) scheduleSaveDraft();
+
+    // Chỉ tải nền Font & Wake Word SAU KHI đã hiển thị xong 21 biểu cảm
+    if (!state.srmodelsBytes) loadWakeWordModel(state.wakeWordId);
+    if (!state.fontBytes) ensureDefaultFontLoaded();
   } catch (err) {
-    log(`Lỗi tải preset: ${err.message}`, "err");
+    if (err?.name !== "AbortError") {
+      log(`Lỗi tải preset: ${err.message}`, "err");
+    }
   } finally {
-    if (myToken === presetLoadToken && els.loadPresetBtn && origBtnText) {
+    if (myToken === presetLoadToken && els.loadPresetBtn) {
       els.loadPresetBtn.textContent = origBtnText;
     }
   }
