@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none';" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f17" />
+  <title>XiaoZhi Firmware Studio — Cấu Hình, Nạp Firmware &amp; Chẩn Đoán ESP32</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">⚡</div>
+      <div>
+        <h1>XiaoZhi Firmware Studio</h1>
+        <p>Cấu hình mạch, tạo WiFi NVS, nạp đa phân vùng &amp; chẩn đoán lỗi ESP32 qua WebSerial</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="../theme-studio/" class="btn btn-cyan" title="Chuyển sang công cụ thiết kế & nạp Theme / Wake Word">
+        🎨 Mở Theme Studio
+      </a>
+      <a href="../" class="btn btn-secondary" title="Quay về trang chủ Chu Hiếu Shop">
+        🏠 Trang chủ Shop
+      </a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- CỘT TRÁI: 4 PHÂN HỆ CẤU HÌNH -->
+    <section class="panel left-panel">
+      <!-- Thanh chuyển Tab 4 phân hệ -->
+      <div class="tabs-bar" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="tabCatalog" id="tabBtnCatalog">
+          📚 1. Chọn Mạch Có Sẵn
+        </button>
+        <button type="button" class="tab-btn" data-tab="tabSlots" id="tabBtnSlots">
+          🛠️ 2. Bảng Nạp Đa Phân Vùng (.bin)
+        </button>
+        <button type="button" class="tab-btn" data-tab="tabNvs" id="tabBtnNvs">
+          ⚙️ 3. Cấu Hình Nhanh WiFi (NVS)
+        </button>
+        <button type="button" class="tab-btn" data-tab="tabDrivers" id="tabBtnDrivers">
+          🔌 4. Driver USB &amp; Cứu Hộ
+        </button>
+      </div>
+
+      <!-- TAB 1: KHO FIRMWARE THEO MẠCH -->
+      <div id="tabCatalog" class="tab-pane card">
+        <div class="card-header">
+          <h2>1. Chọn Phiên Bản Mạch ESP32 / XiaoZhi</h2>
+          <div class="catalog-filters">
+            <input type="text" id="boardSearchInput" class="search-input" placeholder="🔍 Tìm mạch (VD: 2.8, Otto, S3, C3, Camera...)" />
+            <select id="chipFilterSelect" class="filter-select">
+              <option value="ALL">Tất cả dòng Chip</option>
+              <option value="ESP32-S3">ESP32-S3</option>
+              <option value="ESP32-C3">ESP32-C3</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="boardCatalogGrid" class="board-grid"></div>
+
+        <!-- Khung cấu hình mạch đang chọn -->
+        <div id="selectedBoardBox" class="selected-board-box">
+          <div class="sb-header">
+            <div>
+              <span class="sb-tag">Mạch đang chọn:</span>
+              <h3 id="sbTitle">ESP32-S3 N16R8 — Màn 2.8" / 2.4" Ngang (320×240)</h3>
+            </div>
+            <span id="sbFlashBadge" class="badge-pill">Flash 16MB</span>
+          </div>
+          <p id="sbDesc" class="sb-desc"></p>
+          <div class="sb-pinout">
+            <strong>📌 Sơ đồ chân / Lưu ý phần cứng:</strong>
+            <code id="sbPinoutText"></code>
+          </div>
+
+          <div class="grid-2 sb-config-grid">
+            <div class="field">
+              <label for="presetFlashModeSelect">Chế độ nạp cho mạch này</label>
+              <select id="presetFlashModeSelect">
+                <option value="app_only" selected>🔄 Chỉ nạp Firmware App (0x20000 — Giữ nguyên WiFi &amp; Theme cũ)</option>
+                <option value="full_merged">📦 Nạp Full Gói Gộp từ 0x0 (Mạch mới trắng / Cài lại từ đầu)</option>
+                <option value="app_and_assets">🎨 Nạp cả Firmware App (0x20000) + Gói Theme Assets (0x800000)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="presetFirmwareFileInput">Chọn file Firmware (.bin) cho mạch này</label>
+              <label class="file-picker-btn">
+                📂 <span id="presetFwFileName">Chọn file firmware.bin hoặc merged.bin...</span>
+                <input type="file" id="presetFirmwareFileInput" accept=".bin" hidden />
+              </label>
+            </div>
+          </div>
+
+          <div id="presetAssetsRow" class="field hidden" style="margin-top: 10px;">
+            <label for="presetAssetsFileInput">Chọn thêm gói giao diện Theme (`assets.bin` xuất từ Theme Studio)</label>
+            <label class="file-picker-btn">
+              🎨 <span id="presetAssetsFileName">Chọn file assets.bin...</span>
+              <input type="file" id="presetAssetsFileInput" accept=".bin" hidden />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: BẢNG NẠP ĐA PHÂN VÙNG TÙY CHỈNH -->
+      <div id="tabSlots" class="tab-pane card hidden">
+        <div class="card-header">
+          <h2>2. Bảng Nạp Đa Phân Vùng (.bin)</h2>
+          <div class="slot-toolbar">
+            <button type="button" id="addSlotBtn" class="btn btn-sm btn-cyan">+ Thêm khe nạp</button>
+            <button type="button" id="loadStandardLayoutBtn" class="btn btn-sm btn-secondary">📐 Mẫu 4 phân vùng ESP-IDF</button>
+            <button type="button" id="clearSlotsBtn" class="btn btn-sm btn-secondary">🧹 Xóa danh sách</button>
+          </div>
+        </div>
+
+        <div id="multiBinDropZone" class="multi-dropzone">
+          <input type="file" id="multiBinInput" accept=".bin" multiple hidden />
+          <span class="drop-icon">📥</span>
+          <div>
+            <strong>Kéo thả 1 hoặc nhiều file <code>.bin</code> vào đây để tự động nhận diện Offset</strong>
+            <small>Tự khớp tên: <code>bootloader.bin</code> (0x0), <code>partition-table.bin</code> (0x8000), <code>nvs.bin</code> (0x9000), <code>ota_data_initial.bin</code> (0xd000), <code>xiaozhi.bin</code> (0x20000), <code>assets.bin</code> (0x800000)</small>
+          </div>
+        </div>
+
+        <div class="slots-table-wrap">
+          <table class="slots-table">
+            <thead>
+              <tr>
+                <th style="width: 38px;">Bật</th>
+                <th style="width: 220px;">Phân vùng chuẩn</th>
+                <th style="width: 120px;">Offset (Hex)</th>
+                <th>File nhị phân (.bin)</th>
+                <th style="width: 90px;">Dung lượng</th>
+                <th style="width: 42px;"></th>
+              </tr>
+            </thead>
+            <tbody id="slotTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="cli-preview-box">
+          <div class="cli-header">
+            <span>💻 Câu lệnh <code>esptool.py</code> tương đương:</span>
+            <button type="button" id="copyCliBtn" class="btn btn-sm btn-secondary">📋 Sao chép</button>
+          </div>
+          <code id="cliCommandPreview">esptool.py --chip esp32s3 --baud 460800 write_flash 0x20000 firmware.bin</code>
+        </div>
+      </div>
+
+      <!-- TAB 3: TẠO CẤU HÌNH WIFI / NVS TỰ ĐỘNG (0x9000) -->
+      <div id="tabNvs" class="tab-pane card hidden">
+        <div class="card-header">
+          <h2>3. Tạo Phân Vùng Cấu Hình Nhanh WiFi &amp; Thiết Lập (`nvs.bin @ 0x9000`)</h2>
+          <span class="badge-pill">🔒 Xử lý 100% Offline tại trình duyệt</span>
+        </div>
+        <p class="section-note">
+          Giúp ghi sẵn thông tin WiFi và thiết lập ban đầu vào phân vùng <strong>NVS (`0x9000`)</strong> ngay lúc nạp Firmware. Mật khẩu WiFi được đóng gói nhị phân trực tiếp trong RAM trình duyệt, không gửi đi bất kỳ máy chủ nào.
+        </p>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="nvsWifiSsid">📶 Tên WiFi 2.4GHz (SSID)</label>
+            <input type="text" id="nvsWifiSsid" maxlength="32" placeholder="Nhập tên WiFi 2.4GHz..." />
+          </div>
+          <div class="field">
+            <label for="nvsWifiPass">🔑 Mật khẩu WiFi</label>
+            <input type="password" id="nvsWifiPass" maxlength="64" placeholder="Nhập mật khẩu WiFi..." />
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 12px;">
+          <div class="field">
+            <label for="nvsServerUrl">🌐 URL Server / OTA tùy chỉnh (Tuỳ chọn)</label>
+            <input type="text" id="nvsServerUrl" maxlength="128" placeholder="Để trống nếu dùng mặc định của Firmware" />
+          </div>
+          <div class="field">
+            <label for="nvsNamespaceInput">🗂️ NVS Namespace</label>
+            <input type="text" id="nvsNamespaceInput" maxlength="15" value="wifi" />
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 12px;">
+          <div class="field">
+            <label for="nvsVolumeRange">🔊 Âm lượng mặc định: <strong id="nvsVolumeVal">80%</strong></label>
+            <input type="range" id="nvsVolumeRange" min="10" max="100" value="80" />
+          </div>
+          <div class="field">
+            <label for="nvsBrightnessRange">☀️ Độ sáng màn hình: <strong id="nvsBrightnessVal">85%</strong></label>
+            <input type="range" id="nvsBrightnessRange" min="10" max="100" value="85" />
+          </div>
+        </div>
+
+        <div class="nvs-actions">
+          <button type="button" id="generateNvsBtn" class="btn btn-primary">
+            ⚡ Tạo &amp; Gắn <code>nvs.bin</code> vào khe nạp <code>0x9000</code>
+          </button>
+          <button type="button" id="downloadNvsBtn" class="btn btn-secondary">
+            💾 Tải file <code>nvs.bin</code> (16 KB)
+          </button>
+        </div>
+        <div id="nvsStatusMsg" class="nvs-status hidden"></div>
+      </div>
+
+      <!-- TAB 4: DRIVER USB & HƯỚNG DẪN CỨU HỘ -->
+      <div id="tabDrivers" class="tab-pane card hidden">
+        <h2>4. Tải Driver USB &amp; Hướng Dẫn Vào Chế Độ Nạp (Bootloader Mode)</h2>
+        <div class="driver-grid">
+          <a href="https://www.silabs.com/documents/public/software/CP210x_Universal_Windows_Driver.zip" target="_blank" rel="noopener noreferrer" class="driver-card">
+            <span class="drv-icon">🔌</span>
+            <div>
+              <strong>Driver CP210x (Silicon Labs)</strong>
+              <small>Dành cho mạch ESP32 / ESP32-S3 dùng chip nạp vuông CP2102 / CP2104</small>
+            </div>
+          </a>
+          <a href="https://www.wch-ic.com/downloads/CH341SER_ZIP.html" target="_blank" rel="noopener noreferrer" class="driver-card">
+            <span class="drv-icon">🔋</span>
+            <div>
+              <strong>Driver CH340 / CH341 (WCH)</strong>
+              <small>Phổ biến trên các mạch ESP32 giá rẻ, Robot Otto, mạch màn liền khối</small>
+            </div>
+          </a>
+          <a href="https://www.wch-ic.com/downloads/CH343SER_ZIP.html" target="_blank" rel="noopener noreferrer" class="driver-card">
+            <span class="drv-icon">⚡</span>
+            <div>
+              <strong>Driver CH343 / CH9102 (Tốc độ cao)</strong>
+              <small>Dành cho mạch ESP32-S3 N16R8 đời mới (2 cổng Type-C)</small>
+            </div>
+          </a>
+        </div>
+
+        <div class="rescue-guide">
+          <h3>🛠️ Mẹo xử lý khi không nhận cổng COM hoặc nạp báo lỗi Timeout</h3>
+          <ol>
+            <li><strong>Dùng đúng cáp dữ liệu (Data Cable):</strong> Rất nhiều cáp sạc dự phòng chỉ có 2 sợi nguồn, không truyền dữ liệu USB.</li>
+            <li><strong>Vào chế độ Download thủ công:</strong> Bấm và <strong>giữ nguyên nút <code>BOOT</code></strong> trên mạch ➔ bấm nhả nút <strong><code>RESET</code> (hoặc <code>EN</code>)</strong> ➔ thả nút <code>BOOT</code> ra rồi bấm <strong>Nạp Firmware</strong>.</li>
+            <li><strong>Đóng phần mềm chiếm cổng COM:</strong> Tắt Arduino IDE, VSCode Serial Monitor, hoặc Cura trước khi nạp trên trình duyệt.</li>
+            <li><strong>Mạch bị treo khởi động lại liên tục (Boot Loop):</strong> Bấm nút <strong>🧹 Xóa Trắng Toàn Bộ Flash</strong> ở cột bên phải, sau đó nạp lại bản Full Merged `.bin` tại địa chỉ `0x0`.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- CỘT PHẢI: SƠ ĐỒ BỘ NHỚ FLASH, NẠP WEBSERIAL & SERIAL MONITOR -->
+    <section class="panel right-panel">
+      <!-- BẢN ĐỒ BỘ NHỚ FLASH & NÚT NẠP -->
+      <div class="card flash-card">
+        <div class="card-header">
+          <h2>5. Sơ Đồ Bộ Nhớ Flash &amp; Nạp USB</h2>
+          <span id="flashSummaryBadge" class="badge-pill">1 phân vùng</span>
+        </div>
+
+        <!-- Thanh Visual Flash Map -->
+        <div class="flash-map-container">
+          <div class="flash-map-labels">
+            <span>0x0 (Đầu Flash)</span>
+            <span id="flashMapMaxLabel">16 MB (0x1000000)</span>
+          </div>
+          <div id="flashMapBar" class="flash-map-bar"></div>
+          <div id="flashMapLegend" class="flash-map-legend"></div>
+        </div>
+
+        <div id="overlapAlertBox" class="overlap-alert hidden"></div>
+
+        <div class="grid-3 flash-settings-row">
+          <div class="field">
+            <label for="chipTypeSelect">Dòng Chip</label>
+            <select id="chipTypeSelect">
+              <option value="esp32s3" selected>ESP32-S3</option>
+              <option value="esp32c3">ESP32-C3</option>
+              <option value="esp32">ESP32</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="flashSizeSelect">Dung lượng Flash</label>
+            <select id="flashSizeSelect">
+              <option value="16" selected>16 MB (0x1000000)</option>
+              <option value="8">8 MB (0x800000)</option>
+              <option value="4">4 MB (0x400000)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="flashBaudSelect">Tốc độ Nạp (Baud)</label>
+            <select id="flashBaudSelect">
+              <option value="921600">921600 bps (Nhanh)</option>
+              <option value="460800" selected>460800 bps (Khuyên dùng)</option>
+              <option value="115200">115200 bps (Ổn định)</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="toggle-item" style="margin-bottom: 12px;">
+          <input type="checkbox" id="eraseAllCheck" />
+          <span><strong>Xóa sạch toàn bộ Flash trước khi nạp</strong> — Khuyên dùng khi đổi sang dòng Firmware khác hoàn toàn</span>
+        </label>
+
+        <div class="action-buttons">
+          <button type="button" id="startFlashBtn" class="btn btn-flash">
+            ⚡ Kết nối USB &amp; Nạp Firmware
+          </button>
+          <button type="button" id="eraseFlashBtn" class="btn btn-danger">
+            🧹 Xóa Trắng Toàn Bộ Flash
+          </button>
+        </div>
+
+        <div id="flashProgressWrap" class="progress-wrap hidden">
+          <div class="progress-bar">
+            <div id="flashProgressFill" class="progress-fill"></div>
+          </div>
+          <span id="flashProgressText">0%</span>
+        </div>
+      </div>
+
+      <!-- SERIAL MONITOR & CHẨN ĐOÁN MẠCH TRỰC TIẾP -->
+      <div class="card monitor-card">
+        <div class="card-header">
+          <h2>6. Serial Monitor &amp; Bắt Bệnh Mạch (115200 bps)</h2>
+          <div class="monitor-controls">
+            <button type="button" id="toggleMonitorBtn" class="btn btn-sm btn-cyan">🖥️ Mở Monitor</button>
+            <button type="button" id="resetBoardBtn" class="btn btn-sm btn-secondary" disabled title="Khởi động lại mạch qua chân DTR/RTS">🔄 Reset mạch</button>
+          </div>
+        </div>
+
+        <!-- Thẻ thông số & chẩn đoán tự động -->
+        <div class="diag-stats-grid">
+          <div class="diag-chip">
+            <span class="k">Chip / MAC:</span>
+            <strong id="diagChipInfo">Chưa kết nối</strong>
+          </div>
+          <div class="diag-chip">
+            <span class="k">Trạng thái:</span>
+            <strong id="diagHealthStatus">Sẵn sàng</strong>
+          </div>
+        </div>
+
+        <div id="diagBanner" class="diag-banner hidden"></div>
+
+        <div class="monitor-toolbar">
+          <div class="lvl-filters">
+            <button type="button" class="lvl-btn active" data-level="ALL" id="lvlAllBtn">Tất cả</button>
+            <button type="button" class="lvl-btn" data-level="E" id="lvlErrBtn">Lỗi (E)</button>
+            <button type="button" class="lvl-btn" data-level="W" id="lvlWarnBtn">Cảnh báo (W)</button>
+            <button type="button" class="lvl-btn" data-level="I" id="lvlInfoBtn">Thông tin (I)</button>
+          </div>
+          <div class="monitor-actions">
+            <button type="button" id="saveLogBtn" class="btn btn-sm btn-secondary">💾 Lưu .txt</button>
+            <button type="button" id="clearLogBtn" class="btn btn-sm btn-secondary">🗑️ Xóa log</button>
+          </div>
+        </div>
+
+        <div id="terminalLog" class="terminal">
+          <div class="log-line info">Sẵn sàng. Dùng Chrome / Edge trên máy tính để nạp Firmware hoặc mở Serial Monitor.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
