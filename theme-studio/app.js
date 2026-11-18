@@ -993,8 +993,10 @@ async function buildAssetsBinary() {
 
 const DRAFT_DB_NAME = "chuhieu_theme_studio_db";
 const DRAFT_STORE = "drafts";
-const DRAFT_KEY = "current_draft";
+const DRAFT_KEY = "current_draft_v2";
 let draftSaveTimer = null;
+let isSavingDraft = false;
+let pendingDraftSave = false;
 
 function openDraftDb() {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
@@ -1025,13 +1027,30 @@ function openDraftDb() {
 }
 
 async function saveDraftToDb() {
+  if (isSavingDraft) {
+    pendingDraftSave = true;
+    return;
+  }
+  isSavingDraft = true;
   const db = await openDraftDb();
-  if (!db) return;
+  if (!db) {
+    isSavingDraft = false;
+    return;
+  }
   try {
     const emojisPayload = {};
     for (const emo of STANDARD_EMOTIONS) {
       const it = state.emojis[emo];
       if (!it || !it.bytes) continue;
+      const def = state.defaultEmojis[emo];
+      const isModified =
+        !def ||
+        it.bytes !== def.bytes ||
+        Boolean(it.offsetX) ||
+        Boolean(it.offsetY) ||
+        (it.scale ?? 100) !== 100 ||
+        Boolean(it.tintColor);
+      if (!isModified) continue;
       const isSameRef = !it.rawBytes || it.rawBytes === it.bytes;
       emojisPayload[emo] = {
         filename: it.filename || `${emo}.gif`,
@@ -1092,6 +1111,11 @@ async function saveDraftToDb() {
     // ignore storage quota / private mode errors
   } finally {
     db.close();
+    isSavingDraft = false;
+    if (pendingDraftSave) {
+      pendingDraftSave = false;
+      scheduleSaveDraft();
+    }
   }
 }
 
@@ -1149,13 +1173,17 @@ async function clearDraftFromDb() {
 
 async function restoreDraftFromDb() {
   const draft = await loadDraftFromDb();
-  if (!draft || !draft.emojis || Object.keys(draft.emojis).length === 0) return false;
+  if (!draft || !draft.presetId) return false;
 
-  if (draft.presetId && els.presetSelect) {
+  if (els.presetSelect) {
     const hasOpt = Array.from(els.presetSelect.options).some((o) => o.value === draft.presetId);
     if (hasOpt) els.presetSelect.value = draft.presetId;
     try { localStorage.setItem("theme_studio_last_preset", draft.presetId); } catch {}
   }
+
+  // Nạp nền Theme gốc trước (từ HTTP cache) để có sẵn các ô chưa sửa & nút Reset
+  await loadBaseAssetsAndPreset(els.presetSelect?.value || draft.presetId, false);
+
   if (draft.width && draft.height) {
     state.width = draft.width;
     state.height = draft.height;
@@ -1168,12 +1196,14 @@ async function restoreDraftFromDb() {
   }
   state.noBg = Boolean(draft.noBg);
   if (els.noBgCheck) els.noBgCheck.checked = state.noBg;
+  if (els.bgUploadSection) els.bgUploadSection.classList.toggle("hidden", state.noBg);
   state.hideSubtitle = Boolean(draft.hideSubtitle);
   if (els.hideSubtitleCheck) els.hideSubtitleCheck.checked = state.hideSubtitle;
   state.omitFont = Boolean(draft.omitFont);
   if (els.omitFontCheck) els.omitFontCheck.checked = state.omitFont;
   state.includeSrmodels = Boolean(draft.includeSrmodels);
   if (els.includeSrmodelsCheck) els.includeSrmodelsCheck.checked = state.includeSrmodels;
+  if (els.wakeWordBox) els.wakeWordBox.classList.toggle("hidden", !state.includeSrmodels);
   if (draft.wakeWordId) {
     state.wakeWordId = draft.wakeWordId;
     if (els.wakeWordSelect) els.wakeWordSelect.value = draft.wakeWordId;
@@ -1186,25 +1216,29 @@ async function restoreDraftFromDb() {
   if (draft.skin?.dark) state.skin.dark = { ...state.skin.dark, ...draft.skin.dark };
   syncColorInputs();
 
-  for (const emo of STANDARD_EMOTIONS) {
-    const it = draft.emojis[emo];
-    if (!it || !it.bytes) continue;
-    const bytes = it.bytes instanceof Uint8Array ? it.bytes : new Uint8Array(it.bytes);
-    const rawBytes = it.rawBytes ? (it.rawBytes instanceof Uint8Array ? it.rawBytes : new Uint8Array(it.rawBytes)) : bytes;
-    const mime = (it.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
-    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
-    state.emojis[emo] = {
-      filename: it.filename || `${emo}.gif`,
-      rawBytes,
-      bytes,
-      url,
-      width: it.width || state.width,
-      height: it.height || state.height,
-      offsetX: it.offsetX || 0,
-      offsetY: it.offsetY || 0,
-      scale: it.scale ?? 100,
-      tintColor: it.tintColor || ""
-    };
+  if (draft.emojis && typeof draft.emojis === "object") {
+    for (const emo of STANDARD_EMOTIONS) {
+      const it = draft.emojis[emo];
+      if (!it || !it.bytes) continue;
+      const bytes = it.bytes instanceof Uint8Array ? it.bytes : new Uint8Array(it.bytes);
+      const rawBytes = it.rawBytes ? (it.rawBytes instanceof Uint8Array ? it.rawBytes : new Uint8Array(it.rawBytes)) : bytes;
+      const mime = (it.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
+      const prevUrl = state.emojis[emo]?.url;
+      const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+      state.emojis[emo] = {
+        filename: it.filename || `${emo}.gif`,
+        rawBytes,
+        bytes,
+        url,
+        width: it.width || state.width,
+        height: it.height || state.height,
+        offsetX: it.offsetX || 0,
+        offsetY: it.offsetY || 0,
+        scale: it.scale ?? 100,
+        tintColor: it.tintColor || ""
+      };
+      safeRevokeBlobUrl(prevUrl);
+    }
   }
 
   const restoreBg = (bgData, key, nameEl) => {
@@ -1328,7 +1362,7 @@ async function loadDonorPreset(presetId) {
   try {
     const loaded = await Promise.all(
       STANDARD_EMOTIONS.map(async (emo) => {
-        const res = await fetch(`presets/${presetId}/${emo}.gif`, { cache: "no-store" });
+        const res = await fetchWithTimeout(`presets/${presetId}/${emo}.gif`, 15000);
         if (!res.ok) return null;
         const bytes = new Uint8Array(await res.arrayBuffer());
         return { emo, bytes };
@@ -1789,20 +1823,38 @@ async function loadWakeWordModel(modelId) {
   }
 }
 
+async function fetchWithTimeout(url, timeoutMs = 15000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "robot_eve", saveAfterLoad = true) {
   const myToken = ++presetLoadToken;
+  const origBtnText = els.loadPresetBtn?.textContent;
+  if (els.loadPresetBtn) els.loadPresetBtn.textContent = "⏳ Đang tải...";
   try {
     try { localStorage.setItem("theme_studio_last_preset", presetId); } catch {}
+
+    // Tải nền Wake Word & Font song song, không chặn hiển thị 21 biểu cảm
     if (!state.srmodelsBytes) {
-      await loadWakeWordModel(state.wakeWordId);
+      loadWakeWordModel(state.wakeWordId);
     }
     if (!state.fontBytes) {
-      log("Đang tải Font tiếng Việt mặc định...", "info");
-      const fontRes = await fetch("presets/font_noto_sans_common_20_4.bin");
-      if (fontRes.ok) state.fontBytes = new Uint8Array(await fontRes.arrayBuffer());
+      fetchWithTimeout("presets/font_noto_sans_common_20_4.bin", 20000)
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .then((buf) => {
+          if (buf && !state.fontBytes) {
+            state.fontBytes = new Uint8Array(buf);
+            updateStats();
+          }
+        })
+        .catch(() => {});
     }
-
-    if (myToken !== presetLoadToken) return;
 
     const presetLabel = els.presetSelect?.selectedOptions?.[0]?.text || presetId;
     log(`Đang nạp bộ 21 biểu cảm: ${presetLabel}...`, "info");
@@ -1816,14 +1868,15 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
       syncColorInputs();
     }
 
-    const loaded = await Promise.all(
+    const results = await Promise.allSettled(
       STANDARD_EMOTIONS.map(async (emo) => {
-        const res = await fetch(`presets/${presetId}/${emo}.gif`, { cache: "no-store" });
+        const res = await fetchWithTimeout(`presets/${presetId}/${emo}.gif`, 15000);
         if (!res.ok) return null;
         const bytes = new Uint8Array(await res.arrayBuffer());
         return { emo, bytes };
       })
     );
+    const loaded = results.map((r) => (r.status === "fulfilled" ? r.value : null));
 
     if (myToken !== presetLoadToken) return;
 
@@ -1858,6 +1911,10 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
     if (saveAfterLoad) scheduleSaveDraft();
   } catch (err) {
     log(`Lỗi tải preset: ${err.message}`, "err");
+  } finally {
+    if (myToken === presetLoadToken && els.loadPresetBtn && origBtnText) {
+      els.loadPresetBtn.textContent = origBtnText;
+    }
   }
 }
 
