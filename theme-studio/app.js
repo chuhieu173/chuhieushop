@@ -1120,10 +1120,7 @@ async function saveDraftToDb() {
 }
 
 function scheduleSaveDraft() {
-  clearTimeout(draftSaveTimer);
-  draftSaveTimer = setTimeout(() => {
-    saveDraftToDb();
-  }, 450);
+  // Tạm tắt tự động lưu nháp IndexedDB theo yêu cầu để kiểm tra hiệu năng & đổi màu
 }
 
 async function loadDraftFromDb() {
@@ -2527,36 +2524,13 @@ async function init() {
   });
 
   renderEmotionGrid();
-  let restored = false;
   try {
-    restored = await restoreDraftFromDb();
-  } catch (err) {
-    restored = false;
-    log(`Không thể khôi phục nháp cũ (${err?.message || "lỗi bộ nhớ tạm"}), đang nạp Theme mặc định...`, "info");
-  }
-  if (restored) {
-    // Vẫn nạp nền Font & Wake Word nếu chưa có trong bộ nhớ
-    if (!state.srmodelsBytes) loadWakeWordModel(state.wakeWordId);
-    if (!state.fontBytes) {
-      fetch("presets/font_noto_sans_common_20_4.bin")
-        .then((r) => (r.ok ? r.arrayBuffer() : null))
-        .then((b) => {
-          if (b) {
-            state.fontBytes = new Uint8Array(b);
-            updateStats();
-          }
-        })
-        .catch(() => {});
+    const lastPreset = localStorage.getItem("theme_studio_last_preset");
+    if (lastPreset && els.presetSelect && Array.from(els.presetSelect.options).some((o) => o.value === lastPreset)) {
+      els.presetSelect.value = lastPreset;
     }
-  } else {
-    try {
-      const lastPreset = localStorage.getItem("theme_studio_last_preset");
-      if (lastPreset && els.presetSelect && Array.from(els.presetSelect.options).some((o) => o.value === lastPreset)) {
-        els.presetSelect.value = lastPreset;
-      }
-    } catch {}
-    loadBaseAssetsAndPreset(els.presetSelect?.value || "robot_eve", false);
-  }
+  } catch {}
+  loadBaseAssetsAndPreset(els.presetSelect?.value || "robot_eve", false);
 }
 
 init();
