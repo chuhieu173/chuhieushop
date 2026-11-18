@@ -994,15 +994,15 @@ async function buildAssetsBinary() {
 }
 
 // ==========================================
-// 3.5. AUTO-SAVE DRAFT (INDEXEDDB)
+// 3.5. AUTO-SAVE DRAFT (HYBRID: LOCALSTORAGE META + OPTIONAL INDEXEDDB FOR CUSTOM FILES)
 // ==========================================
 
+const DRAFT_META_KEY = "theme_studio_draft_meta_v3";
 const DRAFT_DB_NAME = "chuhieu_theme_studio_db";
 const DRAFT_STORE = "drafts";
-const DRAFT_KEY = "current_draft_v2";
+const DRAFT_CUSTOM_KEY = "custom_uploads_v3";
 let draftSaveTimer = null;
-let isSavingDraft = false;
-let pendingDraftSave = false;
+let isSavingCustomDb = false;
 
 function openDraftDb() {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
@@ -1014,7 +1014,7 @@ function openDraftDb() {
       clearTimeout(timer);
       resolve(val);
     };
-    const timer = setTimeout(() => done(null), 1200);
+    const timer = setTimeout(() => done(null), 1000);
     try {
       const req = indexedDB.open(DRAFT_DB_NAME, 1);
       req.onupgradeneeded = () => {
@@ -1032,52 +1032,50 @@ function openDraftDb() {
   });
 }
 
-async function saveDraftToDb() {
-  if (isSavingDraft) {
-    pendingDraftSave = true;
-    return;
-  }
-  isSavingDraft = true;
-  const db = await openDraftDb();
-  if (!db) {
-    isSavingDraft = false;
-    return;
-  }
+function saveDraftMetaSync() {
   try {
-    const emojisPayload = {};
+    const presetId = els.presetSelect?.value || "robot_eve";
+    const emojisMeta = {};
+    let hasCustomUpload = Boolean(state.bgLightFile?.file || state.bgDarkFile?.file);
+
     for (const emo of STANDARD_EMOTIONS) {
       const it = state.emojis[emo];
-      if (!it || !it.bytes) continue;
-      const def = state.defaultEmojis[emo];
+      if (!it) continue;
+      const isCustom = Boolean(it.isCustomUpload);
+      if (isCustom) hasCustomUpload = true;
+      const srcPreset = it.sourcePresetId || presetId;
+      const srcEmo = it.sourceEmo || emo;
+      const ox = it.offsetX || 0;
+      const oy = it.offsetY || 0;
+      const sc = it.scale ?? 100;
+      const tint = it.tintColor || "";
       const isModified =
-        !def ||
-        it.bytes !== def.bytes ||
-        Boolean(it.offsetX) ||
-        Boolean(it.offsetY) ||
-        (it.scale ?? 100) !== 100 ||
-        Boolean(it.tintColor);
-      if (!isModified) continue;
-      const isSameRef = !it.rawBytes || it.rawBytes === it.bytes;
-      emojisPayload[emo] = {
-        filename: it.filename || `${emo}.gif`,
-        rawBytes: isSameRef ? null : it.rawBytes,
-        bytes: it.bytes,
-        width: it.width || state.width,
-        height: it.height || state.height,
-        offsetX: it.offsetX || 0,
-        offsetY: it.offsetY || 0,
-        scale: it.scale ?? 100,
-        tintColor: it.tintColor || ""
-      };
+        isCustom ||
+        srcPreset !== presetId ||
+        srcEmo !== emo ||
+        ox !== 0 ||
+        oy !== 0 ||
+        sc !== 100 ||
+        Boolean(tint);
+      if (isModified) {
+        emojisMeta[emo] = {
+          srcPreset: isCustom ? null : srcPreset,
+          srcEmo: isCustom ? null : srcEmo,
+          ox,
+          oy,
+          sc,
+          tint,
+          isCustom,
+          filename: it.filename || `${emo}.gif`,
+          width: it.width || state.width,
+          height: it.height || state.height
+        };
+      }
     }
-    const readBgFile = async (bgObj) => {
-      if (!bgObj?.file) return null;
-      const buf = await bgObj.file.arrayBuffer();
-      return { name: bgObj.name || bgObj.file.name || "bg.png", type: bgObj.file.type || "image/png", bytes: new Uint8Array(buf) };
-    };
-    const draft = {
+
+    const meta = {
       savedAt: Date.now(),
-      presetId: els.presetSelect?.value || "robot_eve",
+      presetId,
       width: state.width,
       height: state.height,
       fitMode: state.fitMode,
@@ -1092,51 +1090,104 @@ async function saveDraftToDb() {
         light: { ...state.skin.light },
         dark: { ...state.skin.dark }
       },
-      emojis: emojisPayload,
+      hasCustomUpload,
+      emojis: emojisMeta
+    };
+
+    localStorage.setItem(DRAFT_META_KEY, JSON.stringify(meta));
+    localStorage.setItem("theme_studio_last_preset", presetId);
+
+    if (els.draftStatusBadge) {
+      const t = new Date(meta.savedAt).toLocaleTimeString("vi-VN", { hour12: false });
+      els.draftStatusBadge.textContent = `💾 Đã lưu nháp (${t})`;
+      els.draftStatusBadge.classList.add("saved");
+    }
+
+    if (hasCustomUpload) {
+      saveCustomUploadsToDb();
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+async function saveCustomUploadsToDb() {
+  if (isSavingCustomDb) return;
+  isSavingCustomDb = true;
+  const db = await openDraftDb();
+  if (!db) {
+    isSavingCustomDb = false;
+    return;
+  }
+  try {
+    const customEmojis = {};
+    for (const emo of STANDARD_EMOTIONS) {
+      const it = state.emojis[emo];
+      if (!it || !it.isCustomUpload || !it.rawBytes) continue;
+      customEmojis[emo] = {
+        filename: it.filename || `${emo}.gif`,
+        rawBytes: it.rawBytes,
+        width: it.width || state.width,
+        height: it.height || state.height
+      };
+    }
+    const readBgFile = async (bgObj) => {
+      if (!bgObj?.file) return null;
+      const buf = await bgObj.file.arrayBuffer();
+      return { name: bgObj.name || bgObj.file.name || "bg.png", type: bgObj.file.type || "image/png", bytes: new Uint8Array(buf) };
+    };
+    const payload = {
+      customEmojis,
       bgLight: await readBgFile(state.bgLightFile),
       bgDark: await readBgFile(state.bgDarkFile)
     };
     await new Promise((resolve) => {
-      const timer = setTimeout(resolve, 1500);
+      const timer = setTimeout(resolve, 1200);
       const finish = () => {
         clearTimeout(timer);
         resolve();
       };
       const tx = db.transaction(DRAFT_STORE, "readwrite");
-      tx.objectStore(DRAFT_STORE).put(draft, DRAFT_KEY);
+      tx.objectStore(DRAFT_STORE).put(payload, DRAFT_CUSTOM_KEY);
       tx.oncomplete = finish;
       tx.onerror = finish;
       tx.onabort = finish;
     });
-    if (els.draftStatusBadge) {
-      const t = new Date().toLocaleTimeString("vi-VN", { hour12: false });
-      els.draftStatusBadge.textContent = `💾 Đã lưu nháp (${t})`;
-      els.draftStatusBadge.classList.add("saved");
-    }
   } catch {
-    // ignore storage quota / private mode errors
+    // ignore
   } finally {
     db.close();
-    isSavingDraft = false;
-    if (pendingDraftSave) {
-      pendingDraftSave = false;
-      scheduleSaveDraft();
-    }
+    isSavingCustomDb = false;
   }
 }
 
 function scheduleSaveDraft() {
-  // Tạm tắt tự động lưu nháp IndexedDB theo yêu cầu để kiểm tra hiệu năng & đổi màu
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    saveDraftMetaSync();
+  }, 150);
 }
 
-async function loadDraftFromDb() {
-  const db = await openDraftDb();
-  if (!db) return null;
+function loadDraftMetaSync() {
   try {
-    return await new Promise((resolve) => {
-      const timer = setTimeout(() => resolve(null), 1200);
+    const raw = localStorage.getItem(DRAFT_META_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && parsed.presetId ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function restoreCustomUploadsFromDb(draftMeta) {
+  if (!draftMeta?.hasCustomUpload) return;
+  const db = await openDraftDb();
+  if (!db) return;
+  try {
+    const payload = await new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(null), 1000);
       const tx = db.transaction(DRAFT_STORE, "readonly");
-      const req = tx.objectStore(DRAFT_STORE).get(DRAFT_KEY);
+      const req = tx.objectStore(DRAFT_STORE).get(DRAFT_CUSTOM_KEY);
       req.onsuccess = () => {
         clearTimeout(timer);
         resolve(req.result || null);
@@ -1146,27 +1197,54 @@ async function loadDraftFromDb() {
         resolve(null);
       };
     });
-  } catch {
-    return null;
-  } finally {
-    db.close();
-  }
-}
+    if (!payload) return;
 
-async function clearDraftFromDb() {
-  const db = await openDraftDb();
-  if (!db) return;
-  try {
-    await new Promise((resolve) => {
-      const tx = db.transaction(DRAFT_STORE, "readwrite");
-      tx.objectStore(DRAFT_STORE).delete(DRAFT_KEY);
-      tx.oncomplete = resolve;
-      tx.onerror = resolve;
-    });
-    if (els.draftStatusBadge) {
-      els.draftStatusBadge.textContent = "💾 Tự động lưu nháp";
-      els.draftStatusBadge.classList.remove("saved");
+    if (payload.customEmojis) {
+      for (const emo of STANDARD_EMOTIONS) {
+        const cust = payload.customEmojis[emo];
+        const ov = draftMeta.emojis?.[emo];
+        if (!cust?.rawBytes || !ov?.isCustom) continue;
+        const rawBytes = cust.rawBytes instanceof Uint8Array ? cust.rawBytes : new Uint8Array(cust.rawBytes);
+        const ox = ov.ox || 0;
+        const oy = ov.oy || 0;
+        const sc = ov.sc ?? 100;
+        const tint = ov.tint || "";
+        const finalBytes = await computeShiftedBytes(rawBytes, cust.filename || `${emo}.gif`, ox, oy, sc, tint);
+        const mime = (cust.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
+        const prevUrl = state.emojis[emo]?.url;
+        state.emojis[emo] = {
+          filename: cust.filename || `${emo}.gif`,
+          rawBytes,
+          bytes: finalBytes,
+          url: URL.createObjectURL(new Blob([finalBytes], { type: mime })),
+          width: cust.width || state.width,
+          height: cust.height || state.height,
+          offsetX: ox,
+          offsetY: oy,
+          scale: sc,
+          tintColor: tint,
+          sourcePresetId: null,
+          sourceEmo: null,
+          isCustomUpload: true
+        };
+        safeRevokeBlobUrl(prevUrl);
+      }
     }
+
+    const restoreBg = (bgData, key, nameEl) => {
+      if (!bgData?.bytes) return;
+      const bytes = bgData.bytes instanceof Uint8Array ? bgData.bytes : new Uint8Array(bgData.bytes);
+      const blob = new Blob([bytes], { type: bgData.type || "image/png" });
+      const file = new File([blob], bgData.name || "bg.png", { type: bgData.type || "image/png" });
+      state[key] = { name: file.name, file, url: URL.createObjectURL(file) };
+      if (nameEl) nameEl.textContent = file.name;
+    };
+    restoreBg(payload.bgLight, "bgLightFile", els.bgLightName);
+    restoreBg(payload.bgDark, "bgDarkFile", els.bgDarkName);
+
+    renderEmotionGrid();
+    updateVirtualScreen();
+    updateStats();
   } catch {
     // ignore
   } finally {
@@ -1174,19 +1252,37 @@ async function clearDraftFromDb() {
   }
 }
 
-async function restoreDraftFromDb() {
-  const draft = await loadDraftFromDb();
-  if (!draft || !draft.presetId) return false;
+async function clearDraftFromDb() {
+  try {
+    localStorage.removeItem(DRAFT_META_KEY);
+  } catch {}
+  if (els.draftStatusBadge) {
+    els.draftStatusBadge.textContent = "💾 Tự động lưu nháp";
+    els.draftStatusBadge.classList.remove("saved");
+  }
+  const db = await openDraftDb();
+  if (!db) return;
+  try {
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 800);
+      const tx = db.transaction(DRAFT_STORE, "readwrite");
+      tx.objectStore(DRAFT_STORE).clear();
+      tx.oncomplete = () => { clearTimeout(timer); resolve(); };
+      tx.onerror = () => { clearTimeout(timer); resolve(); };
+    });
+  } catch {
+    // ignore
+  } finally {
+    db.close();
+  }
+}
 
-  if (els.presetSelect) {
+function applyDraftMetaToStateSync(draft) {
+  if (!draft) return;
+  if (els.presetSelect && draft.presetId) {
     const hasOpt = Array.from(els.presetSelect.options).some((o) => o.value === draft.presetId);
     if (hasOpt) els.presetSelect.value = draft.presetId;
-    try { localStorage.setItem("theme_studio_last_preset", draft.presetId); } catch {}
   }
-
-  // Nạp nền Theme gốc trước (từ HTTP cache) để có sẵn các ô chưa sửa & nút Reset
-  await loadBaseAssetsAndPreset(els.presetSelect?.value || draft.presetId, false);
-
   if (draft.width && draft.height) {
     state.width = draft.width;
     state.height = draft.height;
@@ -1218,53 +1314,11 @@ async function restoreDraftFromDb() {
   if (draft.skin?.light) state.skin.light = { ...state.skin.light, ...draft.skin.light };
   if (draft.skin?.dark) state.skin.dark = { ...state.skin.dark, ...draft.skin.dark };
   syncColorInputs();
-
-  if (draft.emojis && typeof draft.emojis === "object") {
-    for (const emo of STANDARD_EMOTIONS) {
-      const it = draft.emojis[emo];
-      if (!it || !it.bytes) continue;
-      const bytes = it.bytes instanceof Uint8Array ? it.bytes : new Uint8Array(it.bytes);
-      const rawBytes = it.rawBytes ? (it.rawBytes instanceof Uint8Array ? it.rawBytes : new Uint8Array(it.rawBytes)) : bytes;
-      const mime = (it.filename || "").toLowerCase().endsWith(".png") ? "image/png" : "image/gif";
-      const prevUrl = state.emojis[emo]?.url;
-      const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
-      state.emojis[emo] = {
-        filename: it.filename || `${emo}.gif`,
-        rawBytes,
-        bytes,
-        url,
-        width: it.width || state.width,
-        height: it.height || state.height,
-        offsetX: it.offsetX || 0,
-        offsetY: it.offsetY || 0,
-        scale: it.scale ?? 100,
-        tintColor: it.tintColor || ""
-      };
-      safeRevokeBlobUrl(prevUrl);
-    }
-  }
-
-  const restoreBg = (bgData, key, nameEl) => {
-    if (!bgData?.bytes) return;
-    const bytes = bgData.bytes instanceof Uint8Array ? bgData.bytes : new Uint8Array(bgData.bytes);
-    const blob = new Blob([bytes], { type: bgData.type || "image/png" });
-    const file = new File([blob], bgData.name || "bg.png", { type: bgData.type || "image/png" });
-    state[key] = { name: file.name, file, url: URL.createObjectURL(file) };
-    if (nameEl) nameEl.textContent = file.name;
-  };
-  restoreBg(draft.bgLight, "bgLightFile", els.bgLightName);
-  restoreBg(draft.bgDark, "bgDarkFile", els.bgDarkName);
-
   if (els.draftStatusBadge) {
     const t = new Date(draft.savedAt || Date.now()).toLocaleTimeString("vi-VN", { hour12: false });
     els.draftStatusBadge.textContent = `💾 Đã khôi phục nháp (${t})`;
     els.draftStatusBadge.classList.add("saved");
   }
-  log("💾 Đã khôi phục bản nháp Theme bạn đang chỉnh sửa trước khi tải lại trang!", "ok");
-  renderEmotionGrid();
-  updateVirtualScreen();
-  updateStats();
-  return true;
 }
 
 // ==========================================
@@ -1301,7 +1355,10 @@ function assignFromDonor(targetEmo, donorEmo) {
     offsetX: 0,
     offsetY: 0,
     scale: 100,
-    tintColor: ""
+    tintColor: "",
+    sourcePresetId: state.donorPresetId,
+    sourceEmo: donorEmo,
+    isCustomUpload: false
   };
   safeRevokeBlobUrl(prevUrl);
   state.activeEmotion = targetEmo;
@@ -1671,7 +1728,10 @@ async function assignEmotionFile(emo, file) {
     offsetX: 0,
     offsetY: 0,
     scale: 100,
-    tintColor: ""
+    tintColor: "",
+    sourcePresetId: null,
+    sourceEmo: null,
+    isCustomUpload: true
   };
   safeRevokeBlobUrl(prevUrl);
   state.activeEmotion = emo;
@@ -1709,7 +1769,7 @@ async function handleBulkFiles(fileList) {
       const url = URL.createObjectURL(new Blob([bytes], { type: file.type || "image/gif" }));
 
       for (const emo of matchedEmos) {
-        state.emojis[emo] = { filename: file.name, rawBytes: bytes, bytes, url, width: w, height: h, offsetX: 0, offsetY: 0, scale: 100 };
+        state.emojis[emo] = { filename: file.name, rawBytes: bytes, bytes, url, width: w, height: h, offsetX: 0, offsetY: 0, scale: 100, tintColor: "", sourcePresetId: null, sourceEmo: null, isCustomUpload: true };
       }
       matchedCount++;
     }
@@ -1719,6 +1779,7 @@ async function handleBulkFiles(fileList) {
     renderEmotionGrid();
     updateVirtualScreen();
     updateStats();
+    scheduleSaveDraft();
   } else {
     log("Không nhận diện được tên cảm xúc nào từ các file vừa thả.", "err");
   }
@@ -1868,7 +1929,7 @@ async function loadWakeWordModel(modelId) {
   }
 }
 
-async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "robot_eve", saveAfterLoad = true) {
+async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "robot_eve", saveAfterLoad = true, draftMeta = null) {
   const myToken = ++presetLoadToken;
   activePresetAbort?.abort();
   const abortCtrl = new AbortController();
@@ -1882,13 +1943,15 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
     const presetLabel = els.presetSelect?.selectedOptions?.[0]?.text || presetId;
     log(`Đang nạp bộ 21 biểu cảm: ${presetLabel}...`, "info");
 
-    if (presetId.startsWith("light_")) {
-      state.skin.light = { text_color: "#0F172A", background_color: "#FFFFFF" };
-      state.previewSkin = "light";
-      syncColorInputs();
-    } else {
-      state.skin.light = { text_color: "#FFFFFF", background_color: "#000000" };
-      syncColorInputs();
+    if (!draftMeta) {
+      if (presetId.startsWith("light_")) {
+        state.skin.light = { text_color: "#0F172A", background_color: "#FFFFFF" };
+        state.previewSkin = "light";
+        syncColorInputs();
+      } else {
+        state.skin.light = { text_color: "#FFFFFF", background_color: "#000000" };
+        syncColorInputs();
+      }
     }
 
     // Ưu tiên tải activeEmotion / neutral trước, giới hạn 4 kết nối song song để không nghẽn trình duyệt
@@ -1910,25 +1973,68 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
         const emo = queue.shift();
         if (!emo) continue;
         try {
-          const bytes = await fetchArrayBufferWithTimeout(`presets/${presetId}/${emo}.gif`, 15000, abortCtrl.signal);
-          if (!bytes || myToken !== presetLoadToken || abortCtrl.signal.aborted) continue;
+          const defBytes = await fetchArrayBufferWithTimeout(`presets/${presetId}/${emo}.gif`, 15000, abortCtrl.signal);
+          if (!defBytes || myToken !== presetLoadToken || abortCtrl.signal.aborted) continue;
           const prevUrl = state.emojis[emo]?.url;
           const prevDefUrl = state.defaultEmojis[emo]?.url;
-          const url = URL.createObjectURL(new Blob([bytes], { type: "image/gif" }));
-          const entry = {
+          const defUrl = URL.createObjectURL(new Blob([defBytes], { type: "image/gif" }));
+          const defEntry = {
             filename: `${emo}.gif`,
-            rawBytes: bytes,
-            bytes,
-            url,
+            rawBytes: defBytes,
+            bytes: defBytes,
+            url: defUrl,
             width: 320,
             height: 240,
             offsetX: 0,
             offsetY: 0,
             scale: 100,
-            tintColor: ""
+            tintColor: "",
+            sourcePresetId: presetId,
+            sourceEmo: emo,
+            isCustomUpload: false
           };
-          state.emojis[emo] = entry;
-          state.defaultEmojis[emo] = { ...entry };
+          state.defaultEmojis[emo] = defEntry;
+
+          const ov = draftMeta?.emojis?.[emo];
+          if (ov && !ov.isCustom) {
+            let rawBytes = defBytes;
+            const srcPreset = ov.srcPreset || presetId;
+            const srcEmo = ov.srcEmo || emo;
+            if (srcPreset !== presetId || srcEmo !== emo) {
+              const donorBytes = await fetchArrayBufferWithTimeout(`presets/${srcPreset}/${srcEmo}.gif`, 15000, abortCtrl.signal);
+              if (donorBytes) rawBytes = donorBytes;
+            }
+            if (myToken !== presetLoadToken || abortCtrl.signal.aborted) {
+              safeRevokeBlobUrl(defUrl);
+              continue;
+            }
+            const ox = ov.ox || 0;
+            const oy = ov.oy || 0;
+            const sc = ov.sc ?? 100;
+            const tint = ov.tint || "";
+            const finalBytes = (ox || oy || sc !== 100 || tint)
+              ? await computeShiftedBytes(rawBytes, `${emo}.gif`, ox, oy, sc, tint)
+              : rawBytes;
+            const emoUrl = finalBytes === defBytes ? defUrl : URL.createObjectURL(new Blob([finalBytes], { type: "image/gif" }));
+            state.emojis[emo] = {
+              filename: `${emo}.gif`,
+              rawBytes,
+              bytes: finalBytes,
+              url: emoUrl,
+              width: ov.width || 320,
+              height: ov.height || 240,
+              offsetX: ox,
+              offsetY: oy,
+              scale: sc,
+              tintColor: tint,
+              sourcePresetId: srcPreset,
+              sourceEmo: srcEmo,
+              isCustomUpload: false
+            };
+          } else {
+            state.emojis[emo] = { ...defEntry };
+          }
+
           safeRevokeBlobUrl(prevUrl);
           safeRevokeBlobUrl(prevDefUrl);
           loadedCount++;
@@ -1953,7 +2059,15 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
 
     if (myToken !== presetLoadToken || abortCtrl.signal.aborted) return;
 
-    log(`Đã nạp xong ${loadedCount}/21 biểu cảm của Theme "${presetLabel}"!`, loadedCount > 0 ? "ok" : "err");
+    if (draftMeta?.hasCustomUpload) {
+      restoreCustomUploadsFromDb(draftMeta);
+    }
+
+    if (draftMeta && Object.keys(draftMeta.emojis || {}).length > 0) {
+      log(`💾 Đã khôi phục bản nháp Theme "${presetLabel}" cùng các chỉnh sửa của bạn!`, "ok");
+    } else {
+      log(`Đã nạp xong ${loadedCount}/21 biểu cảm của Theme "${presetLabel}"!`, loadedCount > 0 ? "ok" : "err");
+    }
     renderEmotionGrid();
     updateVirtualScreen();
     updateStats();
@@ -2035,7 +2149,11 @@ async function importBinFile(file) {
             height: h,
             offsetX: 0,
             offsetY: 0,
-            scale: 100
+            scale: 100,
+            tintColor: "",
+            sourcePresetId: null,
+            sourceEmo: null,
+            isCustomUpload: true
           };
           safeRevokeBlobUrl(prevUrl);
         }
@@ -2046,6 +2164,7 @@ async function importBinFile(file) {
     renderEmotionGrid();
     updateVirtualScreen();
     updateStats();
+    scheduleSaveDraft();
   } catch (err) {
     log(`Lỗi giải nén .bin: ${err.message}`, "err");
   }
@@ -2582,13 +2701,19 @@ async function init() {
   });
 
   renderEmotionGrid();
-  try {
-    const lastPreset = localStorage.getItem("theme_studio_last_preset");
-    if (lastPreset && els.presetSelect && Array.from(els.presetSelect.options).some((o) => o.value === lastPreset)) {
-      els.presetSelect.value = lastPreset;
-    }
-  } catch {}
-  loadBaseAssetsAndPreset(els.presetSelect?.value || "robot_eve", false);
+  const draftMeta = loadDraftMetaSync();
+  if (draftMeta) {
+    applyDraftMetaToStateSync(draftMeta);
+    loadBaseAssetsAndPreset(els.presetSelect?.value || draftMeta.presetId || "robot_eve", false, draftMeta);
+  } else {
+    try {
+      const lastPreset = localStorage.getItem("theme_studio_last_preset");
+      if (lastPreset && els.presetSelect && Array.from(els.presetSelect.options).some((o) => o.value === lastPreset)) {
+        els.presetSelect.value = lastPreset;
+      }
+    } catch {}
+    loadBaseAssetsAndPreset(els.presetSelect?.value || "robot_eve", false);
+  }
 }
 
 init();
