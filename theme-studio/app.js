@@ -805,10 +805,10 @@ function tintGifBytes(u8, hexColor) {
       const r = out[idx];
       const g = out[idx + 1];
       const b = out[idx + 2];
-      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      out[idx] = Math.min(255, Math.round(tr * lum));
-      out[idx + 1] = Math.min(255, Math.round(tg * lum));
-      out[idx + 2] = Math.min(255, Math.round(tb * lum));
+      const intensity = Math.max(r, g, b) / 255;
+      out[idx] = Math.min(255, Math.round(tr * intensity));
+      out[idx + 1] = Math.min(255, Math.round(tg * intensity));
+      out[idx + 2] = Math.min(255, Math.round(tb * intensity));
     }
   };
 
@@ -887,10 +887,10 @@ async function shiftStaticImageBytes(rawBytes, dx, dy, scale = 100, tintColor = 
     const imgData = ctx.getImageData(0, 0, w, h);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      const lum = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
-      data[i] = Math.min(255, Math.round(tr * lum));
-      data[i + 1] = Math.min(255, Math.round(tg * lum));
-      data[i + 2] = Math.min(255, Math.round(tb * lum));
+      const intensity = Math.max(data[i], data[i + 1], data[i + 2]) / 255;
+      data[i] = Math.min(255, Math.round(tr * intensity));
+      data[i + 1] = Math.min(255, Math.round(tg * intensity));
+      data[i + 2] = Math.min(255, Math.round(tb * intensity));
     }
     ctx.putImageData(imgData, 0, 0);
   }
@@ -999,6 +999,14 @@ let draftSaveTimer = null;
 function openDraftDb() {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
   return new Promise((resolve) => {
+    let settled = false;
+    const done = (val) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(val);
+    };
+    const timer = setTimeout(() => done(null), 1200);
     try {
       const req = indexedDB.open(DRAFT_DB_NAME, 1);
       req.onupgradeneeded = () => {
@@ -1007,10 +1015,11 @@ function openDraftDb() {
           db.createObjectStore(DRAFT_STORE);
         }
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
+      req.onsuccess = () => done(req.result);
+      req.onerror = () => done(null);
+      req.onblocked = () => done(null);
     } catch {
-      resolve(null);
+      done(null);
     }
   });
 }
@@ -1023,9 +1032,10 @@ async function saveDraftToDb() {
     for (const emo of STANDARD_EMOTIONS) {
       const it = state.emojis[emo];
       if (!it || !it.bytes) continue;
+      const isSameRef = !it.rawBytes || it.rawBytes === it.bytes;
       emojisPayload[emo] = {
         filename: it.filename || `${emo}.gif`,
-        rawBytes: it.rawBytes || it.bytes,
+        rawBytes: isSameRef ? null : it.rawBytes,
         bytes: it.bytes,
         width: it.width || state.width,
         height: it.height || state.height,
@@ -1062,10 +1072,16 @@ async function saveDraftToDb() {
       bgDark: await readBgFile(state.bgDarkFile)
     };
     await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 1500);
+      const finish = () => {
+        clearTimeout(timer);
+        resolve();
+      };
       const tx = db.transaction(DRAFT_STORE, "readwrite");
       tx.objectStore(DRAFT_STORE).put(draft, DRAFT_KEY);
-      tx.oncomplete = resolve;
-      tx.onerror = resolve;
+      tx.oncomplete = finish;
+      tx.onerror = finish;
+      tx.onabort = finish;
     });
     if (els.draftStatusBadge) {
       const t = new Date().toLocaleTimeString("vi-VN", { hour12: false });
@@ -1091,10 +1107,17 @@ async function loadDraftFromDb() {
   if (!db) return null;
   try {
     return await new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(null), 1200);
       const tx = db.transaction(DRAFT_STORE, "readonly");
       const req = tx.objectStore(DRAFT_STORE).get(DRAFT_KEY);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => resolve(null);
+      req.onsuccess = () => {
+        clearTimeout(timer);
+        resolve(req.result || null);
+      };
+      req.onerror = () => {
+        clearTimeout(timer);
+        resolve(null);
+      };
     });
   } catch {
     return null;
@@ -2401,6 +2424,10 @@ async function init() {
     });
   });
 
+  els.tintColorPicker?.addEventListener("input", (e) => {
+    const hex = e.target.value.toUpperCase();
+    if (els.tintColorVal) els.tintColorVal.textContent = hex;
+  });
   els.tintColorPicker?.addEventListener("change", (e) => {
     const hex = e.target.value.toUpperCase();
     const item = state.emojis[state.activeEmotion];
@@ -2437,7 +2464,13 @@ async function init() {
   els.presetSelect?.addEventListener("change", scheduleSaveDraft);
 
   renderEmotionGrid();
-  const restored = await restoreDraftFromDb();
+  let restored = false;
+  try {
+    restored = await restoreDraftFromDb();
+  } catch (err) {
+    restored = false;
+    log(`Không thể khôi phục nháp cũ (${err?.message || "lỗi bộ nhớ tạm"}), đang nạp Theme mặc định...`, "info");
+  }
   if (restored) {
     // Vẫn nạp nền Font & Wake Word nếu chưa có trong bộ nhớ
     if (!state.srmodelsBytes) loadWakeWordModel(state.wakeWordId);
