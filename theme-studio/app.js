@@ -162,27 +162,67 @@ function log(msg, type = "") {
 // 1. ESP_MMAP_ASSETS BINARY PACKER & UNPACKER
 // ==========================================
 
+const MAX_BIN_IMPORT_BYTES = 16 * 1024 * 1024; // 16 MB
+const MAX_IMAGE_FILE_BYTES = 5 * 1024 * 1024;  // 5 MB / ảnh
+const MAX_SRMODEL_FILE_BYTES = 4 * 1024 * 1024; // 4 MB / model
+const MAX_PACKED_ASSETS_BYTES = 8 * 1024 * 1024; // 8 MB tối đa cho phân vùng assets
+const MAX_GIF_DIM = 1024;
+const MAX_GIF_FRAMES = 120;
+const MIN_SAFE_FLASH_OFFSET = 0x100000; // >= 1MB (bảo vệ Bootloader 0x0, Partition 0x8000, App0 0x10000)
+const MAX_SAFE_FLASH_OFFSET = 0x1f00000;
+const FLASH_SECTOR_ALIGNMENT = 0x1000; // 4KB sector alignment
+const SAFE_FILENAME_RE = /^[a-zA-Z0-9_.-]{1,31}$/;
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
+function sanitizeHexColor(val, fallback = "#000000") {
+  const s = String(val || "").trim();
+  return HEX_COLOR_RE.test(s) ? s.toUpperCase() : fallback;
+}
+
+function validateFlashOffset(offsetStr) {
+  const clean = String(offsetStr || "").trim();
+  if (!/^0x[0-9a-fA-F]{5,7}$/.test(clean)) {
+    throw new Error(`Địa chỉ Offset "${clean}" không hợp lệ (ví dụ chuẩn: 0x800000 hoặc 0x400000).`);
+  }
+  const addr = parseInt(clean, 16);
+  if (!Number.isInteger(addr) || addr < MIN_SAFE_FLASH_OFFSET || addr > MAX_SAFE_FLASH_OFFSET) {
+    throw new Error(
+      `Địa chỉ Offset ${clean} nằm trong vùng nguy hiểm (< 0x100000 có thể ghi đè hỏng Bootloader/Firmware ESP32). Đã chặn để bảo vệ mạch!`
+    );
+  }
+  if (addr % FLASH_SECTOR_ALIGNMENT !== 0) {
+    throw new Error(`Địa chỉ Offset ${clean} phải chia hết cho 4KB (0x1000).`);
+  }
+  return addr;
+}
+
 function unpackMmapAssets(arrayBuffer) {
   const view = new DataView(arrayBuffer);
   const bytes = new Uint8Array(arrayBuffer);
   if (bytes.length < 12) throw new Error("File .bin quá nhỏ hoặc không hợp lệ.");
+  if (bytes.length > MAX_BIN_IMPORT_BYTES) {
+    throw new Error(`File .bin vượt quá giới hạn an toàn (${Math.round(MAX_BIN_IMPORT_BYTES / 1024 / 1024)} MB).`);
+  }
 
   const numFiles = view.getUint32(0, true);
   const totalLen = view.getUint32(8, true);
-  if (numFiles === 0 || numFiles > 500 || 12 + totalLen > bytes.length) {
+  const tableEnd = 12 + numFiles * 44;
+  if (numFiles === 0 || numFiles > 500 || tableEnd > bytes.length || 12 + totalLen > bytes.length) {
     throw new Error(`Header esp_mmap_assets không hợp lệ (numFiles=${numFiles}).`);
   }
 
-  const tableEnd = 12 + numFiles * 44;
   const decoder = new TextDecoder("utf-8");
-  const files = {};
-  const dimensions = {};
+  const files = Object.create(null);
+  const dimensions = Object.create(null);
 
   for (let i = 0; i < numFiles; i++) {
     const entryOff = 12 + i * 44;
     const rawName = bytes.slice(entryOff, entryOff + 32);
     const nullIdx = rawName.indexOf(0);
-    const name = decoder.decode(nullIdx >= 0 ? rawName.slice(0, nullIdx) : rawName);
+    const name = decoder.decode(nullIdx >= 0 ? rawName.slice(0, nullIdx) : rawName).trim();
+    if (!SAFE_FILENAME_RE.test(name)) {
+      continue;
+    }
 
     const size = view.getUint32(entryOff + 32, true);
     const offset = view.getUint32(entryOff + 36, true);
@@ -190,11 +230,17 @@ function unpackMmapAssets(arrayBuffer) {
     const h = view.getUint16(entryOff + 42, true);
 
     let start = tableEnd + offset;
+    if (start < tableEnd || start + 2 > bytes.length) {
+      throw new Error(`Offset của file '${name}' nằm ngoài phạm vi gói .bin.`);
+    }
     if (bytes[start] === 0x5a && bytes[start + 1] === 0x5a) { // 'ZZ'
       start += 2;
     }
+    if (size > MAX_BIN_IMPORT_BYTES || start + size > bytes.length) {
+      throw new Error(`Kích thước của file '${name}' vượt quá phạm vi gói .bin.`);
+    }
     files[name] = bytes.slice(start, start + size);
-    dimensions[name] = [w, h];
+    dimensions[name] = [Math.min(w, MAX_GIF_DIM), Math.min(h, MAX_GIF_DIM)];
   }
 
   return { files, dimensions };
@@ -470,16 +516,19 @@ function shiftGifBytes(u8, dx, dy) {
   dx = Math.round(dx) || 0;
   dy = Math.round(dy) || 0;
   if (dx === 0 && dy === 0) return u8;
+  if (!u8 || u8.length < 14 || u8.length > MAX_IMAGE_FILE_BYTES) return u8;
   if (u8[0] !== 0x47 || u8[1] !== 0x49 || u8[2] !== 0x46) return u8;
 
   const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
   const width = view.getUint16(6, true);
   const height = view.getUint16(8, true);
+  if (width < 1 || width > MAX_GIF_DIM || height < 1 || height > MAX_GIF_DIM) return u8;
   const packed = u8[10];
   const bgIndex = u8[11];
   const gctFlag = (packed & 0x80) !== 0;
   const gctSize = gctFlag ? 3 * (1 << ((packed & 7) + 1)) : 0;
   let pos = 13 + gctSize;
+  if (pos > u8.length) return u8;
   const headerAndGct = u8.slice(0, pos);
 
   const canvas = new Uint8Array(width * height);
@@ -528,20 +577,24 @@ function shiftGifBytes(u8, dx, dy) {
         readSubBlocks();
       }
     } else if (blockId === 0x2c) {
+      if (pos + 9 > u8.length || frames.length >= MAX_GIF_FRAMES) break;
       const fLeft = view.getUint16(pos, true);
       const fTop = view.getUint16(pos + 2, true);
       const fW = view.getUint16(pos + 4, true);
       const fH = view.getUint16(pos + 6, true);
       const fPacked = u8[pos + 8];
       pos += 9;
+      if (fW < 1 || fW > MAX_GIF_DIM || fH < 1 || fH > MAX_GIF_DIM) break;
       let lct = null;
       if (fPacked & 0x80) {
         const lctLen = 3 * (1 << ((fPacked & 7) + 1));
+        if (pos + lctLen > u8.length) break;
         lct = u8.slice(pos, pos + lctLen);
         pos += lctLen;
       }
       const minCodeSize = u8[pos++];
       const lzwData = readSubBlocks();
+      if (minCodeSize < 2 || minCodeSize > 8) break;
       const indices = lzwDecode(minCodeSize, lzwData, fW * fH);
 
       const prevCanvas = canvas.slice();
@@ -1145,6 +1198,11 @@ function renderEmotionGrid() {
 }
 
 async function assignEmotionFile(emo, file) {
+  if (!STANDARD_EMOTIONS.includes(emo)) return;
+  if (file.size > MAX_IMAGE_FILE_BYTES) {
+    log(`File "${file.name}" quá lớn (tối đa ${Math.round(MAX_IMAGE_FILE_BYTES / 1024 / 1024)} MB).`, "err");
+    return;
+  }
   const buf = await file.arrayBuffer();
   const bytes = new Uint8Array(buf);
   const [w, h] = await getImageDimensions(bytes, file.type || "image/gif");
@@ -1170,6 +1228,10 @@ async function assignEmotionFile(emo, file) {
 async function handleBulkFiles(fileList) {
   let matchedCount = 0;
   for (const file of fileList) {
+    if (file.size > MAX_IMAGE_FILE_BYTES) {
+      log(`Bỏ qua "${file.name}": vượt quá ${Math.round(MAX_IMAGE_FILE_BYTES / 1024 / 1024)} MB.`, "err");
+      continue;
+    }
     const stem = file.name.replace(/\.[^/.]+$/, "").toLowerCase();
     const matchedEmos = [];
 
@@ -1377,6 +1439,9 @@ async function loadBaseAssetsAndPreset(presetId = els.presetSelect?.value || "ro
 
 async function importBinFile(file) {
   try {
+    if (file.size > MAX_BIN_IMPORT_BYTES) {
+      throw new Error(`File .bin vượt quá giới hạn an toàn (${Math.round(MAX_BIN_IMPORT_BYTES / 1024 / 1024)} MB).`);
+    }
     log(`Đang giải nén ${file.name}...`, "info");
     const buf = await file.arrayBuffer();
     const { files, dimensions } = unpackMmapAssets(buf);
@@ -1384,13 +1449,13 @@ async function importBinFile(file) {
     if (!files["index.json"]) throw new Error("Không tìm thấy index.json trong gói .bin");
     const idxJson = JSON.parse(new TextDecoder().decode(files["index.json"]));
 
-    if (idxJson.srmodels && files[idxJson.srmodels]) {
+    if (typeof idxJson.srmodels === "string" && SAFE_FILENAME_RE.test(idxJson.srmodels) && files[idxJson.srmodels]) {
       state.srmodelsBytes = files[idxJson.srmodels];
       state.includeSrmodels = true;
       els.includeSrmodelsCheck.checked = true;
     }
 
-    if (idxJson.text_font && files[idxJson.text_font]) {
+    if (typeof idxJson.text_font === "string" && SAFE_FILENAME_RE.test(idxJson.text_font) && files[idxJson.text_font]) {
       state.fontName = idxJson.text_font;
       state.fontBytes = files[idxJson.text_font];
       state.fontMeta = idxJson.text_font_meta || state.fontMeta;
@@ -1402,21 +1467,29 @@ async function importBinFile(file) {
     els.hideSubtitleCheck.checked = state.hideSubtitle;
 
     if (idxJson.skin?.light) {
-      state.skin.light.text_color = idxJson.skin.light.text_color || "#FFFFFF";
-      state.skin.light.background_color = idxJson.skin.light.background_color || "#000000";
+      state.skin.light.text_color = sanitizeHexColor(idxJson.skin.light.text_color, "#FFFFFF");
+      state.skin.light.background_color = sanitizeHexColor(idxJson.skin.light.background_color, "#000000");
     }
     if (idxJson.skin?.dark) {
-      state.skin.dark.text_color = idxJson.skin.dark.text_color || "#FFFFFF";
-      state.skin.dark.background_color = idxJson.skin.dark.background_color || "#000000";
+      state.skin.dark.text_color = sanitizeHexColor(idxJson.skin.dark.text_color, "#FFFFFF");
+      state.skin.dark.background_color = sanitizeHexColor(idxJson.skin.dark.background_color, "#000000");
     }
     syncColorInputs();
 
     if (Array.isArray(idxJson.emoji_collection)) {
       for (const item of idxJson.emoji_collection) {
-        if (files[item.file]) {
+        if (
+          item &&
+          typeof item.name === "string" &&
+          STANDARD_EMOTIONS.includes(item.name) &&
+          typeof item.file === "string" &&
+          SAFE_FILENAME_RE.test(item.file) &&
+          files[item.file]
+        ) {
           const bytes = files[item.file];
           const mime = item.file.endsWith(".png") ? "image/png" : "image/gif";
           const [w, h] = dimensions[item.file] || [state.width, state.height];
+          const prevUrl = state.emojis[item.name]?.url;
           state.emojis[item.name] = {
             filename: item.file,
             rawBytes: bytes,
@@ -1427,6 +1500,7 @@ async function importBinFile(file) {
             offsetX: 0,
             offsetY: 0
           };
+          safeRevokeBlobUrl(prevUrl);
         }
       }
     }
@@ -1465,15 +1539,30 @@ async function flashViaWebSerial() {
     els.exportBinBtn.disabled = true;
 
     log("Đang đóng gói assets.bin trong trình duyệt...", "info");
-    const packedBytes = await buildAssetsBinary();
     const offsetStr = els.flashOffsetInput.value.trim() || "0x800000";
-    const flashAddr = parseInt(offsetStr, 16);
-    const baudRate = parseInt(els.baudRateSelect.value, 10) || 921600;
+    const flashAddr = validateFlashOffset(offsetStr);
+    if (flashAddr < 0x200000) {
+      const ok = confirm(
+        `⚠️ Cảnh báo: Địa chỉ Offset ${offsetStr} khá thấp (< 0x200000). Offset chuẩn của XiaoZhi thường là 0x800000 (16MB Flash) hoặc 0x400000 (8MB Flash).\nBạn có chắc chắn muốn tiếp tục nạp vào ${offsetStr} không?`
+      );
+      if (!ok) {
+        log("Đã hủy thao tác nạp theo yêu cầu người dùng.", "info");
+        return;
+      }
+    }
+
+    const packedBytes = await buildAssetsBinary();
+    if (packedBytes.length > MAX_PACKED_ASSETS_BYTES) {
+      throw new Error(
+        `Gói assets.bin quá lớn (${(packedBytes.length / 1024 / 1024).toFixed(2)} MB > giới hạn 8 MB). Hãy bật "Lược bỏ Font mở rộng" hoặc giảm dung lượng GIF.`
+      );
+    }
+    const baudRate = parseInt(els.baudRateSelect.value, 10) || 460800;
 
     log(`Đang yêu cầu chọn cổng USB Serial (nạp vào ${offsetStr}, ${packedBytes.length} bytes)...`, "info");
     const port = await navigator.serial.requestPort();
 
-    const { ESPLoader, Transport } = await import("https://esm.sh/esptool-js@0.4.5");
+    const { ESPLoader, Transport } = await import("./vendor/esptool-js.bundle.js");
     transport = new Transport(port, true);
 
     const terminal = {
@@ -1619,6 +1708,10 @@ function init() {
   els.customSrmodelInput?.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_SRMODEL_FILE_BYTES) {
+      log(`File srmodels "${file.name}" vượt quá giới hạn an toàn (${Math.round(MAX_SRMODEL_FILE_BYTES / 1024 / 1024)} MB).`, "err");
+      return;
+    }
     state.srmodelsBytes = new Uint8Array(await file.arrayBuffer());
     log(`Đã nạp file Wake Word tùy chỉnh: ${file.name} (${Math.round(state.srmodelsBytes.length / 1024)} KB).`, "ok");
     updateStats();
