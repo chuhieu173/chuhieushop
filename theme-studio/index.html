@@ -207,6 +207,9 @@
         <div class="card-header">
           <h2>2. Bộ 21 Biểu Cảm (Kéo thả GIF/PNG)</h2>
           <div class="emo-toolbar">
+            <button id="toggleDonorBtn" class="btn btn-sm btn-cyan" title="Mở kho biểu cảm từ một Theme có sẵn khác để kéo thả sang Theme hiện tại">
+              🎨 Lấy từ Theme khác
+            </button>
             <button id="emoDragModeBtn" class="btn btn-sm btn-secondary" title="Chuyển chế độ khi kéo thả giữa các ô cảm xúc">
               🔀 Kéo thả: Sao chép
             </button>
@@ -218,6 +221,27 @@
               <input type="file" id="bulkEmojiInput" accept=".gif,.png,.jpg,.jpeg" multiple hidden />
             </label>
           </div>
+        </div>
+        <!-- Kho biểu cảm từ Theme khác (Donor Theme Drawer) -->
+        <div id="donorDrawer" class="donor-drawer hidden">
+          <div class="donor-header">
+            <div class="donor-picker">
+              <label for="donorPresetSelect">📂 Chọn Theme nguồn:</label>
+              <select id="donorPresetSelect" class="preset-select"></select>
+            </div>
+            <div class="donor-actions">
+              <button id="donorCopyMatchBtn" type="button" class="btn btn-sm btn-secondary" title="Chép biểu cảm cùng tên từ Theme nguồn sang ô đang chọn">
+                ⚡ Chép ô cùng tên
+              </button>
+              <button id="closeDonorBtn" type="button" class="btn btn-sm btn-secondary" title="Đóng kho Theme phụ">
+                ✕ Đóng
+              </button>
+            </div>
+          </div>
+          <div class="donor-hint">
+            👉 <strong>Kéo thả</strong> biểu cảm bất kỳ từ kho dưới đây xuống <strong>Bộ 21 Biểu Cảm chính</strong> bên dưới, hoặc <strong>bấm vào 1 ô</strong> để gán ngay cho cảm xúc đang xem (<code id="donorTargetEmoLabel">neutral</code>).
+          </div>
+          <div id="donorEmotionGrid" class="emotion-grid donor-grid"></div>
         </div>
         <div id="bulkDropZone" class="bulk-drop-hint">
           💡 Mẹo: Kéo thả nhiều file GIF/PNG vào đây để tự động khớp tên, hoặc <strong>kéo thả trực tiếp từ ô biểu cảm này sang ô khác</strong> để sao chép / đổi chỗ!
@@ -261,6 +285,53 @@
         <div class="preview-footer">
           <span>Đang xem cảm xúc: <strong id="activeEmotionLabel">neutral</strong></span>
           <span id="packageStats">Ước tính: ~0 KB (0 files)</span>
+        </div>
+
+        <!-- Công cụ căn chỉnh vị trí ảnh (Dịch Trái/Phải, Lên/Xuống) -->
+        <div class="align-box">
+          <div class="align-header">
+            <strong>🎯 Căn chỉnh vị trí ảnh (<span id="alignTargetLabel">neutral</span>)</strong>
+            <div class="align-step-wrap">
+              <span>Bước:</span>
+              <select id="shiftStepSelect" class="align-step-select">
+                <option value="2">2 px</option>
+                <option value="5" selected>5 px</option>
+                <option value="10">10 px</option>
+                <option value="20">20 px</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="align-dpad-row">
+            <button type="button" id="shiftLeftBtn" class="btn btn-sm btn-secondary" title="Dịch sang trái">⬅️ Trái</button>
+            <button type="button" id="shiftUpBtn" class="btn btn-sm btn-secondary" title="Dịch lên trên">⬆️ Lên</button>
+            <button type="button" id="shiftDownBtn" class="btn btn-sm btn-secondary" title="Dịch xuống dưới">⬇️ Xuống</button>
+            <button type="button" id="shiftRightBtn" class="btn btn-sm btn-secondary" title="Dịch sang phải">➡️ Phải</button>
+            <button type="button" id="shiftResetBtn" class="btn btn-sm btn-secondary" title="Đưa về vị trí gốc (0, 0)">↺ Gốc (0,0)</button>
+          </div>
+
+          <div class="align-sliders">
+            <label class="align-slider-row">
+              <span>Ngang (X):</span>
+              <input type="range" id="shiftXRange" min="-120" max="120" step="1" value="0" />
+              <code id="shiftXVal">0px</code>
+            </label>
+            <label class="align-slider-row">
+              <span>Dọc (Y):</span>
+              <input type="range" id="shiftYRange" min="-120" max="120" step="1" value="0" />
+              <code id="shiftYVal">0px</code>
+            </label>
+          </div>
+
+          <div class="align-Batch-row">
+            <button type="button" id="applyShiftAllBtn" class="btn btn-sm btn-cyan" title="Áp dụng độ lệch (X, Y) hiện tại đồng loạt cho cả 21 biểu cảm trong Theme">
+              📐 Áp dụng (X, Y) này cho cả 21 biểu cảm
+            </button>
+            <button type="button" id="resetShiftAllBtn" class="btn btn-sm btn-secondary" title="Đặt lại vị trí (0, 0) cho toàn bộ 21 biểu cảm">
+              ↺ Reset vị trí cả 21 ô
+            </button>
+          </div>
+          <small class="align-tip">💡 Bạn cũng có thể <strong>giữ chuột kéo trực tiếp biểu cảm ngay trên màn hình ảo</strong> để căn chỉnh vị trí (tự động ghi thẳng vào file GIF khi nạp ESP32).</small>
         </div>
       </div>
 
