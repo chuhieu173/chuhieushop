@@ -830,7 +830,6 @@
       -webkit-line-clamp: unset !important;
       overflow: visible !important;
       white-space: pre-line;
-      text-align: left;
     }
     .btn-read-more-desc {
       display: inline-flex;
@@ -6178,12 +6177,36 @@
       return html;
     }
 
+    function updateProductReadMoreButtons() {
+      const cards = document.querySelectorAll('#product-list .product-card');
+      cards.forEach(card => {
+        const btn = card.querySelector('.btn-read-more-desc');
+        const h3 = card.querySelector('h3');
+        const p = card.querySelector('p');
+        if (!btn) return;
+        const isExpanded = card.classList.contains('desc-expanded');
+        if (isExpanded) {
+          btn.style.display = 'inline-flex';
+          return;
+        }
+        const h3Clipped = h3 ? (h3.scrollHeight > h3.clientHeight + 2) : false;
+        const pClipped = (p && p.style.display !== 'none') ? (p.scrollHeight > p.clientHeight + 2) : false;
+        const clipped = h3Clipped || pClipped;
+        btn.style.display = clipped ? 'inline-flex' : 'none';
+        if (h3) h3.style.cursor = clipped ? 'pointer' : '';
+        if (p) p.style.cursor = clipped ? 'pointer' : '';
+      });
+    }
+
     function toggleProductCardExpand(el) {
       if (!el) return;
       const card = el.closest('.product-card');
       if (!card) return;
-      const expanded = card.classList.toggle('desc-expanded');
       const btn = card.querySelector('.btn-read-more-desc');
+      if (!card.classList.contains('desc-expanded') && btn && btn.style.display === 'none') {
+        return;
+      }
+      const expanded = card.classList.toggle('desc-expanded');
       if (btn) {
         btn.innerHTML = expanded ? '▴ Thu gọn mô tả' : '▾ Xem đầy đủ mô tả';
       }
@@ -6647,17 +6670,17 @@
         let addBtnText = isOos ? '❌ Hết hàng' : 'Thêm vào giỏ';
         let addBtnDisabled = isOos ? 'disabled' : '';
 
-        let needsExpand = ((p.desc || '').trim().length > 48) || ((p.name || '').trim().length > 36);
-        let readMoreBtnHtml = needsExpand
-          ? `<button type="button" class="btn-read-more-desc" onclick="toggleProductCardExpand(this)">▾ Xem đầy đủ mô tả</button>`
+        let hasAnyText = Boolean((p.desc || '').trim() || (p.name || '').trim());
+        let readMoreBtnHtml = hasAnyText
+          ? `<button type="button" class="btn-read-more-desc" style="display:none;" onclick="toggleProductCardExpand(this)">▾ Xem đầy đủ mô tả</button>`
           : '';
 
         let card = document.createElement('div'); card.className = 'product-card';
         card.innerHTML = `
           <div id="badge-wrap-${p.id}">${badgeHtml}</div>
           <div class="carousel"><div class="carousel-slides" id="slides-${p.id}" data-carousel-id="${p.id}" data-total-imgs="${totalImgs}">${imagesHtml}</div>${arrowsHtml}</div>
-          <h3${needsExpand ? ' onclick="toggleProductCardExpand(this)" style="cursor:pointer;"' : ''}>${escapeHtml(p.name)}</h3>
-          ${p.desc ? `<p${needsExpand ? ' onclick="toggleProductCardExpand(this)" style="cursor:pointer;"' : ''}>${escapeHtml(p.desc)}</p>` : '<p style="display:none;"></p>'}
+          <h3 onclick="toggleProductCardExpand(this)">${escapeHtml(p.name)}</h3>
+          ${p.desc ? `<p onclick="toggleProductCardExpand(this)">${escapeHtml(p.desc)}</p>` : '<p style="display:none;"></p>'}
           ${readMoreBtnHtml}
           ${chipsHtml}
           <div class="price-container" id="price-container-${p.id}">${priceHtml}</div>
@@ -6671,6 +6694,11 @@
         prodFrag.appendChild(card);
       });
       pList.appendChild(prodFrag);
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(updateProductReadMoreButtons);
+      } else {
+        updateProductReadMoreButtons();
+      }
 
       const regTitleEl = document.getElementById('regular-title');
       if (regTitleEl) {
@@ -8025,6 +8053,11 @@
         if (e && e.persisted) {
           setTimeout(flushPendingOrderDiag, 3000);
         }
+      });
+      let resizeDescTimer = null;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeDescTimer);
+        resizeDescTimer = setTimeout(updateProductReadMoreButtons, 150);
       });
     }
 
