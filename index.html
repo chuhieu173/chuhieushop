@@ -819,7 +819,40 @@
     }
     
     .product-card h3 { font-size: 16px; margin: 15px 0 5px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 40px; transition: 0.3s;}
-    .product-card p { font-size: 13px; color: #666; margin: 0 0 15px 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1; transition: 0.3s;}
+    .product-card p { font-size: 13px; color: #666; margin: 0 0 10px 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1; transition: 0.3s; line-height: 1.45;}
+    .product-card.desc-expanded h3 {
+      display: block !important;
+      -webkit-line-clamp: unset !important;
+      overflow: visible !important;
+    }
+    .product-card.desc-expanded p {
+      display: block !important;
+      -webkit-line-clamp: unset !important;
+      overflow: visible !important;
+      white-space: pre-line;
+      text-align: left;
+    }
+    .btn-read-more-desc {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px auto;
+      padding: 3px 10px;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-read-more-desc:hover { background: #dbeafe; }
+    body.theme-dark .btn-read-more-desc {
+      background: rgba(56, 189, 248, 0.14);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #7dd3fc;
+    }
     
     .price-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; margin-top: auto; margin-bottom: 12px; min-height: 45px;}
     .original-price { color: #888; text-decoration: line-through; font-size: 0.9em; margin-bottom: 2px; }
@@ -2361,7 +2394,10 @@
       .combo-card-content-col p {
         font-size: 12.5px !important;
         margin-bottom: 6px !important;
-        -webkit-line-clamp: 2 !important;
+        display: block !important;
+        -webkit-line-clamp: unset !important;
+        overflow: visible !important;
+        white-space: pre-line !important;
       }
       .combo-items-compact {
         padding: 6px 10px !important;
@@ -2465,7 +2501,7 @@
       body.product-grid-2col #product-list .product-card p {
         font-size: 12px !important;
         margin-bottom: 6px !important;
-        -webkit-line-clamp: 2 !important;
+        -webkit-line-clamp: 3 !important;
       }
       body.product-grid-2col #product-list .current-price {
         font-size: 1.15em !important;
@@ -2717,9 +2753,12 @@
       }
       .combo-card-content-col p {
         font-size: 12px !important;
-        line-height: 1.35 !important;
+        line-height: 1.4 !important;
         margin-bottom: 6px !important;
-        -webkit-line-clamp: 2 !important;
+        display: block !important;
+        -webkit-line-clamp: unset !important;
+        overflow: visible !important;
+        white-space: pre-line !important;
       }
       .combo-items-compact {
         padding: 7px 9px !important;
@@ -2873,7 +2912,20 @@
       body.product-grid-2col #view-products #product-list .product-card p {
         font-size: 11.5px !important;
         margin-bottom: 5px !important;
-        -webkit-line-clamp: 1 !important;
+        line-height: 1.4 !important;
+        -webkit-line-clamp: 3 !important;
+      }
+      body.mobile-grid-2col #view-products #product-list .product-card.desc-expanded p,
+      body.product-grid-2col #view-products #product-list .product-card.desc-expanded p {
+        -webkit-line-clamp: unset !important;
+        display: block !important;
+        overflow: visible !important;
+      }
+      body.mobile-grid-2col #view-products #product-list .btn-read-more-desc,
+      body.product-grid-2col #view-products #product-list .btn-read-more-desc {
+        font-size: 10.5px !important;
+        padding: 2px 8px !important;
+        margin-bottom: 6px !important;
       }
       body.mobile-grid-2col #view-products #product-list .variant-selector-wrapper,
       body.product-grid-2col #view-products #product-list .variant-selector-wrapper {
@@ -6126,6 +6178,17 @@
       return html;
     }
 
+    function toggleProductCardExpand(el) {
+      if (!el) return;
+      const card = el.closest('.product-card');
+      if (!card) return;
+      const expanded = card.classList.toggle('desc-expanded');
+      const btn = card.querySelector('.btn-read-more-desc');
+      if (btn) {
+        btn.innerHTML = expanded ? '▴ Thu gọn mô tả' : '▾ Xem đầy đủ mô tả';
+      }
+    }
+
     function toggleComboItems(btn, totalCount) {
       if (!btn) return;
       const box = btn.closest('.combo-items-compact');
@@ -6584,12 +6647,18 @@
         let addBtnText = isOos ? '❌ Hết hàng' : 'Thêm vào giỏ';
         let addBtnDisabled = isOos ? 'disabled' : '';
 
+        let needsExpand = ((p.desc || '').trim().length > 48) || ((p.name || '').trim().length > 36);
+        let readMoreBtnHtml = needsExpand
+          ? `<button type="button" class="btn-read-more-desc" onclick="toggleProductCardExpand(this)">▾ Xem đầy đủ mô tả</button>`
+          : '';
+
         let card = document.createElement('div'); card.className = 'product-card';
         card.innerHTML = `
           <div id="badge-wrap-${p.id}">${badgeHtml}</div>
           <div class="carousel"><div class="carousel-slides" id="slides-${p.id}" data-carousel-id="${p.id}" data-total-imgs="${totalImgs}">${imagesHtml}</div>${arrowsHtml}</div>
-          <h3>${escapeHtml(p.name)}</h3>
-          <p>${escapeHtml(p.desc)}</p>
+          <h3${needsExpand ? ' onclick="toggleProductCardExpand(this)" style="cursor:pointer;"' : ''}>${escapeHtml(p.name)}</h3>
+          ${p.desc ? `<p${needsExpand ? ' onclick="toggleProductCardExpand(this)" style="cursor:pointer;"' : ''}>${escapeHtml(p.desc)}</p>` : '<p style="display:none;"></p>'}
+          ${readMoreBtnHtml}
           ${chipsHtml}
           <div class="price-container" id="price-container-${p.id}">${priceHtml}</div>
           <div class="qty-wrapper">
