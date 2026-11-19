@@ -4556,7 +4556,10 @@
         });
         // Sắp xếp sản phẩm theo thứ tự hiển thị tùy chỉnh (từ Google Sheets Column 10)
         productsData.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-        combosData = (resData.combos || []).slice();
+        combosData = (resData.combos || []).filter(c => {
+          let st = (c && c.status ? c.status : "").toString().toLowerCase().trim();
+          return !(st === "ẩn" || st === "an" || st === "đã xóa" || st === "da xoa" || st.includes("xóa") || st.includes("xoa"));
+        });
         postsData = (resData.posts || []).slice(); // Load thêm dữ liệu bài viết
         globalShippingFee = resData.shippingFee !== undefined ? Number(resData.shippingFee) : 18000;
         

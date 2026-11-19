@@ -1979,11 +1979,24 @@
 
     <!-- TAB COMBO -->
     <div id="combos" class="content">
-      <div style="margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
         <button class="btn-update" style="background: #38a169; font-weight: bold; font-size: 15px; padding: 12px 20px;" onclick="openComboModal()">+ TẠO COMBO MỚI</button>
       </div>
+      <!-- Thanh tìm kiếm & bộ lọc trạng thái Combo -->
+      <div id="combos-toolbar" class="inventory-toolbar">
+        <div class="inventory-search-wrap">
+          <input type="text" id="combos-search-input" class="inventory-search-input" placeholder="🔍 Tìm nhanh theo tên Combo, mã ID, đối tác..." oninput="onCombosSearchInput(this.value)">
+          <button type="button" id="btn-clear-combos-search" class="inventory-search-clear" onclick="clearCombosSearch()" title="Xóa tìm kiếm">✕</button>
+        </div>
+        <div class="inv-filter-pills">
+          <button type="button" id="combo-pill-active" class="inv-pill active" onclick="filterCombosByStatus('active', this)">👀 Đang bán <span id="combo-count-active" class="inv-pill-badge">0</span></button>
+          <button type="button" id="combo-pill-all" class="inv-pill" onclick="filterCombosByStatus('all', this)">Tất cả <span id="combo-count-all" class="inv-pill-badge">0</span></button>
+          <button type="button" id="combo-pill-hidden" class="inv-pill" onclick="filterCombosByStatus('hidden', this)">👻 Đang ẩn <span id="combo-count-hidden" class="inv-pill-badge">0</span></button>
+          <button type="button" id="combo-pill-deleted" class="inv-pill" onclick="filterCombosByStatus('deleted', this)">🗑️ Đã xóa <span id="combo-count-deleted" class="inv-pill-badge">0</span></button>
+        </div>
+      </div>
       <table>
-        <thead><tr><th>ID Combo</th><th>Ảnh Nội Suy</th><th style="width: 30%;">Tên Combo & Thành Phần</th><th>Giá Tự Động</th><th>Kho Tự Động</th><th style="width: 15%;">Thao tác</th></tr></thead>
+        <thead><tr><th>ID Combo</th><th>Ảnh Nội Suy</th><th style="width: 30%;">Tên Combo &amp; Thành Phần</th><th>Giá Tự Động</th><th>Kho Tự Động</th><th style="width: 15%;">Thao tác</th></tr></thead>
         <tbody id="combos-body"></tbody>
       </table>
     </div>
@@ -6405,11 +6418,90 @@
       if (wrap) wrap.style.display = (mode === 'custom') ? 'block' : 'none';
     }
 
+    let currentComboStatusFilter = 'active';
+    let currentComboSearchQuery = '';
+
+    function isComboDeletedAdmin(c) {
+      const st = (c && c.status ? c.status : '').toString().toLowerCase().trim();
+      return (st === 'đã xóa' || st === 'da xoa' || st === 'xóa' || st === 'xoa' || st.includes('xóa') || st.includes('xoa'));
+    }
+
+    function isComboHiddenAdmin(c) {
+      const st = (c && c.status ? c.status : '').toString().toLowerCase().trim();
+      return (st === 'ẩn' || st === 'an');
+    }
+
+    function onCombosSearchInput(val) {
+      currentComboSearchQuery = (val || '').trim().toLowerCase();
+      const clr = document.getElementById('btn-clear-combos-search');
+      if (clr) clr.style.display = currentComboSearchQuery ? 'block' : 'none';
+      renderCombos(globalCombosData);
+    }
+
+    function clearCombosSearch() {
+      currentComboSearchQuery = '';
+      const inp = document.getElementById('combos-search-input');
+      if (inp) inp.value = '';
+      const clr = document.getElementById('btn-clear-combos-search');
+      if (clr) clr.style.display = 'none';
+      renderCombos(globalCombosData);
+    }
+
+    function filterCombosByStatus(statusKey, btnEl) {
+      currentComboStatusFilter = statusKey || 'active';
+      document.querySelectorAll('#combos-toolbar .inv-pill').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      renderCombos(globalCombosData);
+    }
+
+    function updateComboFilterCounts(combos) {
+      const list = Array.isArray(combos) ? combos : [];
+      let cActive = 0, cHidden = 0, cDeleted = 0;
+      list.forEach(c => {
+        if (isComboDeletedAdmin(c)) cDeleted++;
+        else if (isComboHiddenAdmin(c)) cHidden++;
+        else cActive++;
+      });
+      const elA = document.getElementById('combo-count-active');
+      const elAll = document.getElementById('combo-count-all');
+      const elH = document.getElementById('combo-count-hidden');
+      const elD = document.getElementById('combo-count-deleted');
+      if (elA) elA.innerText = String(cActive);
+      if (elAll) elAll.innerText = String(cActive + cHidden);
+      if (elH) elH.innerText = String(cHidden);
+      if (elD) elD.innerText = String(cDeleted);
+    }
+
     function renderCombos(combos) {
       const tbody = document.getElementById('combos-body');
+      updateComboFilterCounts(combos);
       if (!combos || combos.length === 0) { tbody.innerHTML = "<tr><td colspan='6'>Chưa có Combo nào. Bạn hãy tạo mới nhé!</td></tr>"; return; }
+
+      const filtered = combos.filter(c => {
+        const isDel = isComboDeletedAdmin(c);
+        const isHid = isComboHiddenAdmin(c);
+        if (currentComboStatusFilter === 'active' && (isDel || isHid)) return false;
+        if (currentComboStatusFilter === 'all' && isDel) return false;
+        if (currentComboStatusFilter === 'hidden' && (!isHid || isDel)) return false;
+        if (currentComboStatusFilter === 'deleted' && !isDel) return false;
+
+        if (currentComboSearchQuery) {
+          const pCfg = getComboPartnerConfigAdmin(c);
+          const hay = `${c.id || ''} ${c.name || ''} ${c.desc || ''} ${pCfg.partnerName || ''}`.toLowerCase();
+          if (!hay.includes(currentComboSearchQuery)) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:22px; color:#718096;'>Không tìm thấy Combo nào trong mục này.</td></tr>";
+        return;
+      }
+
       let rowsHtml = [];
-      combos.forEach(c => {
+      filtered.forEach(c => {
+        const isDel = isComboDeletedAdmin(c);
+        const isHid = isComboHiddenAdmin(c);
         const pCfg = getComboPartnerConfigAdmin(c);
         const rawList = Array.isArray(c.rawItems) ? c.rawItems.filter(i => i && i.id !== '__PARTNER_META__') : [];
         let itemsHtml = rawList.length > 0
@@ -6424,6 +6516,10 @@
         let partnerBadgeHtml = pCfg.isPartner
           ? `<span style="display:inline-block; margin-left:6px; background:linear-gradient(135deg, #0284c7, #4f46e5); color:#fff; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:bold;">🤝 ĐỐI TÁC: ${escapeHtml(pCfg.partnerName)} (Zalo: ${escapeHtml(pCfg.partnerZalo)})</span>`
           : '';
+        let statusBadgeHtml = isDel
+          ? `<span style="display:inline-block; margin-left:6px; background:#fed7d7; color:#c53030; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:bold;">🗑️ ĐÃ XÓA</span>`
+          : (isHid ? `<span style="display:inline-block; margin-left:6px; background:#edf2f7; color:#4a5568; border:1px solid #cbd5e0; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:bold;">👻 ĐANG ẨN</span>` : '');
+        let rowBgStyle = isDel ? 'background:#fff5f5; opacity:0.85;' : (isHid ? 'background:#f8fafc; opacity:0.88;' : '');
         
         let flashBadge = "";
         let giftDetailHtml = "";
@@ -6440,12 +6536,13 @@
           giftDetailHtml = `<div style="margin-top:6px; padding:6px 10px; background:#fffaf0; border-left:3px solid #dd6b20; border-radius:4px; font-size:12px; color:#7b341e;">${giftLines}${timeInfo}</div>`;
         }
 
-        rowsHtml.push(`<tr>
+        rowsHtml.push(`<tr style="${rowBgStyle}">
             <td data-label="ID Combo" style="color:#718096; font-size: 13px;">${escapeHtml(c.id)}</td>
             <td data-label="Ảnh Nội Suy"><img src="${escapeHtml(resolveSafeImgUrl(firstImg))}" data-orig-src="${escapeHtml(firstImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên & Thành Phần">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <b style="font-size:15px; color:${pCfg.isPartner ? '#0369a1' : '#c53030'};">[COMBO] ${escapeHtml(c.name)}</b>
+                ${statusBadgeHtml}
                 ${partnerBadgeHtml}
                 ${flashBadge}
                 ${(Array.isArray(c.videos) && c.videos.length > 0) ? `<span style="display:inline-block; margin-left:6px; background:#805ad5; color:#fff; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:bold;">🎬 ${c.videos.length} VIDEO</span>` : ''}
@@ -6473,8 +6570,12 @@
             </td>
             <td data-label="Kho Tự Động">${stockHtml}</td>
             <td data-label="Thao tác">
-              <button class="btn-update" onclick="openComboModal('${c.id}')" style="margin-bottom:5px;">Sửa</button>
-              <button class="btn-update btn-delete" onclick="deleteCombo('${c.id}')">Xóa</button>
+              <div style="display:flex; flex-direction:column; gap:5px;">
+                <button class="btn-update" onclick="openComboModal('${c.id}')">✏️ Sửa</button>
+                ${(!isDel && !isHid) ? `<button class="btn-update" style="background:#718096;" onclick="quickHideCombo('${c.id}')">👻 Ẩn</button>` : ''}
+                ${(isHid || isDel) ? `<button class="btn-update" style="background:#38a169;" onclick="quickRestoreCombo('${c.id}')">${isDel ? '♻️ Mở bán lại' : '👀 Mở bán'}</button>` : ''}
+                ${!isDel ? `<button class="btn-update btn-delete" onclick="quickDeleteCombo('${c.id}')">🗑️ Xóa</button>` : `<button class="btn-update btn-delete" style="background:#9b2c2c;" onclick="deleteCombo('${c.id}', true)">❌ Xóa hẳn</button>`}
+              </div>
             </td>
           </tr>`);
       });
@@ -7679,14 +7780,72 @@
       } catch (e) { alert("Lỗi khi lưu!"); showLoading(false); }
     }
 
-    async function deleteCombo(comboId) {
-      if(!confirm("Bạn có chắc chắn muốn xóa Combo này không? (Thao tác này không ảnh hưởng đến sản phẩm lẻ)")) return;
+    async function updateComboStatusQuick(comboId, newStatus, toastMsg) {
+      if (!globalCombosData) return;
+      const combo = globalCombosData.find(c => String(c.id) === String(comboId));
+      if (!combo) return;
       showLoading(true);
       try {
-        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deleteCombo", token: getAdminToken(), comboId: comboId }) });
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'updateComboStatus',
+            token: getAdminToken(),
+            comboId: combo.id,
+            status: newStatus
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'error') {
+          if (data.code === 'AUTH') logout();
+          else alert(data.msg || 'Không thể cập nhật trạng thái Combo!');
+          showLoading(false);
+          return;
+        }
+        combo.status = data.comboStatus || newStatus;
+        renderCombos(globalCombosData);
+        showLoading(false);
+        showToast(toastMsg, 'success');
+      } catch (e) {
+        showLoading(false);
+        alert('Lỗi kết nối khi cập nhật trạng thái Combo!');
+      }
+    }
+
+    async function quickHideCombo(comboId) {
+      const combo = (globalCombosData || []).find(c => String(c.id) === String(comboId));
+      if (!combo) return;
+      if (!confirm(`Bạn có chắc muốn ẨN Combo "${combo.name}" không?\n\n• Combo sẽ ngừng hiển thị trên trang chủ khách hàng.\n• Được chuyển vào mục "👻 Đang ẩn" trong Admin và có thể mở bán lại bất kỳ lúc nào.`)) return;
+      await updateComboStatusQuick(comboId, 'Ẩn', `👻 Đã ẩn Combo "${combo.name}"!`);
+    }
+
+    async function quickDeleteCombo(comboId) {
+      const combo = (globalCombosData || []).find(c => String(c.id) === String(comboId));
+      if (!combo) return;
+      if (!confirm(`Bạn có chắc muốn XÓA Combo "${combo.name}" không?\n\n• Combo sẽ ngừng hiển thị trên trang chủ khách hàng.\n• Được chuyển vào mục "🗑️ Đã xóa" trong Admin (vẫn giữ nguyên dữ liệu thống kê/doanh thu đơn hàng cũ).\n• Bạn có thể khôi phục mở bán lại hoặc xóa hẳn bất cứ lúc nào.`)) return;
+      await updateComboStatusQuick(comboId, 'Đã xóa', `🗑️ Đã chuyển Combo "${combo.name}" vào mục Đã xóa!`);
+    }
+
+    async function quickRestoreCombo(comboId) {
+      const combo = (globalCombosData || []).find(c => String(c.id) === String(comboId));
+      if (!combo) return;
+      await updateComboStatusQuick(comboId, 'Hoạt động', `👀 Đã mở bán lại Combo "${combo.name}"!`);
+    }
+
+    async function deleteCombo(comboId, permanent = false) {
+      const combo = (globalCombosData || []).find(c => String(c.id) === String(comboId));
+      const cName = combo ? combo.name : comboId;
+      const msg = permanent
+        ? `XÓA VĨNH VIỄN Combo "${cName}" khỏi Google Sheets?\n(Hành động này không thể hoàn tác!)`
+        : `Bạn có chắc chắn muốn xóa Combo "${cName}" không? (Thao tác này không ảnh hưởng đến sản phẩm lẻ)`;
+      if(!confirm(msg)) return;
+      showLoading(true);
+      try {
+        let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deleteCombo", token: getAdminToken(), comboId: comboId, permanent: permanent }) });
         let data = await res.json();
         if(data.status === "error") { if (data.code === "AUTH") logout(); else alert(data.msg); showLoading(false); return; }
-        alert("Đã xóa Combo!"); loadData();
+        showToast(permanent ? `❌ Đã xóa vĩnh viễn Combo "${cName}"!` : `🗑️ Đã xóa Combo "${cName}"!`, "success");
+        loadData();
       } catch(e) { alert("Lỗi!"); showLoading(false); }
     }
 
