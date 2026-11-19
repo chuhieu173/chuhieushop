@@ -3375,6 +3375,33 @@
     <div id="modal-dots" class="modal-dots"></div>
   </div>
 
+  <!-- Banner thông báo cho Admin khi đang xem thử ở chế độ ?preview_admin=1 -->
+  <div id="maintenance-admin-preview-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99998; background:linear-gradient(90deg,#d97706,#b45309); color:#fff; padding:8px 16px; text-align:center; font-size:13px; font-weight:700; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
+    🛠️ ĐANG BẬT CHẾ ĐỘ BẢO TRÌ (Bạn đang xem trước với quyền Admin <code>?preview_admin=1</code> — Khách hàng bên ngoài đang thấy màn hình Bảo trì)
+  </div>
+
+  <!-- Màn hình Bảo trì Toàn trang (Maintenance Mode Overlay) -->
+  <div id="maintenance-overlay" style="display:none; position:fixed; inset:0; z-index:99999; background:radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); color:#f8fafc; padding:24px; align-items:center; justify-content:center; text-align:center; overflow-y:auto;">
+    <div style="max-width:480px; width:100%; background:rgba(30,41,59,0.88); border:1px solid rgba(56,189,248,0.28); border-radius:20px; padding:32px 24px; box-shadow:0 20px 50px rgba(0,0,0,0.5); backdrop-filter:blur(12px);">
+      <div style="font-size:54px; line-height:1; margin-bottom:14px;">🛠️</div>
+      <h2 style="margin:0 0 12px; font-size:22px; color:#38bdf8; font-weight:800;">HỆ THỐNG ĐANG NÂNG CẤP &amp; BẢO TRÌ</h2>
+      <p id="maintenance-message-text" style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#e2e8f0;">
+        Hệ thống Chu Hiếu Shop đang nâng cấp định kỳ trong ít phút để phục vụ quý khách tốt hơn. Quý khách vui lòng quay lại sau hoặc liên hệ trực tiếp Zalo Shop!
+      </p>
+      <div id="maintenance-eta-box" style="display:none; margin:0 auto 20px; padding:10px 16px; background:rgba(56,189,248,0.12); border:1px dashed rgba(56,189,248,0.4); border-radius:10px; font-size:13.5px; color:#7dd3fc;">
+        ⏱️ Dự kiến mở lại: <strong id="maintenance-eta-text"></strong>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:18px;">
+        <a href="https://zalo.me/84355967766" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:13px 20px; border-radius:12px; background:linear-gradient(135deg,#0068ff,#0052cc); color:#fff; font-weight:700; font-size:15px; text-decoration:none; box-shadow:0 6px 18px rgba(0,104,255,0.35);">
+          💬 Nhắn trực tiếp qua Zalo Shop (0355.967.766)
+        </a>
+        <button type="button" onclick="window.location.reload()" style="padding:11px 18px; border-radius:12px; border:1px solid #475569; background:rgba(15,23,42,0.7); color:#cbd5e1; font-weight:600; font-size:14px; cursor:pointer;">
+          🔄 Thử tải lại trang
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec"; 
@@ -4527,6 +4554,10 @@
           initMobileGridMode(resData.productGridMode);
         }
 
+        if (resData.maintenance) {
+          applyMaintenanceState(resData.maintenance);
+        }
+
         return true;
       } else if (Array.isArray(resData)) {
         productsData = resData.filter(p => {
@@ -4543,7 +4574,71 @@
       return false;
     }
 
+    let currentMaintenanceState = { enabled: false, message: '', eta: '' };
+    let staticMaintenanceEnabled = false;
+
+    function isAdminPreviewMode() {
+      try {
+        return new URLSearchParams(window.location.search).get('preview_admin') === '1';
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function applyMaintenanceState(maintCfg) {
+      if (!maintCfg || typeof maintCfg !== 'object') return;
+      const isEnabled = Boolean(maintCfg.enabled === true || String(maintCfg.enabled).toLowerCase() === 'true' || staticMaintenanceEnabled);
+      currentMaintenanceState = {
+        enabled: isEnabled,
+        message: (maintCfg.message || currentMaintenanceState.message || 'Hệ thống Chu Hiếu Shop đang nâng cấp định kỳ trong ít phút để phục vụ quý khách tốt hơn. Quý khách vui lòng quay lại sau hoặc liên hệ trực tiếp Zalo Shop!').trim(),
+        eta: (maintCfg.eta || currentMaintenanceState.eta || '').trim()
+      };
+      const overlay = document.getElementById('maintenance-overlay');
+      const msgEl = document.getElementById('maintenance-message-text');
+      const etaBox = document.getElementById('maintenance-eta-box');
+      const etaText = document.getElementById('maintenance-eta-text');
+      const previewBanner = document.getElementById('maintenance-admin-preview-banner');
+
+      if (msgEl && currentMaintenanceState.message) {
+        msgEl.textContent = currentMaintenanceState.message;
+      }
+      if (etaBox && etaText) {
+        if (currentMaintenanceState.eta) {
+          etaText.textContent = currentMaintenanceState.eta;
+          etaBox.style.display = 'block';
+        } else {
+          etaBox.style.display = 'none';
+        }
+      }
+
+      if (isEnabled) {
+        if (isAdminPreviewMode()) {
+          if (overlay) overlay.style.display = 'none';
+          if (previewBanner) previewBanner.style.display = 'block';
+        } else {
+          if (overlay) overlay.style.display = 'flex';
+          if (previewBanner) previewBanner.style.display = 'none';
+        }
+      } else {
+        if (overlay) overlay.style.display = 'none';
+        if (previewBanner) previewBanner.style.display = 'none';
+      }
+    }
+
+    async function checkStaticMaintenanceJson() {
+      try {
+        const res = await fetch('maintenance.json?t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) return;
+        const cfg = await res.json();
+        if (cfg && (cfg.enabled === true || String(cfg.enabled).toLowerCase() === 'true')) {
+          staticMaintenanceEnabled = true;
+          applyMaintenanceState(cfg);
+        }
+      } catch (e) {}
+    }
+
     async function loadProducts() {
+      checkStaticMaintenanceJson();
       let renderedFromCache = false;
       let rawCachedStr = null;
 
@@ -7339,6 +7434,15 @@
       // Đơn hàng mới -> Ghi nhận trạng thái & gửi API lên Google Sheets
       const hpValue = (document.getElementById('customer-website-hp')?.value || '').trim();
       const formDurationMs = Math.max(0, Date.now() - checkoutFormLoadedAt);
+      const isPreviewAdmin = (typeof isAdminPreviewMode === 'function') ? isAdminPreviewMode() : false;
+      if (typeof currentMaintenanceState !== 'undefined' && currentMaintenanceState && currentMaintenanceState.enabled && !isPreviewAdmin) {
+        if (typeof applyMaintenanceState === 'function') applyMaintenanceState(currentMaintenanceState);
+        alert("⚠️ " + (currentMaintenanceState.message || "Hệ thống đang tạm bảo trì trong ít phút.") + "\n\nNội dung đơn hàng của bạn đã được copy sẵn vào bộ nhớ tạm, vui lòng dán gửi trực tiếp qua Zalo Shop!");
+        if (openZalo === true) {
+          window.open("https://zalo.me/" + zaloPhone, "_blank");
+        }
+        return;
+      }
       let orderData = {
         action: "createOrder",
         name: name,
@@ -7350,7 +7454,8 @@
         cartJSON: JSON.stringify(cart),
         website: hpValue,
         formDurationMs: formDurationMs,
-        clientTraceId: traceId
+        clientTraceId: traceId,
+        bypassMaintenance: isPreviewAdmin
       };
       isSubmittingOrder = true;
       setTimeout(() => { isSubmittingOrder = false; }, 3500);

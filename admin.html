@@ -1704,8 +1704,21 @@
       <h1>Cửa Hàng Của Minh Hiếu</h1>
       <div class="header-actions">
         <button onclick="loadData()" class="btn-update">🔄 Làm mới</button>
+        <button type="button" id="btn-open-maintenance-modal" onclick="openMaintenanceModal()" class="btn-update" style="background: #0f766e;">🛠️ Bảo trì Web</button>
         <button type="button" id="btn-open-change-password" onclick="openChangePasswordModal()" class="btn-update" style="background: #475569;">🔑 Đổi Mật Khẩu</button>
         <button onclick="logout()" class="btn-update btn-logout">Đăng xuất</button>
+      </div>
+    </div>
+
+    <!-- BANNER CẢNH BÁO KHI ĐANG BẬT CHẾ ĐỘ BẢO TRÌ WEBSITE -->
+    <div id="admin-maintenance-active-banner" style="display: none; background: linear-gradient(90deg, #dc2626, #ea580c); color: #fff; padding: 10px 18px; border-radius: 10px; margin-bottom: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);">
+      <div style="font-size: 13.5px; font-weight: 700; line-height: 1.4;">
+        🚨 WEBSITE ĐANG BẬT CHẾ ĐỘ BẢO TRÌ — Khách hàng đang thấy màn hình tạm ngưng phục vụ. <span id="admin-maint-banner-eta" style="font-weight: 500; opacity: 0.95;"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <a href="index.html?preview_admin=1" target="_blank" rel="noopener" style="background: rgba(255,255,255,0.2); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 700; border: 1px solid rgba(255,255,255,0.4);">👁️ Xem thử Trang chủ (?preview_admin=1)</a>
+        <button type="button" onclick="openMaintenanceModal()" style="background: #fff; color: #b91c1c; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 700; cursor: pointer;">⚙️ Cấu hình</button>
+        <button type="button" onclick="quickDisableMaintenanceMode()" style="background: #16a34a; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 700; cursor: pointer;">✅ Tắt Bảo trì ngay</button>
       </div>
     </div>
 
@@ -3013,6 +3026,117 @@
     </div>
   </div>
 
+  <!-- MODAL CẤU HÌNH CHẾ ĐỘ BẢO TRÌ WEBSITE -->
+  <div id="maintenance-config-modal" class="edit-modal" style="display: none;" onclick="if(event.target===this) closeMaintenanceModal()">
+    <div class="edit-content" style="max-width: 520px;">
+      <h2 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">🛠️ Chế Độ Bảo Trì Website</h2>
+      <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #d97706; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #92400e; margin-bottom: 14px; line-height: 1.5;">
+        💡 Bật chế độ này trước khi bạn <b>push code lên Git</b> hoặc <b>cập nhật file Code.gs</b> để hiển thị màn hình bảo trì cho khách. Nếu có khách nào đã mở trang từ trước và bấm Đặt hàng trong lúc bảo trì, hệ thống vẫn <b>tự động hứng đơn vào Nhật ký Hệ thống (MAINTENANCE_HOLD)</b> để bạn khôi phục sau, đảm bảo 0% mất đơn!
+      </div>
+      <div class="form-group" style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">
+          <input type="checkbox" id="maint-enabled-cb" style="width: 20px; height: 20px; accent-color: #dc2626; cursor: pointer;">
+          <span>🚨 Bật màn hình Bảo trì trên Trang chủ</span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label>⏱️ Thời gian dự kiến mở lại (tùy chọn)</label>
+        <input type="text" id="maint-eta-input" placeholder="VD: 10 phút nữa, hoặc 21:30 hôm nay...">
+      </div>
+      <div class="form-group">
+        <label>💬 Nội dung thông báo hiển thị cho khách hàng</label>
+        <textarea id="maint-message-input" rows="3" placeholder="Nhập thông báo bảo trì..."></textarea>
+      </div>
+      <div style="margin-bottom: 14px;">
+        <a href="index.html?preview_admin=1" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #2563eb; text-decoration: none;">
+          👁️ Mở Trang chủ ở chế độ Xem thử của Admin (<code>?preview_admin=1</code>) ↗
+        </a>
+      </div>
+      <div class="edit-actions">
+        <button type="button" class="btn-cancel" onclick="closeMaintenanceModal()">Đóng</button>
+        <button type="button" id="btn-save-maintenance-config" class="btn-save" onclick="saveMaintenanceConfig()">💾 Lưu Cấu Hình Bảo Trì</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CHỈNH SỬA ĐƠN HÀNG & COPY XÁC NHẬN GỬI KHÁCH -->
+  <div id="edit-order-modal" class="edit-modal" style="display: none;" onclick="if(event.target===this) closeEditOrderModal()">
+    <div class="edit-content" style="max-width: 780px; width: 96%; max-height: 92vh; overflow-y: auto;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+        <h2 style="margin: 0; font-size: 19px; color: #1e293b;">✏️ Chỉnh Sửa Đơn Hàng <span id="edit-order-title-id" style="color: #2563eb;"></span></h2>
+        <button type="button" onclick="closeEditOrderModal()" style="background: none; border: none; font-size: 22px; color: #64748b; cursor: pointer;">&times;</button>
+      </div>
+      <input type="hidden" id="edit-order-row">
+
+      <div id="edit-order-deducted-badge" style="display: none; background: #ecfdf5; border: 1px solid #6ee7b7; border-left: 4px solid #059669; border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: #065f46; margin-bottom: 12px; line-height: 1.45;">
+        📦 <b>Đơn hàng này đã trừ kho:</b> Khi bạn lưu thay đổi mặt hàng hoặc số lượng, hệ thống sẽ <b>tự động trừ thêm hoặc cộng hoàn lại phần chênh lệch tồn kho</b> để kho luôn chính xác 100%.
+      </div>
+
+      <!-- Thông tin khách hàng -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 12px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>👤 Người nhận *</label>
+          <input type="text" id="edit-order-name" oninput="refreshEditOrderZaloPreview()" placeholder="Họ tên người nhận...">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>📞 Số điện thoại (10 số) *</label>
+          <input type="text" id="edit-order-phone" oninput="refreshEditOrderZaloPreview()" placeholder="09xxxxxxxx...">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>📍 Địa chỉ nhận hàng *</label>
+        <input type="text" id="edit-order-address" oninput="refreshEditOrderZaloPreview()" placeholder="Số nhà, đường, phường/xã, tỉnh/thành...">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 160px; gap: 10px; margin-bottom: 14px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>📝 Ghi chú của khách</label>
+          <input type="text" id="edit-order-note" oninput="refreshEditOrderZaloPreview()" placeholder="Ghi chú giao hàng (nếu có)...">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>🚚 Phí ship (VNĐ)</label>
+          <input type="number" id="edit-order-shipping-fee" min="0" step="1000" oninput="refreshEditOrderZaloPreview()" placeholder="18000">
+        </div>
+      </div>
+
+      <!-- Danh sách mặt hàng trong đơn -->
+      <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+          <b style="font-size: 14px; color: #0f172a;">🛒 Danh sách mặt hàng trong đơn</b>
+          <span id="edit-order-summary-line" style="font-size: 13.5px; font-weight: 700; color: #dc2626;"></span>
+        </div>
+
+        <div id="edit-order-items-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;"></div>
+
+        <!-- Thanh thêm sản phẩm / Combo mới vào đơn -->
+        <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+          <div style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 6px;">➕ Thêm Sản phẩm lẻ hoặc Combo vào đơn:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+            <input type="text" id="edit-order-add-search" oninput="filterEditOrderAddCatalog()" placeholder="🔍 Gõ tên SP / Combo để lọc nhanh..." style="flex: 1 1 180px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;">
+            <select id="edit-order-add-select" onchange="onEditOrderAddProductChange()" style="flex: 2 1 240px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;"></select>
+            <select id="edit-order-add-variant-select" style="display: none; flex: 1 1 160px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;"></select>
+            <input type="number" id="edit-order-add-qty" value="1" min="1" max="99" style="width: 64px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; text-align: center;">
+            <button type="button" onclick="addProductToEditingOrder()" style="background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;">➕ Thêm món</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Xem trước nội dung tin nhắn đơn hàng chuẩn Zalo -->
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+          <b style="font-size: 13px; color: #166534;">📋 Xem trước nội dung đơn hàng gửi khách confirm (chuẩn định dạng Zalo):</b>
+          <button type="button" onclick="copyEditOrderPreviewText()" style="background: #16a34a; color: #fff; border: none; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer;">📋 Chỉ Copy văn bản này</button>
+        </div>
+        <textarea id="edit-order-zalo-preview" readonly rows="8" style="width: 100%; box-sizing: border-box; font-family: monospace; font-size: 12.5px; line-height: 1.45; padding: 8px 10px; border: 1px solid #86efac; border-radius: 6px; background: #fff; color: #0f172a; resize: vertical;"></textarea>
+      </div>
+
+      <div class="edit-actions" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;">
+        <button type="button" class="btn-cancel" onclick="closeEditOrderModal()">Hủy bỏ</button>
+        <button type="button" id="btn-save-edit-order-only" class="btn-save" style="background: #475569;" onclick="submitEditOrder(false)">💾 Chỉ Lưu thay đổi</button>
+        <button type="button" id="btn-save-and-copy-edit-order" class="btn-save" style="background: #059669;" onclick="submitEditOrder(true)">💾 Lưu &amp; 📋 Copy Đơn gửi khách</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // === DÁN LINK WEB APP API VÀO ĐÂY ===
     const API_URL = "https://script.google.com/macros/s/AKfycby6UyHtOTUpx9o841UXf1DlUf-Pbvonf3e8IpHpnEFudmdfDdkRuLsz_wtEr3vKFdm_/exec";
@@ -3306,6 +3430,9 @@
         if (Array.isArray(resData.customOrderStatuses) && typeof saveCustomOrderStatusesLocal === 'function') {
           saveCustomOrderStatusesLocal(resData.customOrderStatuses);
           if (typeof syncCustomOrderStatusUI === 'function') syncCustomOrderStatusUI();
+        }
+        if (resData.maintenance && typeof syncAdminMaintenanceUI === 'function') {
+          syncAdminMaintenanceUI(resData.maintenance);
         }
         let shipInput = document.getElementById("edit-shipping-fee");
         if (shipInput && resData.shippingFee !== undefined) shipInput.value = resData.shippingFee;
@@ -3986,6 +4113,643 @@
         } 
         catch (err) { alert("Lỗi! Trình duyệt của bạn không hỗ trợ chức năng copy tự động."); }
         document.body.removeChild(temp);
+    }
+
+    // ==========================================
+    // 🛠️ CHẾ ĐỘ BẢO TRÌ WEBSITE (MAINTENANCE MODE)
+    // ==========================================
+    let currentAdminMaintenanceConfig = {
+      enabled: false,
+      message: "Hệ thống Chu Hiếu Shop đang nâng cấp định kỳ trong ít phút để phục vụ quý khách tốt hơn. Quý khách vui lòng quay lại sau hoặc liên hệ trực tiếp Zalo Shop!",
+      eta: "",
+      updatedAt: ""
+    };
+
+    function syncAdminMaintenanceUI(maintCfg) {
+      if (!maintCfg || typeof maintCfg !== 'object') return;
+      const isEnabled = Boolean(maintCfg.enabled === true || String(maintCfg.enabled).toLowerCase() === 'true');
+      currentAdminMaintenanceConfig = {
+        enabled: isEnabled,
+        message: (maintCfg.message || currentAdminMaintenanceConfig.message || '').trim(),
+        eta: (maintCfg.eta || '').trim(),
+        updatedAt: maintCfg.updatedAt || ''
+      };
+      const banner = document.getElementById('admin-maintenance-active-banner');
+      const bannerEta = document.getElementById('admin-maint-banner-eta');
+      const btnOpen = document.getElementById('btn-open-maintenance-modal');
+      if (banner) {
+        banner.style.display = isEnabled ? 'flex' : 'none';
+      }
+      if (bannerEta) {
+        bannerEta.textContent = currentAdminMaintenanceConfig.eta ? `(Dự kiến mở lại: ${currentAdminMaintenanceConfig.eta})` : '';
+      }
+      if (btnOpen) {
+        btnOpen.style.background = isEnabled ? '#dc2626' : '#0f766e';
+        btnOpen.textContent = isEnabled ? '🚨 Đang Bảo Trì' : '🛠️ Bảo trì Web';
+      }
+    }
+
+    function openMaintenanceModal() {
+      const modal = document.getElementById('maintenance-config-modal');
+      const cb = document.getElementById('maint-enabled-cb');
+      const etaIn = document.getElementById('maint-eta-input');
+      const msgIn = document.getElementById('maint-message-input');
+      if (cb) cb.checked = Boolean(currentAdminMaintenanceConfig.enabled);
+      if (etaIn) etaIn.value = currentAdminMaintenanceConfig.eta || '';
+      if (msgIn) msgIn.value = currentAdminMaintenanceConfig.message || 'Hệ thống Chu Hiếu Shop đang nâng cấp định kỳ trong ít phút để phục vụ quý khách tốt hơn. Quý khách vui lòng quay lại sau hoặc liên hệ trực tiếp Zalo Shop!';
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeMaintenanceModal() {
+      const modal = document.getElementById('maintenance-config-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function saveMaintenanceConfig(overrideEnabled) {
+      const cb = document.getElementById('maint-enabled-cb');
+      const etaIn = document.getElementById('maint-eta-input');
+      const msgIn = document.getElementById('maint-message-input');
+      const enabled = (overrideEnabled !== undefined) ? Boolean(overrideEnabled) : Boolean(cb && cb.checked);
+      const eta = (etaIn ? etaIn.value : currentAdminMaintenanceConfig.eta || '').trim();
+      const message = (msgIn ? msgIn.value : currentAdminMaintenanceConfig.message || '').trim() || 'Hệ thống Chu Hiếu Shop đang nâng cấp định kỳ trong ít phút để phục vụ quý khách tốt hơn. Quý khách vui lòng quay lại sau hoặc liên hệ trực tiếp Zalo Shop!';
+
+      showLoading(true);
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'updateMaintenanceConfig',
+            token: getAdminToken(),
+            enabled: enabled,
+            eta: eta,
+            message: message
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'error') {
+          if (data.code === 'AUTH') logout();
+          else alert(data.msg || 'Lỗi lưu cấu hình bảo trì');
+          showLoading(false);
+          return;
+        }
+        syncAdminMaintenanceUI(data.maintenance || { enabled, eta, message });
+        closeMaintenanceModal();
+        showToast(enabled ? '🚨 Đã BẬT chế độ Bảo trì Website!' : '✅ Đã TẮT chế độ Bảo trì — Website hoạt động bình thường!', enabled ? 'warning' : 'success');
+      } catch (e) {
+        alert('Lỗi kết nối khi lưu cấu hình bảo trì!');
+      }
+      showLoading(false);
+    }
+
+    function quickDisableMaintenanceMode() {
+      saveMaintenanceConfig(false);
+    }
+
+    // ==========================================
+    // ✏️ CHỈNH SỬA ĐƠN HÀNG & COPY NỘI DUNG ĐƠN CHUẨN ZALO
+    // ==========================================
+    let editingOrderState = null;
+
+    async function copyPlainTextWithToast(text, successMsg) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast(successMsg, 'success');
+          return true;
+        } catch (e) {}
+      }
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      temp.setAttribute('readonly', '');
+      temp.style.position = 'absolute';
+      temp.style.left = '-9999px';
+      document.body.appendChild(temp);
+      temp.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg, 'success');
+      } catch (err) {
+        alert('Không thể copy tự động!');
+      }
+      document.body.removeChild(temp);
+      return true;
+    }
+
+    function getDefaultShippingFeeNumber() {
+      const shipEl = document.getElementById('edit-shipping-fee');
+      const v = shipEl ? Number(shipEl.value) : NaN;
+      return (isFinite(v) && v >= 0) ? v : 18000;
+    }
+
+    function parseLegacyCartFromOrder(order) {
+      if (Array.isArray(order.cart) && order.cart.length > 0) {
+        return order.cart.filter(it => it && !it.isGift).map(it => ({
+          id: String(it.id || ''),
+          name: String(it.name || '').replace(/^\[COMBO\]\s*/i, ''),
+          variantId: it.variantId ? String(it.variantId) : '',
+          variantName: it.variantName ? String(it.variantName) : '',
+          price: Math.max(0, Number(it.price) || 0),
+          qty: Math.max(1, parseInt(it.qty, 10) || 1),
+          isCombo: Boolean(it.isCombo || String(it.id || '').startsWith('CMB_'))
+        }));
+      }
+      const items = [];
+      const lines = String(order.details || '').split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.startsWith('+') || line.startsWith('[QUÀ TẶNG]')) continue;
+        if (line.startsWith('-')) {
+          let title = line.replace(/^-\s*/, '').trim();
+          const isCombo = /^\[COMBO\]/i.test(title);
+          title = title.replace(/^\[COMBO\]\s*/i, '').trim();
+          let varName = '';
+          const varMatch = title.match(/^(.*?)\s*\[([^\]]+)\]$/);
+          if (varMatch) {
+            title = varMatch[1].trim();
+            varName = varMatch[2].replace(/^Phân loại:\s*/i, '').trim();
+          }
+          let price = 0;
+          let qty = 1;
+          const nextLine = (lines[i + 1] || '').trim();
+          if (nextLine.includes('Giá:') && nextLine.includes('Số lượng:')) {
+            const pMatch = nextLine.match(/Giá:\s*([\d.]+)/);
+            const qMatch = nextLine.match(/Số lượng:\s*x(\d+)/);
+            if (pMatch) price = Number(pMatch[1].replace(/\./g, '')) || 0;
+            if (qMatch) qty = Math.max(1, parseInt(qMatch[1], 10) || 1);
+          }
+          let matchedId = 'CUSTOM_' + items.length;
+          let matchedVarId = '';
+          if (isCombo) {
+            const cFound = (globalCombosData || []).find(c => String(c.name || '').trim().toLowerCase() === title.toLowerCase());
+            if (cFound) matchedId = String(cFound.id);
+          } else {
+            const pFound = (globalProductsData || []).find(p => String(p.name || '').trim().toLowerCase() === title.toLowerCase());
+            if (pFound) {
+              matchedId = String(pFound.id);
+              if (varName && Array.isArray(pFound.variants)) {
+                const vf = pFound.variants.find(v => String(v.name || '').trim().toLowerCase() === varName.toLowerCase());
+                if (vf) matchedVarId = String(vf.id);
+              }
+            }
+          }
+          items.push({
+            id: matchedId,
+            name: title,
+            variantId: matchedVarId,
+            variantName: varName,
+            price: price,
+            qty: qty,
+            isCombo: isCombo
+          });
+        }
+      }
+      return items;
+    }
+
+    function inferOrderShippingFee(order, cartItems) {
+      const subtotal = (cartItems || []).reduce((s, it) => s + (Number(it.price) || 0) * (parseInt(it.qty, 10) || 1), 0);
+      const rawTotal = Number(order.rawTotal) || Number(String(order.total || '').replace(/[^\d]/g, '')) || 0;
+      if (rawTotal >= subtotal && subtotal > 0) {
+        return rawTotal - subtotal;
+      }
+      return getDefaultShippingFeeNumber();
+    }
+
+    function buildCustomerOrderZaloText(opts) {
+      const name = String(opts.name || '').trim();
+      const phone = String(opts.phone || '').trim();
+      const address = String(opts.address || '').trim();
+      const note = String(opts.note || '').trim();
+      const cartItems = Array.isArray(opts.cart) ? opts.cart.filter(it => it && !it.isGift) : [];
+      const shippingFee = (opts.shippingFee !== undefined && opts.shippingFee !== null && isFinite(Number(opts.shippingFee)) && Number(opts.shippingFee) >= 0)
+        ? Number(opts.shippingFee)
+        : getDefaultShippingFeeNumber();
+      const traceId = String(opts.traceId || opts.orderId || '').trim();
+
+      let orderText = "ĐƠN ĐẶT HÀNG MỚI\nNgười nhận: " + name + "\nSđt: " + phone + "\nĐịa chỉ: " + address + "\n";
+      if (note) orderText += "Ghi chú: " + note + "\n";
+      orderText += "------------------------\n\n";
+
+      let total = 0;
+      cartItems.forEach((item, index) => {
+        let isCombo = Boolean(item.isCombo || String(item.id || '').startsWith('CMB_'));
+        let cleanName = String(item.name || '').replace(/^\[COMBO\]\s*/i, '');
+        let prefix = isCombo ? "[COMBO] " : "";
+        let varText = item.variantName ? ` [Phân loại: ${item.variantName}]` : "";
+        let itemPrice = Math.max(0, Number(item.price) || 0);
+        let itemQty = Math.max(1, parseInt(item.qty, 10) || 1);
+
+        orderText += `${index + 1}. ${prefix}${cleanName}${varText}\n   Giá: ${formatMoney(itemPrice)} | Số lượng: x${itemQty}\n`;
+
+        if (isCombo) {
+          let comboDetail = (globalCombosData || []).find(c => String(c.id) === String(item.id));
+          if (comboDetail && Array.isArray(comboDetail.rawItems)) {
+            comboDetail.rawItems.forEach(subItem => {
+              orderText += `   ${subItem.name}\n   Giá: ${formatMoney(subItem.price)} | Số lượng: x${subItem.qty * itemQty}\n`;
+            });
+          }
+          if (comboDetail && comboDetail.hasGift && Array.isArray(comboDetail.giftItems)) {
+            let nowMs = Date.now();
+            let isStarted = !comboDetail.startTime || isNaN(new Date(comboDetail.startTime).getTime()) || nowMs >= new Date(comboDetail.startTime).getTime();
+            let isExpired = comboDetail.endTime && !isNaN(new Date(comboDetail.endTime).getTime()) && nowMs > new Date(comboDetail.endTime).getTime();
+            if (isStarted && !isExpired) {
+              comboDetail.giftItems.forEach(gift => {
+                orderText += `   [QUÀ TẶNG] ${gift.name}\n   Giá: 0đ | Số lượng: x${gift.qty * itemQty}\n`;
+              });
+            }
+          }
+        }
+        orderText += `\n`;
+        total += (itemPrice * itemQty);
+      });
+
+      let finalTotal = total + shippingFee;
+      orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + formatMoney(shippingFee) + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
+      if (traceId) {
+        orderText += "\nMã tra cứu: " + traceId;
+      }
+      return orderText;
+    }
+
+    async function copyFullOrderZaloText(row) {
+      const order = globalOrdersData.find(o => o.row === row);
+      if (!order) return;
+      const cartItems = parseLegacyCartFromOrder(order);
+      const shipFee = inferOrderShippingFee(order, cartItems);
+      const text = buildCustomerOrderZaloText({
+        name: order.name,
+        phone: order.phone,
+        address: order.address,
+        note: order.note,
+        cart: cartItems,
+        shippingFee: shipFee,
+        traceId: order.traceId || order.orderId
+      });
+      await copyPlainTextWithToast(text, `📄 Đã copy nội dung đơn ${order.orderId} (chuẩn format gửi khách xác nhận)!`);
+    }
+
+    function openEditOrderModal(row) {
+      const order = globalOrdersData.find(o => o.row === row);
+      if (!order) return;
+      const cartItems = parseLegacyCartFromOrder(order);
+      const shipFee = inferOrderShippingFee(order, cartItems);
+      editingOrderState = {
+        row: order.row,
+        orderId: order.orderId,
+        traceId: order.traceId || order.orderId,
+        isDeducted: Boolean(order.isDeducted),
+        cart: cartItems.map(it => ({ ...it }))
+      };
+
+      document.getElementById('edit-order-row').value = order.row;
+      document.getElementById('edit-order-title-id').textContent = `#${order.orderId}`;
+      document.getElementById('edit-order-name').value = order.name || '';
+      document.getElementById('edit-order-phone').value = order.phone || '';
+      document.getElementById('edit-order-address').value = order.address || '';
+      document.getElementById('edit-order-note').value = order.note || '';
+      document.getElementById('edit-order-shipping-fee').value = shipFee;
+      document.getElementById('edit-order-add-search').value = '';
+      document.getElementById('edit-order-add-qty').value = 1;
+
+      const dedBadge = document.getElementById('edit-order-deducted-badge');
+      if (dedBadge) dedBadge.style.display = order.isDeducted ? 'block' : 'none';
+
+      filterEditOrderAddCatalog();
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+
+      const modal = document.getElementById('edit-order-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeEditOrderModal() {
+      const modal = document.getElementById('edit-order-modal');
+      if (modal) modal.style.display = 'none';
+      editingOrderState = null;
+    }
+
+    function renderEditOrderItemsList() {
+      const container = document.getElementById('edit-order-items-list');
+      if (!container || !editingOrderState) return;
+      if (editingOrderState.cart.length === 0) {
+        container.innerHTML = `<div style="padding:14px; text-align:center; color:#dc2626; background:#fff5f5; border:1px dashed #feb2b2; border-radius:8px; font-size:13px;">⚠️ Đơn hàng đang trống — vui lòng chọn thêm ít nhất 1 sản phẩm bên dưới!</div>`;
+        return;
+      }
+
+      const html = editingOrderState.cart.map((item, idx) => {
+        const isCombo = Boolean(item.isCombo || String(item.id || '').startsWith('CMB_'));
+        const prod = !isCombo ? (globalProductsData || []).find(p => String(p.id) === String(item.id)) : null;
+        let variantHtml = '';
+        if (prod && Array.isArray(prod.variants) && prod.variants.length > 0) {
+          const opts = prod.variants.map(v => {
+            const sel = (String(v.id) === String(item.variantId) || String(v.name) === String(item.variantName)) ? 'selected' : '';
+            return `<option value="${escapeHtml(String(v.id))}" ${sel}>${escapeHtml(v.name)} (${formatMoney(v.price)} • Kho: ${v.stock})</option>`;
+          }).join('');
+          variantHtml = `<select onchange="changeEditOrderItemVariant(${idx}, this.value)" style="margin-top:4px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff; color:#1e293b; max-width:100%;">${opts}</select>`;
+        } else if (item.variantName) {
+          variantHtml = `<div style="font-size:12px; color:#475569; margin-top:2px;">Phân loại: <b>${escapeHtml(item.variantName)}</b></div>`;
+        }
+
+        const badge = isCombo
+          ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px;">🎁 COMBO</span>`
+          : `<span style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px;">📦 SP</span>`;
+
+        return `<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:9px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+          <div style="flex:1 1 220px; min-width:0;">
+            <div style="font-size:13.5px; font-weight:700; color:#0f172a; line-height:1.35;">${badge}${escapeHtml(item.name)}</div>
+            ${variantHtml}
+            <div style="font-size:12px; color:#64748b; margin-top:3px;">Đơn giá: <b style="color:#0f172a;">${formatMoney(item.price)}</b></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button type="button" onclick="changeEditOrderItemQty(${idx}, -1)" style="width:28px; height:28px; border:1px solid #cbd5e1; border-radius:6px; background:#f1f5f9; font-weight:700; cursor:pointer;">−</button>
+            <input type="number" min="1" max="99" value="${item.qty}" onchange="setEditOrderItemQty(${idx}, this.value)" style="width:48px; height:28px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-weight:700; font-size:13px;">
+            <button type="button" onclick="changeEditOrderItemQty(${idx}, 1)" style="width:28px; height:28px; border:1px solid #cbd5e1; border-radius:6px; background:#f1f5f9; font-weight:700; cursor:pointer;">+</button>
+            <div style="min-width:92px; text-align:right; font-weight:700; color:#dc2626; font-size:13.5px;">${formatMoney(item.price * item.qty)}</div>
+            <button type="button" onclick="removeEditOrderItem(${idx})" title="Xóa món này khỏi đơn" style="margin-left:4px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; padding:5px 8px; cursor:pointer; font-size:12px;">🗑️</button>
+          </div>
+        </div>`;
+      }).join('');
+      container.innerHTML = html;
+    }
+
+    function changeEditOrderItemQty(idx, delta) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const next = Math.max(1, Math.min(99, (parseInt(editingOrderState.cart[idx].qty, 10) || 1) + delta));
+      editingOrderState.cart[idx].qty = next;
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function setEditOrderItemQty(idx, val) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const next = Math.max(1, Math.min(99, parseInt(val, 10) || 1));
+      editingOrderState.cart[idx].qty = next;
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function changeEditOrderItemVariant(idx, variantId) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const item = editingOrderState.cart[idx];
+      const prod = (globalProductsData || []).find(p => String(p.id) === String(item.id));
+      if (!prod || !Array.isArray(prod.variants)) return;
+      const vObj = prod.variants.find(v => String(v.id) === String(variantId));
+      if (!vObj) return;
+      item.variantId = String(vObj.id);
+      item.variantName = String(vObj.name);
+      item.price = Number(vObj.price) || 0;
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function removeEditOrderItem(idx) {
+      if (!editingOrderState) return;
+      editingOrderState.cart.splice(idx, 1);
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function filterEditOrderAddCatalog() {
+      const sel = document.getElementById('edit-order-add-select');
+      const searchIn = document.getElementById('edit-order-add-search');
+      if (!sel) return;
+      const kw = (searchIn ? searchIn.value : '').trim().toLowerCase();
+      let optsHtml = '';
+
+      const activeCombos = (globalCombosData || []).filter(c => {
+        if (!c || !c.name) return false;
+        const st = String(c.status || '').toLowerCase();
+        if (st.includes('xóa') || st.includes('xoa')) return false;
+        return !kw || c.name.toLowerCase().includes(kw) || String(c.id).toLowerCase().includes(kw);
+      });
+      if (activeCombos.length > 0) {
+        optsHtml += `<optgroup label="🎁 COMBO ƯU ĐÃI">`;
+        activeCombos.forEach(c => {
+          optsHtml += `<option value="COMBO::${escapeHtml(String(c.id))}">[COMBO] ${escapeHtml(c.name)} — ${formatMoney(c.price)}</option>`;
+        });
+        optsHtml += `</optgroup>`;
+      }
+
+      const activeProds = (globalProductsData || []).filter(p => {
+        if (!p || !p.name) return false;
+        const st = String(p.status || '').toLowerCase();
+        if (st.includes('xóa') || st.includes('xoa')) return false;
+        return !kw || p.name.toLowerCase().includes(kw) || String(p.id).toLowerCase().includes(kw);
+      });
+      if (activeProds.length > 0) {
+        optsHtml += `<optgroup label="📦 SẢN PHẨM LẺ">`;
+        activeProds.forEach(p => {
+          optsHtml += `<option value="PROD::${escapeHtml(String(p.id))}">${escapeHtml(p.name)} — ${formatMoney(p.price)} (Kho: ${p.stock})</option>`;
+        });
+        optsHtml += `</optgroup>`;
+      }
+
+      if (!optsHtml) {
+        optsHtml = `<option value="">-- Không tìm thấy sản phẩm khớp --</option>`;
+      }
+      sel.innerHTML = optsHtml;
+      onEditOrderAddProductChange();
+    }
+
+    function onEditOrderAddProductChange() {
+      const sel = document.getElementById('edit-order-add-select');
+      const varSel = document.getElementById('edit-order-add-variant-select');
+      if (!sel || !varSel) return;
+      const val = sel.value || '';
+      if (val.startsWith('PROD::')) {
+        const prodId = val.slice(6);
+        const prod = (globalProductsData || []).find(p => String(p.id) === prodId);
+        if (prod && Array.isArray(prod.variants) && prod.variants.length > 0) {
+          varSel.innerHTML = prod.variants.map(v =>
+            `<option value="${escapeHtml(String(v.id))}">${escapeHtml(v.name)} — ${formatMoney(v.price)} (Kho: ${v.stock})</option>`
+          ).join('');
+          varSel.style.display = 'inline-block';
+          return;
+        }
+      }
+      varSel.innerHTML = '';
+      varSel.style.display = 'none';
+    }
+
+    function addProductToEditingOrder() {
+      if (!editingOrderState) return;
+      const sel = document.getElementById('edit-order-add-select');
+      const varSel = document.getElementById('edit-order-add-variant-select');
+      const qtyIn = document.getElementById('edit-order-add-qty');
+      if (!sel || !sel.value) return;
+      const qty = Math.max(1, Math.min(99, parseInt(qtyIn ? qtyIn.value : '1', 10) || 1));
+      const val = sel.value;
+
+      if (val.startsWith('COMBO::')) {
+        const comboId = val.slice(7);
+        const combo = (globalCombosData || []).find(c => String(c.id) === comboId);
+        if (!combo) return;
+        const existing = editingOrderState.cart.find(it => it.isCombo && String(it.id) === String(combo.id));
+        if (existing) {
+          existing.qty = Math.min(99, existing.qty + qty);
+        } else {
+          editingOrderState.cart.push({
+            id: String(combo.id),
+            name: combo.name,
+            variantId: '',
+            variantName: '',
+            price: Number(combo.price) || 0,
+            qty: qty,
+            isCombo: true
+          });
+        }
+      } else if (val.startsWith('PROD::')) {
+        const prodId = val.slice(6);
+        const prod = (globalProductsData || []).find(p => String(p.id) === prodId);
+        if (!prod) return;
+        let variantId = '';
+        let variantName = '';
+        let price = Number(prod.price) || 0;
+        if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+          const chosenVarId = varSel ? varSel.value : String(prod.variants[0].id);
+          const vObj = prod.variants.find(v => String(v.id) === String(chosenVarId)) || prod.variants[0];
+          if (vObj) {
+            variantId = String(vObj.id);
+            variantName = String(vObj.name);
+            price = Number(vObj.price) || 0;
+          }
+        }
+        const existing = editingOrderState.cart.find(it => !it.isCombo && String(it.id) === String(prod.id) && String(it.variantId || '') === variantId);
+        if (existing) {
+          existing.qty = Math.min(99, existing.qty + qty);
+        } else {
+          editingOrderState.cart.push({
+            id: String(prod.id),
+            name: prod.name,
+            variantId: variantId,
+            variantName: variantName,
+            price: price,
+            qty: qty,
+            isCombo: false
+          });
+        }
+      }
+
+      if (qtyIn) qtyIn.value = 1;
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function refreshEditOrderZaloPreview() {
+      if (!editingOrderState) return;
+      const name = (document.getElementById('edit-order-name')?.value || '').trim();
+      const phone = (document.getElementById('edit-order-phone')?.value || '').trim();
+      const address = (document.getElementById('edit-order-address')?.value || '').trim();
+      const note = (document.getElementById('edit-order-note')?.value || '').trim();
+      const shipVal = Number(document.getElementById('edit-order-shipping-fee')?.value);
+      const shippingFee = (isFinite(shipVal) && shipVal >= 0) ? shipVal : getDefaultShippingFeeNumber();
+
+      const subtotal = editingOrderState.cart.reduce((s, it) => s + (Number(it.price) || 0) * (parseInt(it.qty, 10) || 1), 0);
+      const finalTotal = subtotal + shippingFee;
+      const sumEl = document.getElementById('edit-order-summary-line');
+      if (sumEl) {
+        sumEl.textContent = `Tiền hàng: ${formatMoney(subtotal)} + Ship: ${formatMoney(shippingFee)} = TỔNG: ${formatMoney(finalTotal)}`;
+      }
+
+      const previewEl = document.getElementById('edit-order-zalo-preview');
+      if (previewEl) {
+        previewEl.value = buildCustomerOrderZaloText({
+          name: name,
+          phone: phone,
+          address: address,
+          note: note,
+          cart: editingOrderState.cart,
+          shippingFee: shippingFee,
+          traceId: editingOrderState.traceId || editingOrderState.orderId
+        });
+      }
+    }
+
+    async function copyEditOrderPreviewText() {
+      refreshEditOrderZaloPreview();
+      const previewEl = document.getElementById('edit-order-zalo-preview');
+      if (!previewEl || !previewEl.value) return;
+      await copyPlainTextWithToast(previewEl.value, '📋 Đã copy nội dung đơn hàng xem trước vào bộ nhớ tạm!');
+    }
+
+    async function submitEditOrder(andCopy) {
+      if (!editingOrderState) return;
+      const name = (document.getElementById('edit-order-name')?.value || '').trim();
+      const phone = (document.getElementById('edit-order-phone')?.value || '').trim();
+      const address = (document.getElementById('edit-order-address')?.value || '').trim();
+      const note = (document.getElementById('edit-order-note')?.value || '').trim();
+      const shipVal = Number(document.getElementById('edit-order-shipping-fee')?.value);
+      const shippingFee = (isFinite(shipVal) && shipVal >= 0) ? shipVal : getDefaultShippingFeeNumber();
+
+      if (!name || !phone || !address) {
+        alert('Vui lòng nhập đầy đủ Người nhận, Số điện thoại và Địa chỉ!');
+        return;
+      }
+      if (editingOrderState.cart.length === 0) {
+        alert('Đơn hàng phải có ít nhất 1 sản phẩm!');
+        return;
+      }
+
+      refreshEditOrderZaloPreview();
+      const previewText = document.getElementById('edit-order-zalo-preview')?.value || '';
+
+      showLoading(true);
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'updateOrderDetails',
+            token: getAdminToken(),
+            row: editingOrderState.row,
+            orderId: editingOrderState.orderId,
+            name: name,
+            phone: phone,
+            address: address,
+            note: note,
+            shippingFee: shippingFee,
+            cart: editingOrderState.cart
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'error') {
+          if (data.code === 'AUTH') logout();
+          else alert(data.msg || 'Không thể lưu đơn hàng');
+          showLoading(false);
+          return;
+        }
+
+        const targetOrd = globalOrdersData.find(o => o.row === editingOrderState.row);
+        if (targetOrd) {
+          targetOrd.name = data.name || name;
+          targetOrd.phone = data.phone || phone;
+          targetOrd.address = data.address || address;
+          targetOrd.note = data.note !== undefined ? data.note : note;
+          if (data.details) targetOrd.details = data.details;
+          if (data.total) targetOrd.total = data.total;
+          if (data.rawTotal !== undefined) targetOrd.rawTotal = data.rawTotal;
+          if (Array.isArray(data.cart)) targetOrd.cart = data.cart;
+          delete targetOrd._cachedCleanAddr;
+        }
+        try { localStorage.setItem(ADMIN_SWR_ORDERS_KEY, JSON.stringify(globalOrdersData)); } catch (e) {}
+
+        const savedOrderId = editingOrderState.orderId;
+        const wasDeducted = editingOrderState.isDeducted;
+        closeEditOrderModal();
+        renderOrders(globalOrdersData);
+
+        if (andCopy && previewText) {
+          await copyPlainTextWithToast(previewText, `✅ Đã lưu & copy đơn #${savedOrderId} để bạn dán gửi khách xác nhận!`);
+        } else {
+          showToast(`✅ Đã lưu thay đổi cho đơn #${savedOrderId}!`, 'success');
+        }
+
+        if (wasDeducted) {
+          loadData();
+        }
+      } catch (e) {
+        alert('Lỗi kết nối khi lưu đơn hàng!');
+      }
+      showLoading(false);
     }
 
     async function deleteOrder(rowIdx) {
@@ -4908,8 +5672,10 @@
               <span style="color:#0068ff; margin-top:4px; display:inline-block; font-weight:600;"><a href="tel:${phoneClean}" style="color:#0068ff; text-decoration:none;">📞 ${escapeHtml(order.phone)}</a></span><br>
               <div style="color:#4a5568; margin-top:4px; font-size:12.5px; line-height:1.4;">📍 ${escapeHtml(getOrderCachedCleanAddress(order))}</div>
               ${order.note ? `<div style="color:#d69e2e; margin-top:4px; font-size:12px; font-style:italic;">📝 Ghi chú: ${escapeHtml(order.note)}</div>` : ''}
-              <div class="customer-action-row">
-                <button type="button" class="btn-cust-action btn-cust-copy" onclick="copyCustomerInfo(${order.row})">📋 Copy Thông tin</button>
+              <div class="customer-action-row" style="display:flex; flex-wrap:wrap; gap:6px;">
+                <button type="button" class="btn-cust-action btn-cust-copy" onclick="copyCustomerInfo(${order.row})" title="Chỉ copy Tên + SĐT + Địa chỉ giao hàng">📋 Copy Thông tin</button>
+                <button type="button" class="btn-cust-action btn-cust-copy" style="background:#f0fdf4; color:#15803d; border-color:#86efac;" onclick="copyFullOrderZaloText(${order.row})" title="Copy toàn bộ nội dung đơn hàng chuẩn định dạng Zalo để gửi khách xác nhận">📄 Copy Đơn</button>
+                <button type="button" class="btn-cust-action" style="background:#eff6ff; color:#1d4ed8; border:1px solid #93c5fd;" onclick="openEditOrderModal(${order.row})" title="Chỉnh sửa mặt hàng, số lượng, thông tin khách hàng">✏️ Sửa đơn</button>
                 <button type="button" class="btn-cust-action btn-cust-zalo" onclick="window.open('https://zalo.me/${phoneClean}', '_blank')">💬 Mở Zalo</button>
               </div>
             </td>
