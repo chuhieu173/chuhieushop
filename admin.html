@@ -2180,6 +2180,35 @@
           </table>
         </div>
       </div>
+
+      <!-- BẢNG THỐNG KÊ RIÊNG CHO COMBO HỢP TÁC (XIAOZHI.VN) -->
+      <div style="background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 45%); border-radius: 12px; border: 1.5px solid #7dd3fc; padding: 20px; margin-top: 20px; box-shadow: 0 2px 10px rgba(2, 132, 199, 0.08);">
+        <div class="analytics-section-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <span style="color: #0369a1;">🤝 Thống Kê Đơn Đặt Hàng Combo Hợp Tác (Xiaozhi.vn)</span>
+            <div style="font-size: 12px; font-weight: 500; color: #475569; margin-top: 3px;">
+              ℹ️ Các sản phẩm hợp tác này <b>không tính vào Tồn kho, Doanh thu hay Lợi nhuận</b> của Chu Hiếu Shop.
+            </div>
+          </div>
+          <div id="partner-analytics-summary-badges" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 45px; text-align: center;">#</th>
+                <th>Tên Combo Hợp Tác</th>
+                <th>Đối tác &amp; Zalo nhận đơn</th>
+                <th style="text-align: center;">Tổng số đơn đặt</th>
+                <th style="text-align: center;">Đơn Hoàn thành / Đã giao</th>
+                <th style="text-align: center;">Tổng số lượng (bộ)</th>
+                <th>Giá trị đơn đối tác (Tham khảo)</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-partner-combos-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- TAB BÁO CÁO LỢI NHUẬN & GIÁ VỐN -->
@@ -2523,6 +2552,54 @@
       <input type="hidden" id="combo-edit-id">
       <div class="form-group"><label>Tên Combo Đặc Biệt:</label><input type="text" id="combo-name" placeholder="VD: Combo Mùa Hè Năng Động"></div>
       <div class="form-group"><label>Mô tả ngắn gọn:</label><textarea id="combo-desc" style="height: 60px;" placeholder="Dòng chữ nhỏ hiển thị dưới tên combo..."></textarea></div>
+
+      <!-- CẤU HÌNH COMBO HỢP TÁC (ĐỐI TÁC XIAOZHI.VN - TREO NHỜ SHOP) -->
+      <div style="background: #f0f9ff; border: 1.5px solid #38bdf8; padding: 14px 15px; border-radius: 8px; margin-bottom: 15px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #0369a1; cursor: pointer; user-select: none; margin: 0;">
+          <input type="checkbox" id="combo-is-partner" onchange="toggleComboPartnerSection(this.checked)" style="width: 18px; height: 18px; accent-color: #0284c7;">
+          <span style="font-size: 14.5px;">🤝 Đây là Combo Hợp Tác (Treo nhờ trên Shop — VD: Xiaozhi.vn)</span>
+        </label>
+        <div style="font-size: 12px; color: #0c4a6e; margin-top: 4px;">
+          Khi bật: Giao diện hiển thị khung Đối tác kèm miễn trừ trách nhiệm, <b>không bắt buộc chọn linh kiện trong kho</b>, <b>không tính vào tồn kho/doanh thu của bạn</b> và chuyển khách sang Zalo riêng của đối tác.
+        </div>
+
+        <div id="combo-partner-config-box" style="display: none; margin-top: 12px; border-top: 1px dashed #7dd3fc; padding-top: 12px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="color: #0369a1; font-size: 13px;">🌐 Tên đơn vị đối tác *</label>
+              <input type="text" id="combo-partner-name" value="Xiaozhi.vn" placeholder="VD: Xiaozhi.vn">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="color: #0369a1; font-size: 13px;">💬 SĐT Zalo nhận đơn của đối tác *</label>
+              <input type="text" id="combo-partner-zalo" placeholder="VD: 0912345678">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="color: #0369a1; font-size: 13px;">🚚 Cấu hình Phí vận chuyển đối tác</label>
+              <select id="combo-partner-shipping-mode" onchange="toggleComboPartnerShippingFeeInput(this.value)" style="width: 100%; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;">
+                <option value="quote_zalo">💬 Báo giá phí ship qua Zalo đối tác (0đ trên web)</option>
+                <option value="custom">💵 Nhập phí ship riêng cố định của đối tác</option>
+              </select>
+            </div>
+            <div class="form-group" id="combo-partner-shipping-fee-wrap" style="display: none; margin-bottom: 0;">
+              <label style="color: #0369a1; font-size: 13px;">💵 Phí ship riêng của đối tác (VNĐ)</label>
+              <input type="number" id="combo-partner-shipping-fee" min="0" step="1000" value="0" placeholder="VD: 25000 (hoặc 0 nếu miễn ship)">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label style="color: #0369a1; font-size: 13px;">⚠️ Nội dung miễn trừ trách nhiệm hiển thị trên thẻ sản phẩm</label>
+            <textarea id="combo-partner-disclaimer" style="height: 54px; font-size: 12.5px;" placeholder="Nhập câu miễn trừ trách nhiệm...">Đây là sản phẩm của bên Xiaozhi.vn, chúng tôi không chịu trách nhiệm về chất lượng sản phẩm.</textarea>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="color: #0369a1; font-size: 13px;">📋 Danh sách sản phẩm chi tiết trong bộ (Tùy chọn — có thể để trống)</label>
+            <textarea id="combo-partner-custom-items" style="height: 68px; font-size: 12.5px;" placeholder="Mỗi dòng 1 món (VD: 1x Mạch chính Xiaozhi AI v2). Để trống nếu không muốn hiển thị danh sách thành phần chi tiết."></textarea>
+          </div>
+        </div>
+      </div>
       
       <div class="form-group" style="background: #f8fafc; border: 1px dashed #cbd5e0; padding: 15px; border-radius: 8px;">
         <label style="color:#2d3748;">Hình Ảnh Riêng Cho Combo (Sẽ xếp ở đầu danh sách ảnh):</label>
@@ -5503,14 +5580,17 @@
       }
 
       order.cart.forEach(item => {
-        if (!item || item.isGift) return;
+        if (!item || item.isGift || item.isPartner) return;
         const itemQty = Math.max(1, parseInt(item.qty, 10) || 1);
         const isComboItem = !!(item.isCombo || String(item.id || "").indexOf("CMB_") === 0);
         if (isComboItem) {
           let cDef = comboMap[String(item.id)];
           if (!cDef && item.name && Array.isArray(globalCombosData)) {
-            const cleanName = item.name.replace(/^\[COMBO\]\s*/i, "").trim().toLowerCase();
+            const cleanName = item.name.replace(/^\[COMBO[^\]]*\]\s*/i, "").trim().toLowerCase();
             cDef = globalCombosData.find(c => c.name && c.name.trim().toLowerCase() === cleanName);
+          }
+          if (cDef && typeof getComboPartnerConfigAdmin === 'function' && getComboPartnerConfigAdmin(cDef).isPartner) {
+            return;
           }
           if (cDef && Array.isArray(cDef.rawItems)) {
             cDef.rawItems.forEach(sub => {
@@ -5655,6 +5735,12 @@
             </td>
             <td data-label="Mã ĐH">
               <b style="font-family:'Montserrat',sans-serif; color:${isDupCopy ? '#c05621' : (isCompleted ? '#15803d' : '#1a2935')};">${escapeHtml(order.orderId)}</b>
+              ${(() => {
+                const pSum = (typeof getOrderPartnerSummaryAdmin === 'function') ? getOrderPartnerSummaryAdmin(order) : null;
+                return (pSum && pSum.hasPartner)
+                  ? `<div style="margin-top:4px;"><span style="display:inline-block; background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px;">🤝 Đối tác: ${escapeHtml(pSum.partnerName || 'Xiaozhi.vn')}</span></div>`
+                  : '';
+              })()}
               ${order.isDuplicateGroupLeader && order.duplicateCount > 0 ? `
                 <div class="badge-duplicate-tag" onclick="showDuplicateDetailsModal(${order.row})" title="Khách bấm đặt nhiều lần - Bấm để xem chi tiết ${order.duplicateCount} đơn trùng lặp">
                   ⚠️ Đã lọc ${order.duplicateCount} đơn trùng
@@ -6275,14 +6361,69 @@
       }
     }
 
+    function getComboPartnerConfigAdmin(c) {
+      if (!c) return { isPartner: false };
+      if (c.isPartner === true || String(c.isPartner).toLowerCase() === 'true') {
+        return {
+          isPartner: true,
+          partnerName: c.partnerName || 'Xiaozhi.vn',
+          partnerZalo: c.partnerZalo || '',
+          disclaimer: c.partnerDisclaimer || 'Đây là sản phẩm của bên Xiaozhi.vn, chúng tôi không chịu trách nhiệm về chất lượng sản phẩm.',
+          shippingMode: c.partnerShippingMode || 'quote_zalo',
+          shippingFee: Number(c.partnerShippingFee) || 0,
+          customItemsText: c.partnerCustomItemsText || ''
+        };
+      }
+      if (c.rawJson) {
+        try {
+          const parsed = JSON.parse(c.rawJson);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0] && parsed[0].partnerMeta && parsed[0].partnerMeta.isPartner) {
+            const pm = parsed[0].partnerMeta;
+            return {
+              isPartner: true,
+              partnerName: pm.partnerName || 'Xiaozhi.vn',
+              partnerZalo: pm.partnerZalo || '',
+              disclaimer: pm.disclaimer || 'Đây là sản phẩm của bên Xiaozhi.vn, chúng tôi không chịu trách nhiệm về chất lượng sản phẩm.',
+              shippingMode: pm.shippingMode || 'quote_zalo',
+              shippingFee: Number(pm.shippingFee) || 0,
+              customItemsText: pm.customItemsText || ''
+            };
+          }
+        } catch (e) {}
+      }
+      return { isPartner: false };
+    }
+
+    function toggleComboPartnerSection(checked) {
+      const box = document.getElementById('combo-partner-config-box');
+      if (box) box.style.display = checked ? 'block' : 'none';
+      updateComboSummary();
+    }
+
+    function toggleComboPartnerShippingFeeInput(mode) {
+      const wrap = document.getElementById('combo-partner-shipping-fee-wrap');
+      if (wrap) wrap.style.display = (mode === 'custom') ? 'block' : 'none';
+    }
+
     function renderCombos(combos) {
       const tbody = document.getElementById('combos-body');
       if (!combos || combos.length === 0) { tbody.innerHTML = "<tr><td colspan='6'>Chưa có Combo nào. Bạn hãy tạo mới nhé!</td></tr>"; return; }
       let rowsHtml = [];
       combos.forEach(c => {
-        let itemsHtml = c.rawItems.map(i => `• ${escapeHtml(i.name)} (x${i.qty})`).join('<br>');
-        let stockHtml = c.stock <= 2 ? `<span class="stock-warning">${c.stock}</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${c.stock}</span>`;
+        const pCfg = getComboPartnerConfigAdmin(c);
+        const rawList = Array.isArray(c.rawItems) ? c.rawItems.filter(i => i && i.id !== '__PARTNER_META__') : [];
+        let itemsHtml = rawList.length > 0
+          ? rawList.map(i => `• ${escapeHtml(i.name)} (x${i.qty})`).join('<br>')
+          : (pCfg.isPartner && pCfg.customItemsText
+            ? pCfg.customItemsText.split('\n').map(s => s.trim()).filter(Boolean).map(s => `• ${escapeHtml(s)}`).join('<br>')
+            : (pCfg.isPartner ? `<span style="font-style:italic; color:#64748b;">(Combo trọn gói đối tác — không liệt kê món lẻ)</span>` : ''));
+        let stockHtml = pCfg.isPartner
+          ? `<span style="display:inline-block; background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; font-size:11.5px; font-weight:800; padding:3px 8px; border-radius:6px;">🤝 Kho Đối tác</span>`
+          : (c.stock <= 2 ? `<span class="stock-warning">${c.stock}</span>` : `<span style="font-weight:bold; font-size:16px; color: #2f855a;">${c.stock}</span>`);
         let firstImg = c.images && c.images.length > 0 ? c.images[0] : "";
+        let partnerBadgeHtml = pCfg.isPartner
+          ? `<span style="display:inline-block; margin-left:6px; background:linear-gradient(135deg, #0284c7, #4f46e5); color:#fff; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:bold;">🤝 ĐỐI TÁC: ${escapeHtml(pCfg.partnerName)} (Zalo: ${escapeHtml(pCfg.partnerZalo)})</span>`
+          : '';
         
         let flashBadge = "";
         let giftDetailHtml = "";
@@ -6304,7 +6445,8 @@
             <td data-label="Ảnh Nội Suy"><img src="${escapeHtml(resolveSafeImgUrl(firstImg))}" data-orig-src="${escapeHtml(firstImg)}" referrerpolicy="no-referrer" onerror="handleImgError(this)" loading="lazy" decoding="async" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;"></td>
             <td data-label="Tên & Thành Phần">
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
-                <b style="font-size:15px; color:#c53030;">[COMBO] ${escapeHtml(c.name)}</b>
+                <b style="font-size:15px; color:${pCfg.isPartner ? '#0369a1' : '#c53030'};">[COMBO] ${escapeHtml(c.name)}</b>
+                ${partnerBadgeHtml}
                 ${flashBadge}
                 ${(Array.isArray(c.videos) && c.videos.length > 0) ? `<span style="display:inline-block; margin-left:6px; background:#805ad5; color:#fff; font-size:11px; padding:2px 7px; border-radius:4px; font-weight:bold;">🎬 ${c.videos.length} VIDEO</span>` : ''}
               </div>
@@ -7321,6 +7463,13 @@
       const expireActionSelect = document.getElementById("combo-expire-action");
       const origPriceInput = document.getElementById("combo-orig-price");
       const customPriceInput = document.getElementById("combo-custom-price");
+      const isPartnerCheck = document.getElementById("combo-is-partner");
+      const partnerNameInput = document.getElementById("combo-partner-name");
+      const partnerZaloInput = document.getElementById("combo-partner-zalo");
+      const partnerShipModeSelect = document.getElementById("combo-partner-shipping-mode");
+      const partnerShipFeeInput = document.getElementById("combo-partner-shipping-fee");
+      const partnerDisclaimerInput = document.getElementById("combo-partner-disclaimer");
+      const partnerCustomItemsInput = document.getElementById("combo-partner-custom-items");
 
       if(comboId) {
          let combo = globalCombosData.find(c => c.id === comboId); if(!combo) return;
@@ -7334,7 +7483,21 @@
          if (origPriceInput) origPriceInput.value = effOrig > 0 ? effOrig : "";
          currentComboEditImages = combo.rawManualImages ? combo.rawManualImages.split('\n').map(i => i.trim()).filter(i => i !== "") : [];
          currentComboEditVideos = Array.isArray(combo.videos) ? combo.videos.slice() : (combo.rawVideos ? combo.rawVideos.split('\n').map(v => v.trim()).filter(v => isSafeComboVideoUrlClient(v)) : []);
-         try { currentComboItems = JSON.parse(combo.rawJson); } catch(e) { currentComboItems = []; }
+         try {
+           let parsedRaw = JSON.parse(combo.rawJson);
+           currentComboItems = Array.isArray(parsedRaw) ? parsedRaw.filter(it => it && it.id !== '__PARTNER_META__') : [];
+         } catch(e) { currentComboItems = []; }
+
+         const pCfg = getComboPartnerConfigAdmin(combo);
+         if (isPartnerCheck) isPartnerCheck.checked = Boolean(pCfg.isPartner);
+         toggleComboPartnerSection(Boolean(pCfg.isPartner));
+         if (partnerNameInput) partnerNameInput.value = pCfg.partnerName || "Xiaozhi.vn";
+         if (partnerZaloInput) partnerZaloInput.value = pCfg.partnerZalo || "";
+         if (partnerShipModeSelect) partnerShipModeSelect.value = pCfg.shippingMode || "quote_zalo";
+         toggleComboPartnerShippingFeeInput(pCfg.shippingMode || "quote_zalo");
+         if (partnerShipFeeInput) partnerShipFeeInput.value = pCfg.shippingFee || 0;
+         if (partnerDisclaimerInput) partnerDisclaimerInput.value = pCfg.disclaimer || "Đây là sản phẩm của bên Xiaozhi.vn, chúng tôi không chịu trách nhiệm về chất lượng sản phẩm.";
+         if (partnerCustomItemsInput) partnerCustomItemsInput.value = pCfg.customItemsText || "";
 
          let firstGift = (combo.giftItems && combo.giftItems.length > 0) ? combo.giftItems[0] : null;
          let isGiftActive = !!(combo.hasGift || firstGift);
@@ -7364,6 +7527,16 @@
          currentComboEditVideos = [];
          currentComboItems = [];
 
+         if (isPartnerCheck) isPartnerCheck.checked = false;
+         toggleComboPartnerSection(false);
+         if (partnerNameInput) partnerNameInput.value = "Xiaozhi.vn";
+         if (partnerZaloInput) partnerZaloInput.value = "";
+         if (partnerShipModeSelect) partnerShipModeSelect.value = "quote_zalo";
+         toggleComboPartnerShippingFeeInput("quote_zalo");
+         if (partnerShipFeeInput) partnerShipFeeInput.value = 0;
+         if (partnerDisclaimerInput) partnerDisclaimerInput.value = "Đây là sản phẩm của bên Xiaozhi.vn, chúng tôi không chịu trách nhiệm về chất lượng sản phẩm.";
+         if (partnerCustomItemsInput) partnerCustomItemsInput.value = "";
+
          if (hasGiftCheck) hasGiftCheck.checked = false;
          toggleComboGiftSection(false);
          renderComboGiftProductOptions("");
@@ -7384,8 +7557,32 @@
       let cId = document.getElementById("combo-edit-id").value;
       let cName = document.getElementById("combo-name").value;
       let cDesc = document.getElementById("combo-desc").value;
+      let isPartner = Boolean(document.getElementById("combo-is-partner")?.checked);
+      let partnerName = (document.getElementById("combo-partner-name")?.value || "Xiaozhi.vn").trim() || "Xiaozhi.vn";
+      let partnerZalo = (document.getElementById("combo-partner-zalo")?.value || "").trim();
+      let partnerShipMode = document.getElementById("combo-partner-shipping-mode")?.value || "quote_zalo";
+      let partnerShipFee = parseInt(String(document.getElementById("combo-partner-shipping-fee")?.value || "0").replace(/\D/g, ""), 10) || 0;
+      let partnerDisclaimer = (document.getElementById("combo-partner-disclaimer")?.value || "").trim() || "Đây là sản phẩm của bên Xiaozhi.vn, chúng tôi không chịu trách nhiệm về chất lượng sản phẩm.";
+      let partnerCustomItemsText = (document.getElementById("combo-partner-custom-items")?.value || "").trim();
+
+      let customPriceEl = document.getElementById("combo-custom-price");
+      let comboCustomPrice = customPriceEl ? (parseInt(String(customPriceEl.value || '').replace(/\D/g, ''), 10) || 0) : 0;
+      let origPriceEl = document.getElementById("combo-orig-price");
+      let comboOrigPrice = origPriceEl ? (parseInt(String(origPriceEl.value || '').replace(/\D/g, ''), 10) || 0) : 0;
+
       if(!cName) { alert("Tên Combo không được bỏ trống!"); return; }
-      if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
+      if(isPartner) {
+        if(!partnerZalo || !/^\d{9,12}$/.test(partnerZalo.replace(/\D+/g, ''))) {
+          alert("Vui lòng nhập Số điện thoại Zalo hợp lệ của đối tác (" + partnerName + ")!");
+          return;
+        }
+        if(comboCustomPrice <= 0 && currentComboItems.length === 0) {
+          alert("Với Combo Hợp tác không chọn linh kiện trong kho, vui lòng nhập Giá Bán Combo ở mục Giá Bán Combo Tùy Chỉnh!");
+          return;
+        }
+      } else {
+        if(currentComboItems.length === 0) { alert("Vui lòng thêm ít nhất 1 sản phẩm vào Combo!"); return; }
+      }
       if (comboVideoUploading) { alert("Video đang được tải lên, vui lòng đợi tải xong rồi bấm Lưu!"); return; }
 
       let hasGiftCheck = document.getElementById("combo-has-gift");
@@ -7421,10 +7618,16 @@
       }
       
       showLoading(true); closeComboModal();
-      let customPriceEl = document.getElementById("combo-custom-price");
-      let comboCustomPrice = customPriceEl ? (parseInt(String(customPriceEl.value || '').replace(/\D/g, ''), 10) || 0) : 0;
-      let origPriceEl = document.getElementById("combo-orig-price");
-      let comboOrigPrice = origPriceEl ? (parseInt(String(origPriceEl.value || '').replace(/\D/g, ''), 10) || 0) : 0;
+      const partnerMetaObj = isPartner ? {
+        isPartner: true,
+        partnerName: partnerName,
+        partnerZalo: partnerZalo.replace(/\D+/g, ''),
+        disclaimer: partnerDisclaimer,
+        shippingMode: partnerShipMode,
+        shippingFee: partnerShipFee,
+        customItemsText: partnerCustomItemsText
+      } : null;
+
       let itemsPayloadList = currentComboItems.map((it, idx) => {
         let clone = { id: it.id, variantId: it.variantId || '', qty: it.qty };
         if (idx === 0 && comboOrigPrice > 0) {
@@ -7433,8 +7636,18 @@
         if (idx === 0 && comboCustomPrice > 0) {
           clone.comboCustomPrice = comboCustomPrice;
         }
+        if (idx === 0 && partnerMetaObj) {
+          clone.partnerMeta = partnerMetaObj;
+        }
         return clone;
       });
+      if (isPartner && itemsPayloadList.length === 0) {
+        let metaHolder = { id: '__PARTNER_META__', variantId: '', qty: 1, partnerMeta: partnerMetaObj };
+        if (comboOrigPrice > 0) metaHolder.comboOriginalPrice = comboOrigPrice;
+        if (comboCustomPrice > 0) metaHolder.comboCustomPrice = comboCustomPrice;
+        itemsPayloadList.push(metaHolder);
+      }
+
       let payload = {
         action: "saveCombo",
         token: getAdminToken(),
@@ -7449,7 +7662,14 @@
         giftItems: hasGift ? JSON.stringify(giftItems) : "",
         startTime: hasGift ? startTime : "",
         endTime: hasGift ? endTime : "",
-        expireAction: hasGift ? expireAction : "hide"
+        expireAction: hasGift ? expireAction : "hide",
+        isPartner: isPartner,
+        partnerName: partnerName,
+        partnerZalo: partnerZalo.replace(/\D+/g, ''),
+        partnerDisclaimer: partnerDisclaimer,
+        partnerShippingMode: partnerShipMode,
+        partnerShippingFee: partnerShipFee,
+        partnerCustomItemsText: partnerCustomItemsText
       };
       try {
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
@@ -7877,12 +8097,13 @@
         if (!trimmed) return;
         if (trimmed.startsWith('-')) {
           let clean = trimmed.replace(/^[-\s+]+/, '');
-          let isCombo = clean.startsWith('[COMBO]');
-          clean = clean.replace(/^\[COMBO\]\s*/, '');
+          let isPartner = /^\[COMBO ĐỐI TÁC/i.test(clean);
+          let isCombo = isPartner || clean.startsWith('[COMBO]');
+          clean = clean.replace(/^\[COMBO[^\]]*\]\s*/i, '');
           let varMatch = clean.match(/^(.*?)\s*\[(.*?)\]$/);
           let name = varMatch ? varMatch[1].trim() : clean;
           let varName = varMatch ? varMatch[2].trim() : '';
-          currentItem = { name: name, variantName: varName, isCombo: isCombo, qty: 1, price: 0 };
+          currentItem = { name: name, variantName: varName, isCombo: isCombo, isPartner: isPartner, qty: 1, price: 0 };
           items.push(currentItem);
         } else if (currentItem && trimmed.includes('Số lượng:') && trimmed.includes('Giá:')) {
           let pM = trimmed.match(/Giá:\s*([\d\.]+)/);
@@ -7892,6 +8113,173 @@
         }
       });
       return items;
+    }
+
+    function findComboDefinitionForItemAdmin(it) {
+      if (!it || !Array.isArray(globalCombosData) || globalCombosData.length === 0) return null;
+      return globalCombosData.find(c =>
+        (it.id && String(c.id) === String(it.id)) ||
+        (it.name && c.name && c.name.trim().toLowerCase() === String(it.name).replace(/^\[COMBO[^\]]*\]\s*/i, '').trim().toLowerCase())
+      ) || null;
+    }
+
+    function isCartItemPartnerAdmin(it) {
+      if (!it) return false;
+      if (it.isPartner === true || String(it.isPartner).toLowerCase() === 'true') return true;
+      if (/^\[COMBO ĐỐI TÁC/i.test(String(it.name || ''))) return true;
+      const comboDef = findComboDefinitionForItemAdmin(it);
+      if (comboDef && getComboPartnerConfigAdmin(comboDef).isPartner) return true;
+      return false;
+    }
+
+    function getOrderPartnerSummaryAdmin(order) {
+      if (!order) return { hasPartner: false, isPurePartner: false, partnerName: '', shopValue: 0, partnerValue: 0 };
+      const items = (Array.isArray(order.cart) && order.cart.length > 0)
+        ? order.cart.filter(it => it && !it.isGift)
+        : parseOrderDetailsFallback(order.details);
+      let hasPartner = false;
+      let hasShop = false;
+      let partnerName = '';
+      let shopSubtotal = 0;
+      let partnerSubtotal = 0;
+
+      items.forEach(it => {
+        if (!it) return;
+        const qty = parseInt(it.qty, 10) || 1;
+        const price = Number(it.price) || 0;
+        if (isCartItemPartnerAdmin(it)) {
+          hasPartner = true;
+          partnerSubtotal += price * qty;
+          if (!partnerName) {
+            const cDef = findComboDefinitionForItemAdmin(it);
+            const pCfg = cDef ? getComboPartnerConfigAdmin(cDef) : null;
+            partnerName = it.partnerName || (pCfg && pCfg.partnerName) || 'Xiaozhi.vn';
+          }
+        } else {
+          hasShop = true;
+          shopSubtotal += price * qty;
+        }
+      });
+
+      const rawTotal = Number(order.rawTotal) || Number(String(order.total || '').replace(/[^\d]/g, '')) || 0;
+      if (hasPartner && !hasShop) {
+        return { hasPartner: true, isPurePartner: true, partnerName: partnerName || 'Xiaozhi.vn', shopValue: 0, partnerValue: rawTotal || partnerSubtotal };
+      }
+      if (hasPartner && hasShop) {
+        return { hasPartner: true, isPurePartner: false, partnerName: partnerName || 'Xiaozhi.vn', shopValue: shopSubtotal, partnerValue: partnerSubtotal };
+      }
+      return { hasPartner: false, isPurePartner: false, partnerName: '', shopValue: rawTotal, partnerValue: 0 };
+    }
+
+    function renderPartnerCombosAnalytics(inRangeOrders) {
+      const tbody = document.getElementById('analytics-partner-combos-body');
+      const badgesBox = document.getElementById('partner-analytics-summary-badges');
+      if (!tbody) return;
+
+      const statsMap = {};
+      // Khởi tạo trước tất cả các Combo Hợp tác đang có trong danh mục để Admin luôn thấy đầy đủ
+      (globalCombosData || []).forEach(c => {
+        const pCfg = getComboPartnerConfigAdmin(c);
+        if (pCfg.isPartner) {
+          const key = String(c.id);
+          statsMap[key] = {
+            id: String(c.id),
+            name: c.name,
+            partnerName: pCfg.partnerName || 'Xiaozhi.vn',
+            partnerZalo: pCfg.partnerZalo || '',
+            totalOrders: 0,
+            successOrders: 0,
+            totalQty: 0,
+            totalValue: 0
+          };
+        }
+      });
+
+      let totalPartnerOrdersSet = new Set();
+      let totalPartnerSetsCount = 0;
+
+      (inRangeOrders || []).forEach(o => {
+        const st = (o.status || '').toLowerCase();
+        const isSuccess = st === 'hoàn thành' || st === 'đã giao cho đơn vị vận chuyển';
+        const items = (Array.isArray(o.cart) && o.cart.length > 0)
+          ? o.cart.filter(it => it && !it.isGift)
+          : parseOrderDetailsFallback(o.details);
+
+        const seenInThisOrder = new Set();
+        items.forEach(it => {
+          if (!isCartItemPartnerAdmin(it)) return;
+          const cDef = findComboDefinitionForItemAdmin(it);
+          const pCfg = cDef ? getComboPartnerConfigAdmin(cDef) : { isPartner: true };
+          const key = cDef ? String(cDef.id) : ('PARTNER_NAME_' + String(it.name || '').trim().toLowerCase());
+          const qty = Math.max(1, parseInt(it.qty, 10) || 1);
+          const price = Number(it.price) || (cDef ? Number(cDef.price) || 0 : 0);
+
+          if (!statsMap[key]) {
+            statsMap[key] = {
+              id: cDef ? String(cDef.id) : (it.id || 'PARTNER'),
+              name: cDef ? cDef.name : String(it.name || 'Combo Hợp Tác').replace(/^\[COMBO[^\]]*\]\s*/i, ''),
+              partnerName: it.partnerName || pCfg.partnerName || 'Xiaozhi.vn',
+              partnerZalo: it.partnerZalo || pCfg.partnerZalo || '',
+              totalOrders: 0,
+              successOrders: 0,
+              totalQty: 0,
+              totalValue: 0
+            };
+          }
+
+          if (!seenInThisOrder.has(key)) {
+            seenInThisOrder.add(key);
+            statsMap[key].totalOrders += 1;
+            if (isSuccess) statsMap[key].successOrders += 1;
+          }
+          statsMap[key].totalQty += qty;
+          statsMap[key].totalValue += price * qty;
+
+          totalPartnerOrdersSet.add(o.orderId || o.row);
+          totalPartnerSetsCount += qty;
+        });
+      });
+
+      if (badgesBox) {
+        badgesBox.innerHTML = `
+          <span style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; padding:5px 11px; border-radius:999px; font-size:12.5px; font-weight:800;">
+            📦 Tổng đơn đối tác: ${totalPartnerOrdersSet.size} đơn
+          </span>
+          <span style="background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd; padding:5px 11px; border-radius:999px; font-size:12.5px; font-weight:800;">
+            🤝 Tổng số lượng: ${totalPartnerSetsCount} bộ
+          </span>
+        `;
+      }
+
+      const list = Object.values(statsMap).sort((a, b) => (b.totalQty - a.totalQty) || (b.totalOrders - a.totalOrders));
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:18px; color:#64748b;">Chưa có Combo Hợp tác nào được tạo hoặc đặt hàng trong khoảng thời gian này.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => `
+        <tr>
+          <td data-label="#" style="text-align:center; font-weight:700; color:#64748b;">${idx + 1}</td>
+          <td data-label="Tên Combo Hợp Tác">
+            <b style="color:#0369a1; font-size:14px;">[COMBO] ${escapeHtml(item.name)}</b>
+            <div style="font-size:11.5px; color:#64748b;">Mã: ${escapeHtml(item.id)}</div>
+          </td>
+          <td data-label="Đối tác & Zalo">
+            <span style="display:inline-block; background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:999px;">
+              🌐 ${escapeHtml(item.partnerName)}
+            </span>
+            ${item.partnerZalo ? `<div style="font-size:12px; color:#0284c7; font-weight:700; margin-top:3px;">💬 Zalo: ${escapeHtml(item.partnerZalo)}</div>` : ''}
+          </td>
+          <td data-label="Tổng số đơn đặt" style="text-align:center; font-weight:800; font-size:15px; color:#0f172a;">${item.totalOrders}</td>
+          <td data-label="Đơn Hoàn thành / Đã giao" style="text-align:center; font-weight:700; color:#15803d;">${item.successOrders}</td>
+          <td data-label="Tổng số lượng (bộ)" style="text-align:center;">
+            <span style="display:inline-block; background:#eff6ff; color:#1d4ed8; border:1px solid #93c5fd; font-weight:800; font-size:14px; padding:3px 10px; border-radius:6px;">
+              x${item.totalQty} bộ
+            </span>
+          </td>
+          <td data-label="Giá trị đơn đối tác" style="font-weight:700; color:#475569;">${formatMoney(item.totalValue)} <span style="font-size:11px; font-weight:500; color:#94a3b8;">(Không cộng DT Shop)</span></td>
+        </tr>
+      `).join('');
     }
 
     function renderAnalytics() {
@@ -7909,15 +8297,23 @@
         return true;
       });
 
+      // Luôn cập nhật bảng thống kê riêng cho các Combo Hợp Tác (Xiaozhi.vn)
+      renderPartnerCombosAnalytics(inRangeOrders);
+
       let validOrders = [];
       let pendingRev = 0;
       let actualRev = 0;
       let completedCount = 0;
       let shippingCount = 0;
+      let totalShopOrders = 0;
 
       inRangeOrders.forEach(o => {
+        const pSum = getOrderPartnerSummaryAdmin(o);
+        if (pSum.isPurePartner) return; // Loại trừ hoàn toàn đơn của đối tác khỏi KPI Doanh thu & Đơn hàng của Chu Hiếu Shop
+        totalShopOrders++;
+
         let st = (o.status || '').toLowerCase();
-        let totalVal = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
+        let totalVal = pSum.hasPartner ? pSum.shopValue : (Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0);
         let isSuccess = st === 'hoàn thành' || st === 'đã giao cho đơn vị vận chuyển';
 
         if (st === 'hoàn thành') completedCount++;
@@ -7938,11 +8334,14 @@
         }
       });
 
-      let totalOrders = inRangeOrders.length;
+      let totalOrders = totalShopOrders;
       let displayedRev = (statusFilter === 'all') 
         ? (actualRev + pendingRev) 
         : (statusFilter === 'completed' 
-          ? inRangeOrders.filter(o => (o.status || '').toLowerCase() === 'hoàn thành').reduce((acc, o) => acc + (Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0), 0)
+          ? inRangeOrders.filter(o => !getOrderPartnerSummaryAdmin(o).isPurePartner && (o.status || '').toLowerCase() === 'hoàn thành').reduce((acc, o) => {
+              const ps = getOrderPartnerSummaryAdmin(o);
+              return acc + (ps.hasPartner ? ps.shopValue : (Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0));
+            }, 0)
           : actualRev);
 
       let aov = validOrders.length > 0 ? Math.round(displayedRev / validOrders.length) : 0;
@@ -7971,6 +8370,7 @@
         let orderProductsSet = new Set();
 
         items.forEach(it => {
+          if (!it || it.isGift || isCartItemPartnerAdmin(it)) return;
           let qty = parseInt(it.qty, 10) || 1;
           let price = Number(it.price) || 0;
 
@@ -8786,6 +9186,7 @@
 
       let validOrders = [];
       inRangeOrders.forEach(o => {
+        if (getOrderPartnerSummaryAdmin(o).isPurePartner) return;
         let st = (o.status || '').toLowerCase();
         let isSuccess = st === 'hoàn thành' || st === 'đã giao cho đơn vị vận chuyển';
         if (statusFilter === 'all') {
@@ -8810,6 +9211,7 @@
         }
 
         items.forEach(it => {
+          if (!it || it.isGift || isCartItemPartnerAdmin(it)) return;
           let qty = parseInt(it.qty, 10) || 1;
           let price = Number(it.price) || 0;
 

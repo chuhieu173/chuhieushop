@@ -3003,6 +3003,61 @@
       border-color: rgba(225, 29, 72, 0.4);
       color: #fda4af;
     }
+    /* === GIAO DIỆN COMBO HỢP TÁC (ĐỐI TÁC XIAOZHI.VN) === */
+    .product-card.combo-card.partner-combo-card {
+      border: 2px solid #0284c7;
+      background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 38%);
+      box-shadow: 0 10px 26px rgba(2, 132, 199, 0.16);
+      position: relative;
+      overflow: hidden;
+    }
+    body.theme-dark .product-card.combo-card.partner-combo-card {
+      background: linear-gradient(180deg, rgba(14, 116, 144, 0.24) 0%, rgba(15, 23, 42, 0.94) 45%);
+      border-color: #38bdf8;
+    }
+    .partner-top-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 14px;
+      background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
+      color: #ffffff;
+      font-size: 12.5px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+    .partner-top-header-bar .partner-tag-right {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .partner-disclaimer-box {
+      margin: 6px 0 10px;
+      padding: 9px 11px;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-left: 4px solid #d97706;
+      border-radius: 8px;
+      color: #92400e;
+      font-size: 12px;
+      line-height: 1.48;
+      text-align: left;
+    }
+    body.theme-dark .partner-disclaimer-box {
+      background: rgba(120, 53, 15, 0.3);
+      border-color: #f59e0b;
+      color: #fde68a;
+    }
+    .btn-partner-combo {
+      background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%) !important;
+      color: #fff !important;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+    }
   </style>
   
   <script defer src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
@@ -6100,6 +6155,59 @@
       return 0;
     }
 
+    function getComboPartnerConfig(c) {
+      if (!c) return { isPartner: false };
+      let meta = null;
+      if (c.isPartner === true || String(c.isPartner).toLowerCase() === 'true') {
+        meta = {
+          isPartner: true,
+          partnerName: c.partnerName || 'Xiaozhi.vn',
+          partnerZalo: c.partnerZalo || '',
+          disclaimer: c.partnerDisclaimer || 'Đây là sản phẩm của bên Xiaozhi.vn, chúng tôi không chịu trách nhiệm về chất lượng sản phẩm.',
+          shippingMode: c.partnerShippingMode || 'quote_zalo',
+          shippingFee: Number(c.partnerShippingFee) || 0,
+          customItemsText: c.partnerCustomItemsText || ''
+        };
+      } else if (c.rawJson) {
+        try {
+          let parsed = JSON.parse(c.rawJson);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0] && parsed[0].partnerMeta && parsed[0].partnerMeta.isPartner) {
+            let pm = parsed[0].partnerMeta;
+            meta = {
+              isPartner: true,
+              partnerName: pm.partnerName || 'Xiaozhi.vn',
+              partnerZalo: pm.partnerZalo || '',
+              disclaimer: pm.disclaimer || 'Đây là sản phẩm của bên Xiaozhi.vn, chúng tôi không chịu trách nhiệm về chất lượng sản phẩm.',
+              shippingMode: pm.shippingMode || 'quote_zalo',
+              shippingFee: Number(pm.shippingFee) || 0,
+              customItemsText: pm.customItemsText || ''
+            };
+          }
+        } catch (e) {}
+      }
+      if (!meta) return { isPartner: false };
+      return meta;
+    }
+
+    function getComboEffectiveRawItems(c) {
+      if (!c) return [];
+      let base = Array.isArray(c.rawItems) ? c.rawItems.filter(it => it && it.id !== '__PARTNER_META__') : [];
+      if (base.length > 0) return base;
+      let pCfg = getComboPartnerConfig(c);
+      if (pCfg.isPartner && pCfg.customItemsText) {
+        return pCfg.customItemsText.split('\n').map(s => s.trim()).filter(Boolean).map((line, idx) => {
+          let m = line.match(/^(\d+)\s*[xX*]\s+(.+)$/);
+          return {
+            id: 'PARTNER_TXT_' + idx,
+            name: m ? m[2].trim() : line.replace(/^[-•+]\s*/, '').trim(),
+            qty: m ? (parseInt(m[1], 10) || 1) : 1,
+            price: 0
+          };
+        });
+      }
+      return [];
+    }
+
     function renderData() {
       document.getElementById('loading').classList.add('hidden');
       
@@ -6189,8 +6297,55 @@
           let arrowsHtml = buildCarouselOverlayHtml(c.id, totalImgs, hasComboCaptions);
 
           let card = document.createElement('div');
+          let partnerCfg = getComboPartnerConfig(c);
+          let effRawItems = getComboEffectiveRawItems(c);
 
-          if (isDealActive) {
+          if (partnerCfg.isPartner) {
+            // === CARD COMBO HỢP TÁC (ĐỐI TÁC XIAOZHI.VN) ===
+            card.className = 'product-card combo-card partner-combo-card';
+            let pShipNote = partnerCfg.shippingMode === 'custom'
+              ? (partnerCfg.shippingFee > 0 ? `🚚 Phí ship đối tác: ${formatMoney(partnerCfg.shippingFee)}` : `🚚 Miễn phí vận chuyển`)
+              : `🚚 Phí ship: Báo giá qua Zalo ${escapeHtml(partnerCfg.partnerName)}`;
+            let partnerItemsHtml = effRawItems.length > 0 ? buildComboRawItemsHtml(effRawItems) : '';
+
+            card.innerHTML = `
+              <div class="partner-top-header-bar">
+                <span>🤝 SẢN PHẨM HỢP TÁC • ${escapeHtml(partnerCfg.partnerName.toUpperCase())}</span>
+                <span class="partner-tag-right">${hasComboDiscount ? `GIẢM -${comboDiscountPct}%` : 'ĐỐI TÁC'}</span>
+              </div>
+              <div class="combo-card-layout">
+                <div class="combo-card-media-col">
+                  <div class="carousel"><div class="carousel-slides" id="slides-${c.id}" data-carousel-id="${c.id}" data-total-imgs="${totalImgs}">${imagesHtml}</div>${arrowsHtml}</div>
+                  <div class="combo-card-buy-box">
+                    <div class="price-container">
+                      ${comboPriceBoxHtml}
+                      <div style="font-size:11.5px; color:#0284c7; font-weight:700; margin-top:4px;">${pShipNote}</div>
+                    </div>
+                    <div class="qty-wrapper">
+                      <button class="qty-btn" onclick="changeProductQty('${c.id}', -1)">-</button>
+                      <input type="number" id="qty-${c.id}" class="qty-input" aria-label="Số lượng đặt mua ${escapeHtml(c.name)}" value="1" min="1" onchange="validateProductQty('${c.id}')">
+                      <button class="qty-btn" onclick="changeProductQty('${c.id}', 1)">+</button>
+                    </div>
+                    <button class="btn-primary btn-partner-combo" onclick="addToCart('${c.id}', true)">🤝 Đặt qua Zalo ${escapeHtml(partnerCfg.partnerName)}</button>
+                  </div>
+                </div>
+                <div class="combo-card-content-col">
+                  <div style="display:inline-flex; align-items:center; gap:5px; background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; margin-bottom:4px;">
+                    🌐 Sản phẩm của bên ${escapeHtml(partnerCfg.partnerName)}
+                  </div>
+                  <h3 style="color:#0369a1; margin-top:2px; margin-bottom:6px;">${escapeHtml(c.name)}</h3>
+                  <div class="partner-disclaimer-box">
+                    ⚠️ <b>Lưu ý miễn trừ trách nhiệm:</b> ${escapeHtml(partnerCfg.disclaimer)}
+                  </div>
+                  ${c.desc ? `<p style="margin-bottom:8px;">${escapeHtml(c.desc)}</p>` : ''}
+                  ${partnerItemsHtml}
+                </div>
+              </div>
+            `;
+            comboFrag.appendChild(card);
+            visibleCombosCount++;
+
+          } else if (isDealActive) {
             // === CARD FLASH DEAL VIP (KÈM QUÀ) ===
             card.className = 'product-card combo-card flash-deal';
 
@@ -6595,18 +6750,53 @@
           return;
         }
 
+        let partnerCfg = getComboPartnerConfig(product);
+        if (cart.length > 0) {
+          let cartHasPartner = cart.some(i => Boolean(i.isPartner));
+          let cartPartnerZalo = (cart.find(i => i.isPartner)?.partnerZalo || '');
+          let cartPartnerName = (cart.find(i => i.isPartner)?.partnerName || 'Xiaozhi.vn');
+          if (partnerCfg.isPartner && (!cartHasPartner || (partnerCfg.partnerZalo && cartPartnerZalo && partnerCfg.partnerZalo !== cartPartnerZalo))) {
+            let okSwitch = confirm(`🤝 Sản phẩm "${product.name}" thuộc đối tác ${partnerCfg.partnerName} và sẽ đặt trực tiếp qua Zalo riêng của ${partnerCfg.partnerName} (không gộp chung với giỏ hàng hiện tại).\n\nBạn có muốn làm trống giỏ hàng hiện tại để chuyển sang đặt sản phẩm của ${partnerCfg.partnerName} không?`);
+            if (!okSwitch) return;
+            cart = [];
+          } else if (!partnerCfg.isPartner && cartHasPartner) {
+            let okSwitch = confirm(`Giỏ hàng hiện tại đang chứa sản phẩm hợp tác của đối tác ${cartPartnerName}.\n\nBạn có muốn làm trống giỏ hàng đối tác để chuyển sang mua sản phẩm của Chu Hiếu Shop không?`);
+            if (!okSwitch) return;
+            cart = [];
+          }
+        }
+
         let qtyInput = document.getElementById('qty-' + id);
         let qtyToAdd = parseInt(qtyInput ? qtyInput.value : 1) || 1;
         let item = cart.find(i => i.id === id && i.isCombo);
         if (item) {
           item.qty += qtyToAdd;
         } else {
-          cart.push({ id, name: product.name, price: Number(product.price) || 0, qty: qtyToAdd, isCombo: true });
+          cart.push({
+            id,
+            name: product.name,
+            price: Number(product.price) || 0,
+            qty: qtyToAdd,
+            isCombo: true,
+            isPartner: Boolean(partnerCfg.isPartner),
+            partnerName: partnerCfg.isPartner ? partnerCfg.partnerName : '',
+            partnerZalo: partnerCfg.isPartner ? partnerCfg.partnerZalo : '',
+            partnerDisclaimer: partnerCfg.isPartner ? partnerCfg.disclaimer : '',
+            partnerShippingMode: partnerCfg.isPartner ? partnerCfg.shippingMode : 'default',
+            partnerShippingFee: partnerCfg.isPartner ? (Number(partnerCfg.shippingFee) || 0) : 0
+          });
         }
         if (qtyInput) qtyInput.value = 1;
         updateCart();
         showToast(`Đã thêm ${qtyToAdd} x [ ${product.name} ] vào giỏ!`);
         return;
+      }
+
+      if (cart.length > 0 && cart.some(i => Boolean(i.isPartner))) {
+        let cartPartnerName = (cart.find(i => i.isPartner)?.partnerName || 'Xiaozhi.vn');
+        let okSwitch = confirm(`Giỏ hàng hiện tại đang chứa sản phẩm hợp tác của đối tác ${cartPartnerName}.\n\nBạn có muốn làm trống giỏ hàng đối tác để chuyển sang mua sản phẩm của Chu Hiếu Shop không?`);
+        if (!okSwitch) return;
+        cart = [];
       }
 
       let product = productsData.find(p => p.id === id);
@@ -6679,14 +6869,25 @@
       
       cart.forEach(i => { if (i.qty > 99) i.qty = 99; }); 
       let total = 0; let totalQty = 0; 
-      const shippingFee = globalShippingFee; 
+      const partnerCtx = (typeof getActiveCartPartnerContext === 'function') ? getActiveCartPartnerContext() : { isPartner: false, shippingFee: globalShippingFee, shippingMode: 'default' };
+      const shippingFee = partnerCtx.isPartner ? partnerCtx.shippingFee : globalShippingFee; 
 
       if (cart.length > 0) {
         totalPriceDiv.style.display = 'block';
         let cartItemsHtml = [];
+        if (partnerCtx.isPartner) {
+          cartItemsHtml.push(`
+            <div class="partner-disclaimer-box" style="margin-bottom:10px;">
+              🤝 <b>Đơn hàng Đối tác ${escapeHtml(partnerCtx.partnerName)}:</b> ${escapeHtml(partnerCtx.disclaimer)}<br>
+              <span style="color:#0369a1; font-weight:700;">💬 Khi bấm Đặt hàng, hệ thống sẽ kết nối trực tiếp tới Zalo của ${escapeHtml(partnerCtx.partnerName)}.</span>
+            </div>
+          `);
+        }
         cart.forEach((item, index) => {
           let itemTotal = item.price * item.qty; total += itemTotal; totalQty += item.qty;
-          let prefix = item.isCombo ? `<span style="color:#e53e3e; font-weight:bold;">[COMBO]</span> ` : '';
+          let prefix = item.isPartner
+            ? `<span style="color:#0284c7; font-weight:bold;">[ĐỐI TÁC ${escapeHtml(item.partnerName || 'Xiaozhi.vn')}]</span> `
+            : (item.isCombo ? `<span style="color:#e53e3e; font-weight:bold;">[COMBO]</span> ` : '');
           let variantTag = item.variantName ? `<div class="cart-variant-tag">Phân loại: ${escapeHtml(item.variantName)}</div>` : '';
           
           let comboGiftTag = "";
@@ -6728,8 +6929,11 @@
       
       if (total > 0) {
         let finalTotal = total + shippingFee;
+        let shipLineHtml = (partnerCtx.isPartner && partnerCtx.shippingMode === 'quote_zalo')
+          ? `<div style="font-size: 0.7em; color: #0284c7; font-weight: 600;">Phí giao hàng: Báo giá qua Zalo ${escapeHtml(partnerCtx.partnerName)}</div>`
+          : `<div style="font-size: 0.7em; color: #666; font-weight: normal;">Phí giao hàng: ${formatMoney(shippingFee)}</div>`;
         document.getElementById('floating-total-price').innerText = formatMoney(finalTotal);
-        document.getElementById('total-price').innerHTML = `<div style="font-size: 0.7em; color: #666; font-weight: normal;">Tiền hàng: ${formatMoney(total)}</div><div style="font-size: 0.7em; color: #666; font-weight: normal;">Phí giao hàng: ${formatMoney(shippingFee)}</div><div style="margin-top: 5px; color: #ee4d2d;">Tổng cộng: ${formatMoney(finalTotal)}</div>`;
+        document.getElementById('total-price').innerHTML = `<div style="font-size: 0.7em; color: #666; font-weight: normal;">Tiền hàng: ${formatMoney(total)}</div>${shipLineHtml}<div style="margin-top: 5px; color: #ee4d2d;">Tổng cộng: ${formatMoney(finalTotal)}</div>`;
       } else {
         document.getElementById('floating-total-price').innerText = "0đ";
       }
@@ -6757,6 +6961,48 @@
     // === GIẢI PHÁP CHỐNG TẠO ĐƠN TRÙNG LẶP (IDEMPOTENCY FINGERPRINT + MODAL HƯỚNG DẪN ZALO) ===
     const ORDER_DEDUP_WINDOW_MS = 15 * 60 * 1000; // 15 phút
     const ORDER_DEDUP_STORAGE_KEY = 'chuhieu_last_submitted_order_v1';
+
+    function formatZaloLinkPhoneClient(rawPhone) {
+      let digits = String(rawPhone || '').replace(/\D+/g, '');
+      if (!digits) return zaloPhone;
+      if (digits.startsWith('0') && digits.length === 10) {
+        return '84' + digits.substring(1);
+      }
+      return digits;
+    }
+
+    function getActiveCartPartnerContext() {
+      const pItem = Array.isArray(cart) ? cart.find(i => i && i.isPartner) : null;
+      if (!pItem) {
+        return {
+          isPartner: false,
+          partnerName: '',
+          partnerZalo: '',
+          zaloTarget: zaloPhone,
+          shippingMode: 'default',
+          shippingFee: globalShippingFee,
+          disclaimer: ''
+        };
+      }
+      let pMode = pItem.partnerShippingMode || 'quote_zalo';
+      let pFee = 0;
+      if (pMode === 'custom') {
+        cart.forEach(it => {
+          if (it && it.isPartner && (Number(it.partnerShippingFee) || 0) > pFee) {
+            pFee = Number(it.partnerShippingFee) || 0;
+          }
+        });
+      }
+      return {
+        isPartner: true,
+        partnerName: pItem.partnerName || 'Xiaozhi.vn',
+        partnerZalo: pItem.partnerZalo || '',
+        zaloTarget: formatZaloLinkPhoneClient(pItem.partnerZalo),
+        shippingMode: pMode,
+        shippingFee: pFee,
+        disclaimer: pItem.partnerDisclaimer || 'Đây là sản phẩm hợp tác của bên Xiaozhi.vn, Chu Hiếu Shop không chịu trách nhiệm về chất lượng sản phẩm.'
+      };
+    }
     const ORDER_DIAG_STORAGE_KEY = 'chuhieu_pending_order_diag_v1';
     const ORDER_DIAG_MAX_ENTRIES = 3;
     const ORDER_DIAG_MIN_AGE_MS = 20000;
@@ -7177,7 +7423,8 @@
     function openZaloFromSuccessModal() {
       const textToCopy = lastSubmittedOrderState.orderText || (document.getElementById('order-success-preview-text')?.innerText || '');
       if (textToCopy) copyTextToClipboard(textToCopy);
-      window.open("https://zalo.me/" + zaloPhone, "_blank");
+      const partnerCtx = getActiveCartPartnerContext();
+      window.open("https://zalo.me/" + (partnerCtx.zaloTarget || zaloPhone), "_blank");
     }
 
     function reCopyOrderFromSuccessModal() {
@@ -7368,13 +7615,22 @@
 
       let cleanDetail = cleanDetailAddress(detailAddress, phuongName, tinhName);
       let fullAddress = cleanDetail ? `${cleanDetail}, ${phuongName}, ${tinhName}` : `${detailAddress}, ${phuongName}, ${tinhName}`;
-      let orderText = "ĐƠN ĐẶT HÀNG MỚI\nNgười nhận: " + name + "\nSđt: " + normPhone + "\nĐịa chỉ: " + fullAddress + "\n";
+      const partnerCtx = getActiveCartPartnerContext();
+      const targetZaloPhone = partnerCtx.zaloTarget || zaloPhone;
+      const effectiveShipFee = partnerCtx.isPartner ? partnerCtx.shippingFee : globalShippingFee;
+      let orderHeaderTitle = partnerCtx.isPartner
+        ? `ĐƠN ĐẶT HÀNG MỚI [ĐỐI TÁC ${partnerCtx.partnerName.toUpperCase()}]`
+        : "ĐƠN ĐẶT HÀNG MỚI";
+      let orderText = orderHeaderTitle + "\nNgười nhận: " + name + "\nSđt: " + normPhone + "\nĐịa chỉ: " + fullAddress + "\n";
       if(note) orderText += "Ghi chú: " + note + "\n";
+      if (partnerCtx.isPartner && partnerCtx.disclaimer) {
+        orderText += "Lưu ý: " + partnerCtx.disclaimer + "\n";
+      }
       orderText += "------------------------\n\n"; 
       
       let total = 0; let itemsForSheet = [];
       cart.forEach((item, index) => {
-        let prefix = item.isCombo ? "[COMBO] " : "";
+        let prefix = item.isPartner ? `[COMBO ĐỐI TÁC - ${item.partnerName || 'Xiaozhi.vn'}] ` : (item.isCombo ? "[COMBO] " : "");
         let varText = item.variantName ? ` [Phân loại: ${item.variantName}]` : "";
         orderText += `${index + 1}. ${prefix}${item.name}${varText}\n   Giá: ${formatMoney(item.price)} | Số lượng: x${item.qty}\n`; 
         
@@ -7382,8 +7638,11 @@
 
         if (item.isCombo) {
           let comboDetail = combosData.find(c => c.id === item.id);
-          if (comboDetail && comboDetail.rawItems) {
-            comboDetail.rawItems.forEach(subItem => {
+          let subList = (typeof getComboEffectiveRawItems === 'function' && comboDetail)
+            ? getComboEffectiveRawItems(comboDetail)
+            : ((comboDetail && comboDetail.rawItems) ? comboDetail.rawItems : []);
+          if (subList && subList.length > 0) {
+            subList.forEach(subItem => {
               orderText += `   ${subItem.name}\n   Giá: ${formatMoney(subItem.price)} | Số lượng: x${subItem.qty * item.qty}\n`;
             });
           }
@@ -7403,8 +7662,11 @@
         itemsForSheet.push(sheetItemText);
         total += (item.price * item.qty);
       });
-      let finalTotal = total + globalShippingFee;
-      orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + formatMoney(globalShippingFee) + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
+      let finalTotal = total + effectiveShipFee;
+      let shipTextLine = (partnerCtx.isPartner && partnerCtx.shippingMode === 'quote_zalo')
+        ? `Báo giá qua Zalo ${partnerCtx.partnerName} (0đ)`
+        : formatMoney(effectiveShipFee);
+      orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + shipTextLine + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
 
       const currentFp = computeOrderFingerprint(name, phone, fullAddress, note, cart);
       const isDuplicateSubmission = (
@@ -7426,7 +7688,7 @@
         updateCheckoutSubmittedUI();
         openOrderSuccessModal(orderText, true);
         if (openZalo === true) {
-          window.open("https://zalo.me/" + zaloPhone, "_blank");
+          window.open("https://zalo.me/" + targetZaloPhone, "_blank");
         }
         return;
       }
@@ -7439,7 +7701,7 @@
         if (typeof applyMaintenanceState === 'function') applyMaintenanceState(currentMaintenanceState);
         alert("⚠️ " + (currentMaintenanceState.message || "Hệ thống đang tạm bảo trì trong ít phút.") + "\n\nNội dung đơn hàng của bạn đã được copy sẵn vào bộ nhớ tạm, vui lòng dán gửi trực tiếp qua Zalo Shop!");
         if (openZalo === true) {
-          window.open("https://zalo.me/" + zaloPhone, "_blank");
+          window.open("https://zalo.me/" + targetZaloPhone, "_blank");
         }
         return;
       }
@@ -7475,7 +7737,7 @@
       openOrderSuccessModal(orderText, false);
 
       if (openZalo === true) {
-        window.open("https://zalo.me/" + zaloPhone, "_blank");
+        window.open("https://zalo.me/" + targetZaloPhone, "_blank");
       }
     }
 
