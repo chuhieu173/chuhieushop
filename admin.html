@@ -3199,7 +3199,10 @@
 
         <!-- Thanh thêm sản phẩm / Combo mới vào đơn -->
         <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px;">
-          <div style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 6px;">➕ Thêm Sản phẩm lẻ hoặc Combo vào đơn:</div>
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #334155;">➕ Thêm Sản phẩm lẻ hoặc Combo vào đơn:</span>
+            <button type="button" id="btn-edit-order-add-custom" onclick="addCustomAdjustmentToEditingOrder()" style="background: #7c3aed; color: #fff; border: none; border-radius: 6px; padding: 5px 11px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;">✨ + Thêm mục tùy chỉnh (Lãi 100%)</button>
+          </div>
           <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
             <input type="text" id="edit-order-add-search" oninput="filterEditOrderAddCatalog()" placeholder="🔍 Gõ tên SP / Combo để lọc nhanh..." style="flex: 1 1 180px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;">
             <select id="edit-order-add-select" onchange="onEditOrderAddProductChange()" style="flex: 2 1 240px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;"></select>
@@ -3207,6 +3210,21 @@
             <input type="number" id="edit-order-add-qty" value="1" min="1" max="99" style="width: 64px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; text-align: center;">
             <button type="button" onclick="addProductToEditingOrder()" style="background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;">➕ Thêm món</button>
           </div>
+        </div>
+
+        <!-- Khu vực tự chỉnh Tổng thanh toán đơn hàng (chênh lệch tự sinh mục tùy chỉnh tính 100% lãi) -->
+        <div style="margin-top: 12px; padding: 10px 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 12.5px; color: #78350f; line-height: 1.45;">
+              <b>💰 Tự sửa Tổng thanh toán đơn hàng:</b><br>
+              <span style="color: #92400e;">Nhập số tiền tổng muốn thu thực tế — phần chênh lệch so với giá tự động sẽ tự tạo <b>Mục tùy chỉnh</b> (có thể đặt tên riêng &amp; tính <b>100% thành lãi</b> của đơn).</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <input type="number" id="edit-order-manual-total" min="0" step="1000" oninput="onEditOrderManualTotalInput(this.value)" placeholder="Tổng thanh toán (VNĐ)" style="width: 155px; padding: 7px 10px; border: 1.5px solid #f59e0b; border-radius: 6px; font-size: 14px; font-weight: 800; color: #dc2626; background: #fff; text-align: right;">
+              <button type="button" id="btn-edit-order-reset-total" onclick="resetEditOrderAutoDiff()" style="display: none; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;" title="Bỏ mục chênh lệch tự sinh, quay về tổng tính tự động">↺ Tính tự động</button>
+            </div>
+          </div>
+          <div id="edit-order-diff-hint" style="display: none; margin-top: 6px; font-size: 12px; font-weight: 600;"></div>
         </div>
       </div>
 
@@ -4331,17 +4349,62 @@
       return (isFinite(v) && v >= 0) ? v : 18000;
     }
 
+    function getOrderComboSubItems(item) {
+      if (!item) return [];
+      if (Array.isArray(item.customSubItems) && item.customSubItems.length > 0) {
+        return item.customSubItems.filter(s => s && s.id !== '__PARTNER_META__');
+      }
+      let comboDef = null;
+      if (Array.isArray(globalCombosData) && globalCombosData.length > 0) {
+        const cleanItemName = String(item.name || '').replace(/^\[COMBO[^\]]*\]\s*/i, '').trim().toLowerCase();
+        comboDef = globalCombosData.find(c =>
+          (item.id && String(c.id) === String(item.id)) ||
+          (cleanItemName && c.name && c.name.trim().toLowerCase() === cleanItemName)
+        );
+      }
+      if (!comboDef) return [];
+      let rawList = [];
+      if (Array.isArray(comboDef.rawItems) && comboDef.rawItems.length > 0) {
+        rawList = comboDef.rawItems;
+      } else if (comboDef.rawJson) {
+        try {
+          const parsed = JSON.parse(comboDef.rawJson);
+          if (Array.isArray(parsed)) rawList = parsed;
+        } catch (e) {}
+      }
+      return rawList.filter(s => s && s.id !== '__PARTNER_META__');
+    }
+
     function parseLegacyCartFromOrder(order) {
       if (Array.isArray(order.cart) && order.cart.length > 0) {
-        return order.cart.filter(it => it && !it.isGift).map(it => ({
-          id: String(it.id || ''),
-          name: String(it.name || '').replace(/^\[COMBO\]\s*/i, ''),
-          variantId: it.variantId ? String(it.variantId) : '',
-          variantName: it.variantName ? String(it.variantName) : '',
-          price: Math.max(0, Number(it.price) || 0),
-          qty: Math.max(1, parseInt(it.qty, 10) || 1),
-          isCombo: Boolean(it.isCombo || String(it.id || '').startsWith('CMB_'))
-        }));
+        return order.cart.filter(it => it && !it.isGift).map(it => {
+          const isAdj = Boolean(it.isCustomAdjustment);
+          const rawPrice = Number(it.price) || 0;
+          const mapped = {
+            id: String(it.id || ''),
+            name: String(it.name || '').replace(/^\[COMBO\]\s*/i, ''),
+            variantId: it.variantId ? String(it.variantId) : '',
+            variantName: it.variantName ? String(it.variantName) : '',
+            price: isAdj ? Math.round(rawPrice) : Math.max(0, rawPrice),
+            qty: Math.max(1, parseInt(it.qty, 10) || 1),
+            isCombo: !isAdj && Boolean(it.isCombo || String(it.id || '').startsWith('CMB_')),
+            isCustomAdjustment: isAdj,
+            isAutoDiff: Boolean(it.isAutoDiff),
+            costPrice: isAdj ? 0 : (it.costPrice !== undefined ? Number(it.costPrice) : undefined)
+          };
+          if (mapped.isCombo && Array.isArray(it.customSubItems) && it.customSubItems.length > 0) {
+            mapped.isCustomCombo = true;
+            mapped.customSubItems = it.customSubItems.map(sub => ({
+              id: String(sub.id || ''),
+              name: String(sub.name || ''),
+              variantId: sub.variantId ? String(sub.variantId) : '',
+              variantName: sub.variantName ? String(sub.variantName) : '',
+              price: Math.max(0, Number(sub.price) || 0),
+              qty: Math.max(1, parseInt(sub.qty, 10) || 1)
+            }));
+          }
+          return mapped;
+        });
       }
       const items = [];
       const lines = String(order.details || '').split('\n');
@@ -4422,20 +4485,30 @@
 
       let total = 0;
       cartItems.forEach((item, index) => {
-        let isCombo = Boolean(item.isCombo || String(item.id || '').startsWith('CMB_'));
+        let isAdj = Boolean(item.isCustomAdjustment);
+        let isCombo = !isAdj && Boolean(item.isCombo || String(item.id || '').startsWith('CMB_'));
         let cleanName = String(item.name || '').replace(/^\[COMBO\]\s*/i, '');
         let prefix = isCombo ? "[COMBO] " : "";
-        let varText = item.variantName ? ` [Phân loại: ${item.variantName}]` : "";
-        let itemPrice = Math.max(0, Number(item.price) || 0);
+        let varText = (!isAdj && item.variantName) ? ` [Phân loại: ${item.variantName}]` : "";
+        let itemPrice = isAdj ? Math.round(Number(item.price) || 0) : Math.max(0, Number(item.price) || 0);
         let itemQty = Math.max(1, parseInt(item.qty, 10) || 1);
 
         orderText += `${index + 1}. ${prefix}${cleanName}${varText}\n   Giá: ${formatMoney(itemPrice)} | Số lượng: x${itemQty}\n`;
 
         if (isCombo) {
           let comboDetail = (globalCombosData || []).find(c => String(c.id) === String(item.id));
-          if (comboDetail && Array.isArray(comboDetail.rawItems)) {
-            comboDetail.rawItems.forEach(subItem => {
-              orderText += `   ${subItem.name}\n   Giá: ${formatMoney(subItem.price)} | Số lượng: x${subItem.qty * itemQty}\n`;
+          let subItems = (typeof getOrderComboSubItems === 'function')
+            ? getOrderComboSubItems(item)
+            : ((Array.isArray(item.customSubItems) && item.customSubItems.length > 0)
+                ? item.customSubItems
+                : (comboDetail && Array.isArray(comboDetail.rawItems) ? comboDetail.rawItems : []));
+          if (Array.isArray(subItems) && subItems.length > 0) {
+            subItems.forEach(subItem => {
+              let subDisp = String(subItem.name || '');
+              if (subItem.variantName && !subDisp.includes('[' + subItem.variantName + ']')) {
+                subDisp += ` [${subItem.variantName}]`;
+              }
+              orderText += `   ${subDisp}\n   Giá: ${formatMoney(subItem.price || 0)} | Số lượng: x${(parseInt(subItem.qty, 10) || 1) * itemQty}\n`;
             });
           }
           if (comboDetail && comboDetail.hasGift && Array.isArray(comboDetail.giftItems)) {
@@ -4453,7 +4526,7 @@
         total += (itemPrice * itemQty);
       });
 
-      let finalTotal = total + shippingFee;
+      let finalTotal = Math.max(0, total + shippingFee);
       orderText += "------------------------\nTiền hàng: " + formatMoney(total) + "\nPhí giao hàng: " + formatMoney(shippingFee) + "\nTỔNG THANH TOÁN: " + formatMoney(finalTotal);
       if (traceId) {
         orderText += "\nMã tra cứu: " + traceId;
@@ -4488,7 +4561,10 @@
         orderId: order.orderId,
         traceId: order.traceId || order.orderId,
         isDeducted: Boolean(order.isDeducted),
-        cart: cartItems.map(it => ({ ...it }))
+        cart: cartItems.map(it => ({
+          ...it,
+          customSubItems: Array.isArray(it.customSubItems) ? it.customSubItems.map(s => ({ ...s })) : undefined
+        }))
       };
 
       document.getElementById('edit-order-row').value = order.row;
@@ -4518,6 +4594,42 @@
       editingOrderState = null;
     }
 
+    function ensureComboCustomSubItems(item) {
+      if (!item) return [];
+      if (!Array.isArray(item.customSubItems) || item.customSubItems.length === 0) {
+        const baseSubs = getOrderComboSubItems(item);
+        item.customSubItems = baseSubs.map(s => ({
+          id: String(s.id || ''),
+          name: String(s.name || ''),
+          variantId: s.variantId ? String(s.variantId) : '',
+          variantName: s.variantName ? String(s.variantName) : '',
+          price: Math.max(0, Number(s.price) || 0),
+          qty: Math.max(1, parseInt(s.qty, 10) || 1)
+        }));
+      }
+      item.isCustomCombo = true;
+      return item.customSubItems;
+    }
+
+    function getEditOrderAddSubProdOptionsHtml() {
+      const prods = (globalProductsData || []).filter(p => {
+        if (!p || !p.name) return false;
+        const st = String(p.status || '').toLowerCase();
+        return !st.includes('xóa') && !st.includes('xoa');
+      });
+      let html = `<option value="">-- Chọn linh kiện thêm vào Combo --</option>`;
+      prods.forEach(p => {
+        if (Array.isArray(p.variants) && p.variants.length > 0) {
+          p.variants.forEach(v => {
+            html += `<option value="${escapeHtml(String(p.id))}::${escapeHtml(String(v.id))}">${escapeHtml(p.name)} [${escapeHtml(v.name)}] — ${formatMoney(v.price)}</option>`;
+          });
+        } else {
+          html += `<option value="${escapeHtml(String(p.id))}::">${escapeHtml(p.name)} — ${formatMoney(p.price)}</option>`;
+        }
+      });
+      return html;
+    }
+
     function renderEditOrderItemsList() {
       const container = document.getElementById('edit-order-items-list');
       if (!container || !editingOrderState) return;
@@ -4526,7 +4638,37 @@
         return;
       }
 
+      const subProdOptsHtml = getEditOrderAddSubProdOptionsHtml();
+
       const html = editingOrderState.cart.map((item, idx) => {
+        // 1. Mục tùy chỉnh (chênh lệch tổng tiền / phụ thu / chiết khấu — tính 100% thành lãi)
+        if (item.isCustomAdjustment) {
+          const adjTotal = (Number(item.price) || 0) * (parseInt(item.qty, 10) || 1);
+          const colorPrice = adjTotal >= 0 ? '#059669' : '#dc2626';
+          const autoTag = item.isAutoDiff
+            ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:4px; margin-left:4px;">Tự sinh từ sửa Tổng đơn</span>`
+            : '';
+          return `<div style="padding:10px 12px; background:#f5f3ff; border:1.5px solid #c4b5fd; border-radius:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:7px;">
+              <div>
+                <span style="background:#7c3aed; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:4px;">✨ MỤC TÙY CHỈNH (Lãi 100%)</span>
+                ${autoTag}
+              </div>
+              <button type="button" onclick="removeEditOrderItem(${idx})" title="Xóa mục tùy chỉnh này" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px;">🗑️ Xóa</button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+              <input type="text" value="${escapeHtml(item.name || '')}" oninput="updateEditOrderCustomField(${idx}, 'name', this.value)" placeholder="Nhập tên mục tùy chỉnh (VD: Công lắp ráp, Phụ thu, Giảm giá...)" style="flex:1 1 240px; padding:7px 10px; border:1px solid #a78bfa; border-radius:6px; font-size:13px; font-weight:600; background:#fff; color:#1e293b;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:12px; color:#4c1d95; font-weight:600;">Số tiền:</span>
+                <input type="number" step="1000" value="${Math.round(Number(item.price) || 0)}" oninput="updateEditOrderCustomField(${idx}, 'price', this.value)" placeholder="VD: 50000 hoặc -20000" style="width:125px; padding:7px 8px; border:1px solid #a78bfa; border-radius:6px; font-size:13px; font-weight:700; text-align:right; color:${colorPrice}; background:#fff;">
+                <div style="min-width:86px; text-align:right; font-weight:800; color:${colorPrice}; font-size:13.5px;">${adjTotal > 0 ? '+' : ''}${formatMoney(adjTotal)}</div>
+              </div>
+            </div>
+            <div style="font-size:11.5px; color:#5b21b6; margin-top:5px;">💡 Mục này không trừ kho, giá vốn = 0đ — toàn bộ số tiền (<b>${adjTotal > 0 ? '+' : ''}${formatMoney(adjTotal)}</b>) sẽ cộng trực tiếp vào <b>Lãi</b> của đơn hàng.</div>
+          </div>`;
+        }
+
+        // 2. Sản phẩm lẻ & Combo
         const isCombo = Boolean(item.isCombo || String(item.id || '').startsWith('CMB_'));
         const prod = !isCombo ? (globalProductsData || []).find(p => String(p.id) === String(item.id)) : null;
         let variantHtml = '';
@@ -4541,25 +4683,264 @@
         }
 
         const badge = isCombo
-          ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px;">🎁 COMBO</span>`
+          ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px;">🎁 COMBO</span>${item.isCustomCombo ? '<span style="background:#dbeafe; color:#1d4ed8; border:1px solid #93c5fd; font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px;">✏️ Đã tùy chỉnh</span>' : ''}`
           : `<span style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px;">📦 SP</span>`;
 
-        return `<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:9px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
-          <div style="flex:1 1 220px; min-width:0;">
-            <div style="font-size:13.5px; font-weight:700; color:#0f172a; line-height:1.35;">${badge}${escapeHtml(item.name)}</div>
-            ${variantHtml}
-            <div style="font-size:12px; color:#64748b; margin-top:3px;">Đơn giá: <b style="color:#0f172a;">${formatMoney(item.price)}</b></div>
+        const priceLineHtml = isCombo
+          ? `<div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:12px; color:#64748b; margin-top:4px;">
+               <span>Đơn giá Combo:</span>
+               <input type="number" min="0" step="1000" value="${Math.round(Number(item.price) || 0)}" onchange="updateEditOrderItemPrice(${idx}, this.value)" style="width:110px; padding:3px 7px; border:1px solid #cbd5e1; border-radius:5px; font-size:12.5px; font-weight:700; color:#0f172a; text-align:right;">
+               <span style="font-size:11.5px;">đ</span>
+             </div>`
+          : `<div style="font-size:12px; color:#64748b; margin-top:3px;">Đơn giá: <b style="color:#0f172a;">${formatMoney(item.price)}</b></div>`;
+
+        // Khu vực chi tiết linh kiện bên trong Combo (chỉ chỉnh cho đơn hàng này)
+        let comboSubHtml = '';
+        if (isCombo) {
+          const subItems = getOrderComboSubItems(item);
+          const origCombo = (globalCombosData || []).find(c => String(c.id) === String(item.id));
+          const origSubList = origCombo && Array.isArray(origCombo.rawItems) ? origCombo.rawItems.filter(s => s && s.id !== '__PARTNER_META__') : [];
+          const origSubSum = origSubList.reduce((s, ci) => s + (Number(ci.price) || 0) * (parseInt(ci.qty, 10) || 1), 0);
+          const curSubSum = subItems.reduce((s, ci) => s + (Number(ci.price) || 0) * (parseInt(ci.qty, 10) || 1), 0);
+          const subDiff = curSubSum - origSubSum;
+
+          const subRowsHtml = subItems.length > 0
+            ? subItems.map((sub, sIdx) => {
+                const subVarTxt = (sub.variantName && !String(sub.name || '').includes('[' + sub.variantName + ']')) ? ` [${sub.variantName}]` : '';
+                return `<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; padding:5px 8px; background:#fff; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
+                  <div style="flex:1 1 180px; min-width:0; color:#1e293b;">
+                    <span style="color:#64748b;">•</span> <b>${escapeHtml(sub.name || '')}${escapeHtml(subVarTxt)}</b>
+                    <span style="color:#64748b; margin-left:4px;">(${formatMoney(sub.price || 0)}/cái)</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:4px;">
+                    <button type="button" onclick="changeEditOrderComboSubQty(${idx}, ${sIdx}, -1)" style="width:24px; height:24px; border:1px solid #cbd5e1; border-radius:5px; background:#f1f5f9; font-weight:700; cursor:pointer; line-height:1;">−</button>
+                    <input type="number" min="1" max="99" value="${parseInt(sub.qty, 10) || 1}" onchange="setEditOrderComboSubQty(${idx}, ${sIdx}, this.value)" style="width:42px; height:24px; text-align:center; border:1px solid #cbd5e1; border-radius:5px; font-weight:700; font-size:12px;">
+                    <button type="button" onclick="changeEditOrderComboSubQty(${idx}, ${sIdx}, 1)" style="width:24px; height:24px; border:1px solid #cbd5e1; border-radius:5px; background:#f1f5f9; font-weight:700; cursor:pointer; line-height:1;">+</button>
+                    <button type="button" onclick="removeEditOrderComboSubItem(${idx}, ${sIdx})" title="Xóa linh kiện này khỏi Combo trong đơn" style="margin-left:3px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:5px; padding:2px 7px; cursor:pointer; font-size:11.5px; font-weight:700;">✕</button>
+                  </div>
+                </div>`;
+              }).join('')
+            : `<div style="font-size:12px; color:#64748b; font-style:italic;">Combo này không có danh sách linh kiện chi tiết.</div>`;
+
+          const diffActionHtml = (item.isCustomCombo && origCombo)
+            ? `<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-top:6px; padding-top:6px; border-top:1px dashed #cbd5e1; font-size:11.5px;">
+                <span style="color:#475569;">Chênh lệch linh kiện so với Combo gốc: <b style="color:${subDiff >= 0 ? '#059669' : '#dc2626'};">${subDiff > 0 ? '+' : ''}${formatMoney(subDiff)}</b></span>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                  ${subDiff !== 0 ? `<button type="button" onclick="applyEditOrderComboPriceDiff(${idx})" style="background:#eff6ff; color:#1d4ed8; border:1px solid #93c5fd; border-radius:5px; padding:3px 8px; font-size:11.5px; font-weight:700; cursor:pointer;">⚡ Cập nhật giá Combo (${formatMoney(Math.max(0, (Number(origCombo.price) || 0) + subDiff))})</button>` : ''}
+                  <button type="button" onclick="resetEditOrderComboSubItems(${idx})" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:5px; padding:3px 8px; font-size:11.5px; font-weight:700; cursor:pointer;">↺ Khôi phục Combo gốc</button>
+                </div>
+              </div>`
+            : '';
+
+          comboSubHtml = `<div style="margin-top:8px; padding:8px 10px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:7px;">
+            <div style="font-size:11.5px; font-weight:700; color:#334155; margin-bottom:6px;">🧩 Linh kiện trong Combo (chỉ sửa riêng đơn này — không ảnh hưởng Combo gốc):</div>
+            <div style="display:flex; flex-direction:column; gap:5px;">${subRowsHtml}</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:7px;">
+              <select id="edit-order-combo-add-sub-${idx}" style="flex:1 1 200px; padding:5px 8px; border:1px solid #cbd5e1; border-radius:5px; font-size:12px; background:#fff;">${subProdOptsHtml}</select>
+              <button type="button" onclick="addSubItemToEditOrderCombo(${idx})" style="background:#0ea5e9; color:#fff; border:none; border-radius:5px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">+ Thêm vào Combo</button>
+            </div>
+            ${diffActionHtml}
+          </div>`;
+        }
+
+        return `<div style="padding:9px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <div style="flex:1 1 220px; min-width:0;">
+              <div style="font-size:13.5px; font-weight:700; color:#0f172a; line-height:1.35;">${badge}${escapeHtml(item.name)}</div>
+              ${variantHtml}
+              ${priceLineHtml}
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button type="button" onclick="changeEditOrderItemQty(${idx}, -1)" style="width:28px; height:28px; border:1px solid #cbd5e1; border-radius:6px; background:#f1f5f9; font-weight:700; cursor:pointer;">−</button>
+              <input type="number" min="1" max="99" value="${item.qty}" onchange="setEditOrderItemQty(${idx}, this.value)" style="width:48px; height:28px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-weight:700; font-size:13px;">
+              <button type="button" onclick="changeEditOrderItemQty(${idx}, 1)" style="width:28px; height:28px; border:1px solid #cbd5e1; border-radius:6px; background:#f1f5f9; font-weight:700; cursor:pointer;">+</button>
+              <div style="min-width:92px; text-align:right; font-weight:700; color:#dc2626; font-size:13.5px;">${formatMoney(item.price * item.qty)}</div>
+              <button type="button" onclick="removeEditOrderItem(${idx})" title="Xóa món này khỏi đơn" style="margin-left:4px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; padding:5px 8px; cursor:pointer; font-size:12px;">🗑️</button>
+            </div>
           </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <button type="button" onclick="changeEditOrderItemQty(${idx}, -1)" style="width:28px; height:28px; border:1px solid #cbd5e1; border-radius:6px; background:#f1f5f9; font-weight:700; cursor:pointer;">−</button>
-            <input type="number" min="1" max="99" value="${item.qty}" onchange="setEditOrderItemQty(${idx}, this.value)" style="width:48px; height:28px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-weight:700; font-size:13px;">
-            <button type="button" onclick="changeEditOrderItemQty(${idx}, 1)" style="width:28px; height:28px; border:1px solid #cbd5e1; border-radius:6px; background:#f1f5f9; font-weight:700; cursor:pointer;">+</button>
-            <div style="min-width:92px; text-align:right; font-weight:700; color:#dc2626; font-size:13.5px;">${formatMoney(item.price * item.qty)}</div>
-            <button type="button" onclick="removeEditOrderItem(${idx})" title="Xóa món này khỏi đơn" style="margin-left:4px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; padding:5px 8px; cursor:pointer; font-size:12px;">🗑️</button>
-          </div>
+          ${comboSubHtml}
         </div>`;
       }).join('');
       container.innerHTML = html;
+    }
+
+    function updateEditOrderItemPrice(idx, val) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const num = Number(val);
+      editingOrderState.cart[idx].price = (isFinite(num) && num >= 0) ? Math.round(num) : 0;
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function changeEditOrderComboSubQty(idx, subIdx, delta) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const subs = ensureComboCustomSubItems(editingOrderState.cart[idx]);
+      if (!subs[subIdx]) return;
+      subs[subIdx].qty = Math.max(1, Math.min(99, (parseInt(subs[subIdx].qty, 10) || 1) + delta));
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function setEditOrderComboSubQty(idx, subIdx, val) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const subs = ensureComboCustomSubItems(editingOrderState.cart[idx]);
+      if (!subs[subIdx]) return;
+      subs[subIdx].qty = Math.max(1, Math.min(99, parseInt(val, 10) || 1));
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function removeEditOrderComboSubItem(idx, subIdx) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const subs = ensureComboCustomSubItems(editingOrderState.cart[idx]);
+      if (subs.length <= 1) {
+        alert('Combo phải còn ít nhất 1 linh kiện. Nếu muốn bỏ cả Combo này, hãy bấm nút 🗑️ ở góc phải của Combo!');
+        return;
+      }
+      subs.splice(subIdx, 1);
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function addSubItemToEditOrderCombo(idx) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const sel = document.getElementById(`edit-order-combo-add-sub-${idx}`);
+      if (!sel || !sel.value) return;
+      const parts = sel.value.split('::');
+      const prodId = parts[0];
+      const varId = parts[1] || '';
+      const prod = (globalProductsData || []).find(p => String(p.id) === String(prodId));
+      if (!prod) return;
+      let varName = '';
+      let price = Number(prod.price) || 0;
+      if (varId && Array.isArray(prod.variants)) {
+        const vObj = prod.variants.find(v => String(v.id) === String(varId));
+        if (vObj) {
+          varName = String(vObj.name || '');
+          price = Number(vObj.price) || 0;
+        }
+      }
+      const subs = ensureComboCustomSubItems(editingOrderState.cart[idx]);
+      const existing = subs.find(s => String(s.id) === String(prod.id) && String(s.variantId || '') === varId);
+      if (existing) {
+        existing.qty = Math.min(99, (parseInt(existing.qty, 10) || 1) + 1);
+      } else {
+        subs.push({
+          id: String(prod.id),
+          name: prod.name,
+          variantId: varId,
+          variantName: varName,
+          price: price,
+          qty: 1
+        });
+      }
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function applyEditOrderComboPriceDiff(idx) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const item = editingOrderState.cart[idx];
+      const origCombo = (globalCombosData || []).find(c => String(c.id) === String(item.id));
+      if (!origCombo) return;
+      const origSubList = Array.isArray(origCombo.rawItems) ? origCombo.rawItems.filter(s => s && s.id !== '__PARTNER_META__') : [];
+      const curSubList = getOrderComboSubItems(item);
+      const origSubSum = origSubList.reduce((s, ci) => s + (Number(ci.price) || 0) * (parseInt(ci.qty, 10) || 1), 0);
+      const curSubSum = curSubList.reduce((s, ci) => s + (Number(ci.price) || 0) * (parseInt(ci.qty, 10) || 1), 0);
+      item.price = Math.max(0, Math.round((Number(origCombo.price) || 0) + (curSubSum - origSubSum)));
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function resetEditOrderComboSubItems(idx) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const item = editingOrderState.cart[idx];
+      const origCombo = (globalCombosData || []).find(c => String(c.id) === String(item.id));
+      delete item.customSubItems;
+      item.isCustomCombo = false;
+      if (origCombo && origCombo.price !== undefined) {
+        item.price = Math.max(0, Number(origCombo.price) || 0);
+      }
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function addCustomAdjustmentToEditingOrder() {
+      if (!editingOrderState) return;
+      editingOrderState.cart.push({
+        id: 'CUSTOM_ADJ_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        name: 'Phụ thu / Điều chỉnh giá',
+        variantId: '',
+        variantName: '',
+        price: 0,
+        qty: 1,
+        isCombo: false,
+        isCustomAdjustment: true,
+        isAutoDiff: false,
+        costPrice: 0
+      });
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
+    }
+
+    function updateEditOrderCustomField(idx, field, val) {
+      if (!editingOrderState || !editingOrderState.cart[idx]) return;
+      const item = editingOrderState.cart[idx];
+      if (field === 'name') {
+        item.name = String(val || '');
+      } else if (field === 'price') {
+        const num = Number(val);
+        item.price = isFinite(num) ? Math.round(num) : 0;
+      }
+      refreshEditOrderZaloPreview();
+    }
+
+    function onEditOrderManualTotalInput(rawVal) {
+      if (!editingOrderState) return;
+      const targetTotal = Number(rawVal);
+      if (!isFinite(targetTotal) || rawVal === '') return;
+
+      const shipVal = Number(document.getElementById('edit-order-shipping-fee')?.value);
+      const shippingFee = (isFinite(shipVal) && shipVal >= 0) ? shipVal : getDefaultShippingFeeNumber();
+
+      const baseSubtotal = editingOrderState.cart.reduce((s, it) => {
+        if (it.isCustomAdjustment && it.isAutoDiff) return s;
+        return s + (Number(it.price) || 0) * (parseInt(it.qty, 10) || 1);
+      }, 0);
+
+      const diff = Math.round(targetTotal) - (baseSubtotal + shippingFee);
+      const existingIdx = editingOrderState.cart.findIndex(it => it.isCustomAdjustment && it.isAutoDiff);
+
+      if (diff === 0) {
+        if (existingIdx !== -1) {
+          editingOrderState.cart.splice(existingIdx, 1);
+        }
+      } else if (existingIdx !== -1) {
+        editingOrderState.cart[existingIdx].price = diff;
+      } else {
+        editingOrderState.cart.push({
+          id: 'CUSTOM_ADJ_' + Date.now(),
+          name: diff > 0 ? 'Phụ thu / Điều chỉnh giá' : 'Giảm giá / Chiết khấu',
+          variantId: '',
+          variantName: '',
+          price: diff,
+          qty: 1,
+          isCombo: false,
+          isCustomAdjustment: true,
+          isAutoDiff: true,
+          costPrice: 0
+        });
+      }
+
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview({ fromManualTotal: true });
+    }
+
+    function resetEditOrderAutoDiff() {
+      if (!editingOrderState) return;
+      editingOrderState.cart = editingOrderState.cart.filter(it => !(it.isCustomAdjustment && it.isAutoDiff));
+      renderEditOrderItemsList();
+      refreshEditOrderZaloPreview();
     }
 
     function changeEditOrderItemQty(idx, delta) {
@@ -4674,7 +5055,7 @@
         const comboId = val.slice(7);
         const combo = (globalCombosData || []).find(c => String(c.id) === comboId);
         if (!combo) return;
-        const existing = editingOrderState.cart.find(it => it.isCombo && String(it.id) === String(combo.id));
+        const existing = editingOrderState.cart.find(it => it.isCombo && !it.isCustomCombo && String(it.id) === String(combo.id));
         if (existing) {
           existing.qty = Math.min(99, existing.qty + qty);
         } else {
@@ -4725,7 +5106,7 @@
       refreshEditOrderZaloPreview();
     }
 
-    function refreshEditOrderZaloPreview() {
+    function refreshEditOrderZaloPreview(opts) {
       if (!editingOrderState) return;
       const name = (document.getElementById('edit-order-name')?.value || '').trim();
       const phone = (document.getElementById('edit-order-phone')?.value || '').trim();
@@ -4734,11 +5115,47 @@
       const shipVal = Number(document.getElementById('edit-order-shipping-fee')?.value);
       const shippingFee = (isFinite(shipVal) && shipVal >= 0) ? shipVal : getDefaultShippingFeeNumber();
 
-      const subtotal = editingOrderState.cart.reduce((s, it) => s + (Number(it.price) || 0) * (parseInt(it.qty, 10) || 1), 0);
-      const finalTotal = subtotal + shippingFee;
+      const regularSubtotal = editingOrderState.cart.reduce((s, it) => {
+        if (it.isCustomAdjustment) return s;
+        return s + (Number(it.price) || 0) * (parseInt(it.qty, 10) || 1);
+      }, 0);
+      const customSubtotal = editingOrderState.cart.reduce((s, it) => {
+        if (!it.isCustomAdjustment) return s;
+        return s + (Number(it.price) || 0) * (parseInt(it.qty, 10) || 1);
+      }, 0);
+      const subtotal = regularSubtotal + customSubtotal;
+      const finalTotal = Math.max(0, subtotal + shippingFee);
+
       const sumEl = document.getElementById('edit-order-summary-line');
       if (sumEl) {
-        sumEl.textContent = `Tiền hàng: ${formatMoney(subtotal)} + Ship: ${formatMoney(shippingFee)} = TỔNG: ${formatMoney(finalTotal)}`;
+        const customStr = customSubtotal !== 0
+          ? ` ${customSubtotal > 0 ? '+' : '−'} Tùy chỉnh: ${formatMoney(Math.abs(customSubtotal))}`
+          : '';
+        sumEl.textContent = `Tiền hàng: ${formatMoney(regularSubtotal)}${customStr} + Ship: ${formatMoney(shippingFee)} = TỔNG: ${formatMoney(finalTotal)}`;
+      }
+
+      const manualTotalEl = document.getElementById('edit-order-manual-total');
+      if (manualTotalEl && !(opts && opts.fromManualTotal)) {
+        manualTotalEl.value = Math.round(finalTotal);
+      }
+
+      const hasAutoDiff = editingOrderState.cart.some(it => it.isCustomAdjustment && it.isAutoDiff);
+      const resetBtn = document.getElementById('btn-edit-order-reset-total');
+      if (resetBtn) {
+        resetBtn.style.display = hasAutoDiff ? 'inline-block' : 'none';
+      }
+
+      const diffHintEl = document.getElementById('edit-order-diff-hint');
+      if (diffHintEl) {
+        if (customSubtotal !== 0) {
+          const autoTotal = Math.max(0, regularSubtotal + shippingFee);
+          diffHintEl.style.display = 'block';
+          diffHintEl.style.color = customSubtotal > 0 ? '#047857' : '#b91c1c';
+          diffHintEl.innerHTML = `✨ Tổng tự động (SP/Combo + Ship): <b>${formatMoney(autoTotal)}</b> • Chênh lệch tùy chỉnh: <b>${customSubtotal > 0 ? '+' : ''}${formatMoney(customSubtotal)}</b> (tính 100% vào lãi đơn hàng)`;
+        } else {
+          diffHintEl.style.display = 'none';
+          diffHintEl.innerHTML = '';
+        }
       }
 
       const previewEl = document.getElementById('edit-order-zalo-preview');
@@ -5593,7 +6010,7 @@
       }
 
       order.cart.forEach(item => {
-        if (!item || item.isGift || item.isPartner) return;
+        if (!item || item.isGift || item.isPartner || item.isCustomAdjustment) return;
         const itemQty = Math.max(1, parseInt(item.qty, 10) || 1);
         const isComboItem = !!(item.isCombo || String(item.id || "").indexOf("CMB_") === 0);
         if (isComboItem) {
@@ -5605,8 +6022,14 @@
           if (cDef && typeof getComboPartnerConfigAdmin === 'function' && getComboPartnerConfigAdmin(cDef).isPartner) {
             return;
           }
-          if (cDef && Array.isArray(cDef.rawItems)) {
-            cDef.rawItems.forEach(sub => {
+          const subList = (typeof getOrderComboSubItems === 'function')
+            ? getOrderComboSubItems(item)
+            : ((Array.isArray(item.customSubItems) && item.customSubItems.length > 0)
+                ? item.customSubItems
+                : (cDef && Array.isArray(cDef.rawItems) ? cDef.rawItems : []));
+          if (Array.isArray(subList) && subList.length > 0) {
+            subList.forEach(sub => {
+              if (!sub || !sub.id) return;
               const subQty = Math.max(1, parseInt(sub.qty, 10) || 1);
               addRequired(sub.id, sub.variantId || "", sub.name, subQty * itemQty);
             });
@@ -8546,15 +8969,8 @@
           }
 
           let comboComponents = [];
-          if (isCombo && comboDef) {
-            if (Array.isArray(comboDef.rawItems) && comboDef.rawItems.length > 0) {
-              comboComponents = comboDef.rawItems;
-            } else if (comboDef.rawJson) {
-              try {
-                let parsed = JSON.parse(comboDef.rawJson);
-                if (Array.isArray(parsed)) comboComponents = parsed;
-              } catch(e) {}
-            }
+          if (isCombo) {
+            comboComponents = getOrderComboSubItems(it);
           }
 
           if (isCombo && comboComponents.length > 0) {
@@ -9128,17 +9544,11 @@
       last7Orders.forEach(o => {
         let items = (Array.isArray(o.cart) && o.cart.length > 0) ? o.cart : parseOrderDetailsFallback(o.details);
         items.forEach(it => {
+          if (!it || it.isGift || it.isCustomAdjustment || isCartItemPartnerAdmin(it)) return;
           let qty = parseInt(it.qty, 10) || 1;
           let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
-          let comboDef = (globalCombosData || []).find(c => 
-            (it.id && String(c.id) === String(it.id)) || 
-            (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase())
-          );
-          if (comboDef) {
-            let compItems = comboDef.rawItems || [];
-            if (compItems.length === 0 && comboDef.rawJson) {
-              try { compItems = JSON.parse(comboDef.rawJson); } catch(e){}
-            }
+          if (isCombo) {
+            let compItems = getOrderComboSubItems(it);
             if (compItems.length > 0) {
               compItems.forEach(ci => {
                 let id = ci.id || ci.name;
@@ -9385,15 +9795,8 @@
           }
 
           let comboComponents = [];
-          if (isCombo && comboDef) {
-            if (Array.isArray(comboDef.rawItems) && comboDef.rawItems.length > 0) {
-              comboComponents = comboDef.rawItems;
-            } else if (comboDef.rawJson) {
-              try {
-                let parsed = JSON.parse(comboDef.rawJson);
-                if (Array.isArray(parsed)) comboComponents = parsed;
-              } catch(e) {}
-            }
+          if (isCombo) {
+            comboComponents = getOrderComboSubItems(it);
           }
 
           if (isCombo && comboComponents.length > 0) {
@@ -9472,6 +9875,30 @@
               profitSalesMap[key].cost += compCost;
               profitSalesMap[key].profit += (compRevenue - compCost);
             });
+          } else if (it.isCustomAdjustment) {
+            let adjName = String(it.name || 'Điều chỉnh giá / Phụ thu').trim();
+            let key = '__CUSTOM_ADJ__' + adjName.toLowerCase();
+            let itemRevenue = price * qty;
+            if (!profitSalesMap[key]) {
+              profitSalesMap[key] = {
+                key: key,
+                id: it.id || key,
+                name: '✨ ' + adjName,
+                variantId: '',
+                variantName: 'Mục tùy chỉnh (Lãi 100%)',
+                sellPrice: price,
+                costPrice: 0,
+                qty: 0,
+                revenue: 0,
+                cost: 0,
+                profit: 0,
+                isCustomAdjustment: true
+              };
+            }
+            profitSalesMap[key].qty += qty;
+            profitSalesMap[key].revenue += itemRevenue;
+            profitSalesMap[key].cost += 0;
+            profitSalesMap[key].profit += itemRevenue;
           } else {
             let pId = String(it.id || it.name);
             let varId = it.variantId ? String(it.variantId) : '';
@@ -9540,8 +9967,8 @@
         totalCost += p.cost;
         totalProfit += p.profit;
 
-        let margin = p.revenue > 0 ? Math.round((p.profit / p.revenue) * 100) : 0;
-        let isMissingCost = (p.costPrice === 0 || p.costPrice === null || isNaN(p.costPrice));
+        let margin = p.revenue > 0 ? Math.round((p.profit / p.revenue) * 100) : (p.isCustomAdjustment && p.revenue < 0 ? -100 : 0);
+        let isMissingCost = !p.isCustomAdjustment && (p.costPrice === 0 || p.costPrice === null || isNaN(p.costPrice));
         if (isMissingCost) missingCostCount++;
 
         return {
@@ -9563,6 +9990,44 @@
       renderProfitProductsTable();
       renderProfitCharts(validOrders, bounds);
       renderQuickCostTable();
+    }
+
+    function computeOrderCostForProfit(o) {
+      let oCost = 0;
+      let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
+      items.forEach(it => {
+        if (!it || it.isGift || it.isCustomAdjustment || isCartItemPartnerAdmin(it)) return;
+        let q = parseInt(it.qty, 10) || 1;
+        let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
+        if (isCombo) {
+          let cItems = getOrderComboSubItems(it);
+          cItems.forEach(ci => {
+            let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
+            let cp = 0;
+            if (pOrig) {
+              if (ci.variantId && pOrig.variants) {
+                let v = pOrig.variants.find(va => String(va.id) === String(ci.variantId));
+                if (v && v.costPrice) cp = Number(v.costPrice) || 0;
+              }
+              if (!cp) cp = Number(pOrig.costPrice) || 0;
+            }
+            if (!cp && ci.costPrice) cp = Number(ci.costPrice) || 0;
+            oCost += cp * (Number(ci.qty) || 1) * q;
+          });
+        } else {
+          let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
+          let cp = 0;
+          if (pOrig) {
+            if (it.variantId && pOrig.variants) {
+              let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
+              if (v && v.costPrice) cp = Number(v.costPrice) || 0;
+            }
+            if (!cp) cp = Number(pOrig.costPrice) || 0;
+          }
+          oCost += cp * q;
+        }
+      });
+      return oCost;
     }
 
     function renderProfitCharts(orders, bounds) {
@@ -9587,35 +10052,7 @@
             let slot = Math.floor(d.getHours() / 2);
             if (slot >= 0 && slot < 12) {
               let oRev = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
-              let oCost = 0;
-              let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
-              items.forEach(it => {
-                let q = parseInt(it.qty, 10) || 1;
-                let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
-                let cDef = (globalCombosData || []).find(c => String(c.id) === String(it.id) || (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
-                if (isCombo && cDef) {
-                  let cItems = cDef.rawItems || [];
-                  if (cItems.length === 0 && cDef.rawJson) {
-                    try { cItems = JSON.parse(cDef.rawJson); } catch(e){}
-                  }
-                  cItems.forEach(ci => {
-                    let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
-                    let cp = pOrig ? (Number(pOrig.costPrice) || 0) : (Number(ci.costPrice) || 0);
-                    oCost += cp * (Number(ci.qty) || 1) * q;
-                  });
-                } else {
-                  let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
-                  let cp = 0;
-                  if (pOrig) {
-                    if (it.variantId && pOrig.variants) {
-                      let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
-                      if (v && v.costPrice) cp = Number(v.costPrice) || 0;
-                    }
-                    if (!cp) cp = Number(pOrig.costPrice) || 0;
-                  }
-                  oCost += cp * q;
-                }
-              });
+              let oCost = computeOrderCostForProfit(o);
               revData[slot] += oRev;
               costData[slot] += oCost;
               profitData[slot] += (oRev - oCost);
@@ -9637,35 +10074,7 @@
             let key = `${d.getDate()}/${d.getMonth() + 1}`;
             if (dayMap[key]) {
               let oRev = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
-              let oCost = 0;
-              let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
-              items.forEach(it => {
-                let q = parseInt(it.qty, 10) || 1;
-                let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
-                let cDef = (globalCombosData || []).find(c => String(c.id) === String(it.id) || (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
-                if (isCombo && cDef) {
-                  let cItems = cDef.rawItems || [];
-                  if (cItems.length === 0 && cDef.rawJson) {
-                    try { cItems = JSON.parse(cDef.rawJson); } catch(e){}
-                  }
-                  cItems.forEach(ci => {
-                    let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
-                    let cp = pOrig ? (Number(pOrig.costPrice) || 0) : (Number(ci.costPrice) || 0);
-                    oCost += cp * (Number(ci.qty) || 1) * q;
-                  });
-                } else {
-                  let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
-                  let cp = 0;
-                  if (pOrig) {
-                    if (it.variantId && pOrig.variants) {
-                      let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
-                      if (v && v.costPrice) cp = Number(v.costPrice) || 0;
-                    }
-                    if (!cp) cp = Number(pOrig.costPrice) || 0;
-                  }
-                  oCost += cp * q;
-                }
-              });
+              let oCost = computeOrderCostForProfit(o);
               dayMap[key].rev += oRev;
               dayMap[key].cost += oCost;
               dayMap[key].profit += (oRev - oCost);
@@ -9689,35 +10098,7 @@
           if (d) {
             let mIdx = d.getMonth();
             let oRev = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
-            let oCost = 0;
-            let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
-            items.forEach(it => {
-              let q = parseInt(it.qty, 10) || 1;
-              let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
-              let cDef = (globalCombosData || []).find(c => String(c.id) === String(it.id) || (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
-              if (isCombo && cDef) {
-                let cItems = cDef.rawItems || [];
-                if (cItems.length === 0 && cDef.rawJson) {
-                  try { cItems = JSON.parse(cDef.rawJson); } catch(e){}
-                }
-                cItems.forEach(ci => {
-                  let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
-                  let cp = pOrig ? (Number(pOrig.costPrice) || 0) : (Number(ci.costPrice) || 0);
-                  oCost += cp * (Number(ci.qty) || 1) * q;
-                });
-              } else {
-                let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
-                let cp = 0;
-                if (pOrig) {
-                  if (it.variantId && pOrig.variants) {
-                    let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
-                    if (v && v.costPrice) cp = Number(v.costPrice) || 0;
-                  }
-                  if (!cp) cp = Number(pOrig.costPrice) || 0;
-                }
-                oCost += cp * q;
-              }
-            });
+            let oCost = computeOrderCostForProfit(o);
             revData[mIdx] += oRev;
             costData[mIdx] += oCost;
             profitData[mIdx] += (oRev - oCost);
@@ -9731,35 +10112,7 @@
             let key = `${d.getDate() < 10 ? '0' : ''}${d.getDate()}/${(d.getMonth() + 1) < 10 ? '0' : ''}${d.getMonth() + 1}`;
             if (!map[key]) map[key] = { rev: 0, cost: 0, profit: 0, date: d };
             let oRev = Number(o.rawTotal) || Number(String(o.total).replace(/[^\d]/g, '')) || 0;
-            let oCost = 0;
-            let items = Array.isArray(o.cart) && o.cart.length > 0 ? o.cart : parseOrderDetailsFallback(o.details);
-            items.forEach(it => {
-              let q = parseInt(it.qty, 10) || 1;
-              let isCombo = !!it.isCombo || String(it.id || '').indexOf('CMB_') === 0;
-              let cDef = (globalCombosData || []).find(c => String(c.id) === String(it.id) || (it.name && c.name && c.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
-              if (isCombo && cDef) {
-                let cItems = cDef.rawItems || [];
-                if (cItems.length === 0 && cDef.rawJson) {
-                  try { cItems = JSON.parse(cDef.rawJson); } catch(e){}
-                }
-                cItems.forEach(ci => {
-                  let pOrig = (globalProductsData || []).find(p => String(p.id) === String(ci.id));
-                  let cp = pOrig ? (Number(pOrig.costPrice) || 0) : (Number(ci.costPrice) || 0);
-                  oCost += cp * (Number(ci.qty) || 1) * q;
-                });
-              } else {
-                let pOrig = (globalProductsData || []).find(p => String(p.id) === String(it.id));
-                let cp = 0;
-                if (pOrig) {
-                  if (it.variantId && pOrig.variants) {
-                    let v = pOrig.variants.find(va => String(va.id) === String(it.variantId));
-                    if (v && v.costPrice) cp = Number(v.costPrice) || 0;
-                  }
-                  if (!cp) cp = Number(pOrig.costPrice) || 0;
-                }
-                oCost += cp * q;
-              }
-            });
+            let oCost = computeOrderCostForProfit(o);
             map[key].rev += oRev;
             map[key].cost += oCost;
             map[key].profit += (oRev - oCost);
