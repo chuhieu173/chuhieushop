@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tự tạo Theme Robot (assets.bin) · Chu Hiếu Shop</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-logo">🤖</span>
+        <span>
+          Chu Hiếu Shop
+          <span class="brand-sub">Tự tạo Theme · assets.bin</span>
+        </span>
+      </a>
+      <nav class="header-nav">
+        <a class="nav-link" href="../index.html">🏠 Trang chủ</a>
+        <a class="nav-link" href="../firmware-studio/index.html">⚡ Nạp Firmware</a>
+        <a class="nav-link" href="../theme-studio/index.html">🎨 Theme Studio</a>
+        <a class="nav-link active" href="./index.html">✨ Tự tạo Theme</a>
+        <button type="button" id="btn-ui-theme" class="btn-theme-toggle" onclick="toggleUiTheme()">🌙 Tối</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="hero-badge">✨ Theme Designer · assets.bin</div>
+          <h1>Tự tạo theme riêng cho robot của bạn.</h1>
+          <p class="hero-desc">
+            Tùy chỉnh trọn gói cỡ màn hình, câu gọi đánh thức (Wake Word), phông chữ tiếng Việt đủ dấu, 21 cảm xúc (PNG/GIF) và hình nền Tối/Sáng chuẩn LVGL RGB565 — đóng gói <b>assets.bin</b> ngay trên trình duyệt và nạp thẳng qua USB mà không đè firmware.
+          </p>
+          <div class="spec-pills">
+            <span class="spec-pill">FILE <b>assets.bin</b></span>
+            <span class="spec-pill">CHỮ <b>Noto · đủ dấu</b></span>
+            <span class="spec-pill">WAKE <b id="hero-wake-pill">Hi Telly</b></span>
+            <span class="spec-pill">CHIP <b id="hero-chip-pill">ESP32-S3</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-steps">
+        <div class="hero-step-card">
+          <div class="hero-step-num">01</div>
+          <div><b>Chọn cỡ màn hình</b><br><span style="color:var(--text-soft)">Khớp 1:1 từng pixel màn TFT/AMOLED</span></div>
+        </div>
+        <div class="hero-step-card">
+          <div class="hero-step-num">02</div>
+          <div><b>Cảm xúc, chữ &amp; hình nền</b><br><span style="color:var(--text-soft)">Xem trước trực tiếp 21 biểu cảm Tối/Sáng</span></div>
+        </div>
+        <div class="hero-step-card">
+          <div class="hero-step-num">03</div>
+          <div><b>Tạo .bin &amp; Nạp qua USB</b><br><span style="color:var(--text-soft)">Chỉ ghi phân vùng assets, an toàn firmware</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Start Presets -->
+    <section class="quick-bar">
+      <div class="quick-bar-left">
+        <span class="quick-label">⚡ Chọn nhanh — Bạn muốn theme kiểu gì?</span>
+        <button type="button" class="btn-quick" onclick="applyQuickPreset('twemoji')">😀 Cảm xúc Twemoji</button>
+        <button type="button" class="btn-quick" onclick="applyQuickPreset('noto_anim')">✨ Cảm xúc động Noto</button>
+        <button type="button" class="btn-quick" onclick="applyQuickPreset('full_eyes')">👀 Bộ mắt full màn</button>
+      </div>
+      <button type="button" class="btn-reset-all" onclick="confirmResetAll()">↺ Làm lại từ đầu</button>
+    </section>
+
+    <!-- Main 2-Column Designer -->
+    <div class="designer-grid">
+      <!-- Left: 5 Steps -->
+      <div>
+        <div class="name-box">
+          <label for="theme-name-input">🏷️ Tên theme:</label>
+          <input type="text" id="theme-name-input" class="text-input" placeholder="vd: Mắt mèo xanh" value="Theme của tôi" oninput="onThemeNameInput(this.value)">
+        </div>
+
+        <!-- STEP 1: Screen Size & Chip -->
+        <section class="step-card open" id="step-1">
+          <button type="button" class="step-head" onclick="toggleStep(1)">
+            <div class="step-head-left">
+              <div class="step-badge">1</div>
+              <div>
+                <div class="step-title">Cỡ màn hình robot &amp; Chip</div>
+                <div class="step-summary" id="step1-summary">240×240 Vuông · ESP32-S3</div>
+              </div>
+            </div>
+            <span class="step-chevron">▼</span>
+          </button>
+          <div class="step-body">
+            <div class="section-sublabel">Chọn cỡ màn phổ biến:</div>
+            <div class="screen-grid" id="standard-screens-grid"></div>
+
+            <div style="margin-top:10px;">
+              <button type="button" class="btn-small" id="btn-toggle-custom-screen" onclick="toggleCustomScreenPanel()">📐 Cỡ khác tự chọn (12 cỡ phụ / nhập tay) ▾</button>
+            </div>
+            <div class="custom-size-panel" id="custom-screen-panel" style="display:none;">
+              <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">Chọn nhanh độ phân giải đặc thù:</div>
+              <div class="pill-list" id="extra-screens-pills"></div>
+              <div class="inline-inputs">
+                <label style="font-size:12.5px;font-weight:700;">Rộng (px):</label>
+                <input type="number" id="custom-width-input" class="num-input" min="64" max="1024" value="240" oninput="onCustomSizeInput()">
+                <span style="font-weight:800;">×</span>
+                <label style="font-size:12.5px;font-weight:700;">Cao (px):</label>
+                <input type="number" id="custom-height-input" class="num-input" min="64" max="1024" value="240" oninput="onCustomSizeInput()">
+              </div>
+            </div>
+
+            <div class="section-sublabel">Chip của mạch:</div>
+            <div class="pill-list" id="chip-pills"></div>
+
+            <div class="notice-box">
+              ⚠️ <b>Lưu ý:</b> Màn hình OLED đơn sắc (0.91″, 0.96″, 1.3″ OLED) không dùng được theme ảnh màu RGB565.
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 2: Wake Word -->
+        <section class="step-card" id="step-2">
+          <button type="button" class="step-head" onclick="toggleStep(2)">
+            <div class="step-head-left">
+              <div class="step-badge">2</div>
+              <div>
+                <div class="step-title">Câu gọi robot (Wake Word)</div>
+                <div class="step-summary" id="step2-summary">Hi Telly (mặc định)</div>
+              </div>
+            </div>
+            <span class="step-chevron">▼</span>
+          </button>
+          <div class="step-body">
+            <div class="section-sublabel">Chọn mẫu WakeNet9 đóng gói sẵn vào <code>srmodels.bin</code> (~291 KB):</div>
+            <div class="pill-list" id="wakeword-pills"></div>
+          </div>
+        </section>
+
+        <!-- STEP 3: Font & Chat Text -->
+        <section class="step-card" id="step-3">
+          <button type="button" class="step-head" onclick="toggleStep(3)">
+            <div class="step-head-left">
+              <div class="step-badge">3</div>
+              <div>
+                <div class="step-title">Chữ trên màn hình</div>
+                <div class="step-summary" id="step3-summary">Phông Noto 16px · Hiện chữ trò chuyện</div>
+              </div>
+            </div>
+            <span class="step-chevron">▼</span>
+          </button>
+          <div class="step-body">
+            <div class="sub-tabs">
+              <button type="button" class="sub-tab active" id="tab-font-preset" onclick="setFontSource('preset')">Phông Noto (đủ dấu tiếng Việt)</button>
+              <button type="button" class="sub-tab" id="tab-font-custom" onclick="setFontSource('custom')">Phông .bin của bạn</button>
+            </div>
+
+            <div id="font-preset-panel">
+              <div class="screen-grid" id="font-presets-grid"></div>
+            </div>
+
+            <div id="font-custom-panel" style="display:none; margin-top:12px;">
+              <div class="notice-box info" style="margin-top:0; margin-bottom:10px;">
+                Tải lên file phông chữ LVGL định dạng <code>.bin</code> (đã chuyển đổi sẵn bằng <code>lv_font_conv</code>).
+              </div>
+              <input type="file" id="custom-font-file" accept=".bin" onchange="onCustomFontUpload(this)" style="display:none;">
+              <button type="button" class="btn-small primary" onclick="document.getElementById('custom-font-file').click()">📁 Chọn file phông .bin</button>
+              <span id="custom-font-filename" style="margin-left:8px; font-size:12.5px; color:var(--text-muted); font-weight:600;">Chưa chọn file</span>
+            </div>
+
+            <label class="check-row">
+              <input type="checkbox" id="chk-hide-subtitle" onchange="onHideSubtitleChange(this.checked)">
+              <span>Ẩn chữ trò chuyện trên màn <span style="font-weight:500; color:var(--text-soft);">(chỉ hiện cảm xúc, hợp bộ mắt full màn)</span></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- STEP 4: 21 Emotions -->
+        <section class="step-card" id="step-4">
+          <button type="button" class="step-head" onclick="toggleStep(4)">
+            <div class="step-head-left">
+              <div class="step-badge">4</div>
+              <div>
+                <div class="step-title">Bộ cảm xúc (21 biểu cảm)</div>
+                <div class="step-summary" id="step4-summary">Twemoji 64px</div>
+              </div>
+            </div>
+            <span class="step-chevron">▼</span>
+          </button>
+          <div class="step-body">
+            <div class="sub-tabs">
+              <button type="button" class="sub-tab active" id="tab-emo-builtin" onclick="setEmotionSource('builtin')">Bộ có sẵn</button>
+              <button type="button" class="sub-tab" id="tab-emo-shop" onclick="setEmotionSource('shop')">Kho Chu Hiếu Shop (40 bộ)</button>
+              <button type="button" class="sub-tab" id="tab-emo-custom" onclick="setEmotionSource('custom')">Ảnh của bạn (PNG / GIF / ZIP)</button>
+            </div>
+
+            <!-- Khung cảm xúc (áp dụng cho Kho Shop & Ảnh của bạn — tự chừa thanh Wi-Fi / Pin) -->
+            <div id="emo-frame-config-box" style="display:none; margin-top:10px; padding:10px 12px; border-radius:10px; background:var(--surface-2); border:1px solid var(--border);">
+              <div class="section-sublabel" style="margin-top:0;">📐 Khung cảm xúc (tự động thu gọn cả PNG &amp; GIF động để không đè icon Wi-Fi / Pin):</div>
+              <div class="pill-list" id="emo-frame-pills"></div>
+              <div class="inline-inputs" id="emo-frame-custom-inputs" style="display:none;">
+                <label style="font-size:12.5px;font-weight:700;">Rộng khung:</label>
+                <input type="number" id="emo-frame-w" class="num-input" min="24" max="800" value="240" oninput="onCustomFrameSizeInput()">
+                <span>×</span>
+                <label style="font-size:12.5px;font-weight:700;">Cao khung:</label>
+                <input type="number" id="emo-frame-h" class="num-input" min="24" max="800" value="200" oninput="onCustomFrameSizeInput()">
+              </div>
+            </div>
+
+            <!-- Built-in Packs -->
+            <div id="emo-builtin-panel">
+              <div class="screen-grid" id="emo-builtin-grid"></div>
+            </div>
+
+            <!-- Shop 40 Packs -->
+            <div id="emo-shop-panel" style="display:none; margin-top:10px;">
+              <input type="text" id="shop-pack-search" class="text-input" style="width:100%;" placeholder="🔍 Tìm bộ mắt / nhân vật (VD: Mochi, Na Tra, Eve, Cyan, Shiba...)" oninput="renderShopPacksGrid()">
+              <div class="preset-grid" id="emo-shop-grid"></div>
+            </div>
+
+            <!-- Custom Upload Panel -->
+            <div id="emo-custom-panel" style="display:none;">
+              <div class="dropzone" id="emo-dropzone">
+                <div style="font-weight:800; font-size:13.5px;">📥 Kéo thả ảnh PNG / GIF, cả thư mục hoặc file .ZIP vào đây</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                  Tự nhận diện tên <code>01..21</code> hoặc <code>neutral, happy...</code> • File <code>nen-*.png</code> tự áp làm nền • Up 1 ảnh sẽ áp cho cả 21 ô.
+                </div>
+                <div class="dropzone-actions">
+                  <button type="button" class="btn-small primary" onclick="document.getElementById('emo-multi-input').click()">🖼️ Chọn nhiều ảnh</button>
+                  <button type="button" class="btn-small" onclick="document.getElementById('emo-folder-input').click()">📂 Chọn cả thư mục</button>
+                  <button type="button" class="btn-small" onclick="document.getElementById('emo-zip-input').click()">🗜️ Chọn file .ZIP</button>
+                  <button type="button" class="btn-small" style="color:var(--danger);" onclick="clearAllCustomEmotions()">🗑️ Xóa tất cả</button>
+                </div>
+                <input type="file" id="emo-multi-input" multiple accept="image/png,image/gif,image/jpeg,image/webp" style="display:none;" onchange="handleCustomEmotionFiles(this.files)">
+                <input type="file" id="emo-folder-input" webkitdirectory directory multiple style="display:none;" onchange="handleCustomEmotionFiles(this.files)">
+                <input type="file" id="emo-zip-input" accept=".zip" style="display:none;" onchange="handleCustomEmotionZip(this.files[0])">
+                <input type="file" id="emo-single-slot-input" accept="image/png,image/gif,image/jpeg,image/webp" style="display:none;" onchange="handleSingleSlotUpload(this)">
+              </div>
+
+              <div class="slots-grid" id="emo-slots-grid"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 5: Background & Colors -->
+        <section class="step-card" id="step-5">
+          <button type="button" class="step-head" onclick="toggleStep(5)">
+            <div class="step-head-left">
+              <div class="step-badge">5</div>
+              <div>
+                <div class="step-title">Hình nền &amp; màu chữ</div>
+                <div class="step-summary" id="step5-summary">Dùng chung Tối &amp; Sáng · Nền #121212</div>
+              </div>
+            </div>
+            <span class="step-chevron">▼</span>
+          </button>
+          <div class="step-body">
+            <label class="check-row">
+              <input type="checkbox" id="chk-share-bg" checked onchange="onShareBgChange(this.checked)">
+              <span>Dùng chung 1 kiểu hình nền &amp; màu chữ cho cả Tối và Sáng</span>
+            </label>
+
+            <!-- Dark Mode Skin -->
+            <div class="bg-mode-box">
+              <div style="font-size:13.5px; font-weight:800;">🌙 Chế độ Tối <span id="dark-shared-tag" style="font-size:11.5px; font-weight:600; color:var(--accent);">(áp dụng cho cả 2 chế độ)</span></div>
+              <div class="color-row">
+                <label class="color-field">Nền <input type="color" id="bg-color-dark" value="#121212" oninput="onBgColorChange('dark', this.value)"></label>
+                <label class="color-field">Chữ <input type="color" id="tx-color-dark" value="#ffffff" oninput="onTxColorChange('dark', this.value)"></label>
+                <button type="button" class="btn-small primary" onclick="document.getElementById('bg-img-dark-input').click()">🖼️ Chọn ảnh nền</button>
+                <button type="button" class="btn-small" id="btn-clear-bg-dark" style="display:none;" onclick="clearBgImage('dark')">✕ Bỏ ảnh nền</button>
+                <input type="file" id="bg-img-dark-input" accept="image/*" style="display:none;" onchange="onBgImageUpload('dark', this)">
+              </div>
+              <div class="section-sublabel" style="margin-top:10px;">Hoặc chọn nhanh hình nền Gradient khớp 100% cỡ màn:</div>
+              <div class="bg-preset-strip" id="bg-presets-dark"></div>
+            </div>
+
+            <!-- Light Mode Skin -->
+            <div class="bg-mode-box" id="bg-light-box" style="display:none;">
+              <div style="font-size:13.5px; font-weight:800;">☀️ Chế độ Sáng</div>
+              <div class="color-row">
+                <label class="color-field">Nền <input type="color" id="bg-color-light" value="#ffffff" oninput="onBgColorChange('light', this.value)"></label>
+                <label class="color-field">Chữ <input type="color" id="tx-color-light" value="#1e293b" oninput="onTxColorChange('light', this.value)"></label>
+                <button type="button" class="btn-small primary" onclick="document.getElementById('bg-img-light-input').click()">🖼️ Chọn ảnh nền</button>
+                <button type="button" class="btn-small" id="btn-clear-bg-light" style="display:none;" onclick="clearBgImage('light')">✕ Bỏ ảnh nền</button>
+                <input type="file" id="bg-img-light-input" accept="image/*" style="display:none;" onchange="onBgImageUpload('light', this)">
+              </div>
+              <div class="section-sublabel" style="margin-top:10px;">Hoặc chọn nhanh hình nền Gradient cho chế độ Sáng:</div>
+              <div class="bg-preset-strip" id="bg-presets-light"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right: Live Preview + Step 6 Output -->
+      <aside class="preview-aside">
+        <div class="preview-card">
+          <div class="preview-header">
+            <h2>📱 Xem trước trực tiếp</h2>
+            <div class="mode-switch">
+              <button type="button" id="pv-mode-dark" class="active" onclick="setPreviewMode('dark')">🌙 Tối</button>
+              <button type="button" id="pv-mode-light" onclick="setPreviewMode('light')">☀️ Sáng</button>
+            </div>
+          </div>
+
+          <div class="pv-stage" id="ttPvBox">
+            <div class="pv-bezel">
+              <div class="pv-scale-wrap" id="pv-scale-wrap">
+                <div class="tt-scr" id="tt-scr">
+                  <div class="tt-sb">
+                    <span>10:24</span>
+                    <span>Wi-Fi ▮▮▮</span>
+                  </div>
+                  <div class="tt-em" id="tt-em">
+                    <img id="pv-emo-img" alt="Biểu cảm">
+                  </div>
+                  <div class="tt-tx" id="tt-tx">Xin chào! Mình là robot của bạn.</div>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11.5px; color:var(--text-soft); margin-top:8px; font-weight:600;" id="pv-dim-caption">240×240 px · Trung lập (neutral)</div>
+          </div>
+
+          <div class="pv-emo-bar" id="ttPvEmo"></div>
+
+          <div class="pv-meta">
+            <div class="pv-meta-row">
+              <span style="color:var(--text-soft);">Màn hình / Chip:</span>
+              <b id="meta-screen">240×240 · ESP32-S3</b>
+            </div>
+            <div class="pv-meta-row">
+              <span style="color:var(--text-soft);">Câu gọi (Wake):</span>
+              <b id="meta-wake">Hi Telly</b>
+            </div>
+            <div class="pv-meta-row">
+              <span style="color:var(--text-soft);">Dung lượng ước tính:</span>
+              <b id="meta-size">≈ 2.4 MB / 6.5 MB</b>
+            </div>
+            <div class="cap-bar-wrap">
+              <div class="cap-bar-fill" id="cap-bar-fill" style="width:36%;"></div>
+            </div>
+          </div>
+
+          <button type="button" class="btn-build" id="btn-build-theme" onclick="buildAssetsBin()">⚡ Tạo theme (assets.bin)</button>
+
+          <div class="prog-wrap" id="ttProg">
+            <div class="prog-text">
+              <span id="prog-label">Đang chuẩn bị...</span>
+              <span id="prog-pct">0%</span>
+            </div>
+            <div class="prog-track">
+              <div class="prog-fill" id="prog-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6 Output Card -->
+        <div class="output-card" id="step6-output">
+          <div style="font-size:12px; font-weight:800; color:var(--success); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px;">
+            ✅ Bước 6 · Theme đã sẵn sàng
+          </div>
+          <div class="output-head">
+            <div class="output-thumb"><img id="out-thumb-img" alt=""></div>
+            <div style="min-width:0;">
+              <div style="font-weight:800; font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="out-title">Theme của tôi</div>
+              <div style="font-size:12px; color:var(--text-muted); font-family:monospace;" id="out-filename">theme-cua-toi-240x240.bin</div>
+              <div style="font-size:12px; color:var(--text-soft); font-weight:600;" id="out-meta">240×240 · Hi Telly · 2.5 MB</div>
+            </div>
+          </div>
+
+          <div class="stale-banner" id="out-stale-banner">
+            ⚠️ Bạn vừa đổi lựa chọn. Bấm <b>"Tạo theme (assets.bin)"</b> lại để file cập nhật theo.
+          </div>
+
+          <div class="output-actions">
+            <button type="button" class="btn-flash" id="btn-flash-usb" onclick="flashAssetsToUsb()">🔌 Kết nối &amp; nạp vào robot</button>
+            <button type="button" class="btn-download" onclick="downloadBuiltBin()">💾 Tải file .bin</button>
+          </div>
+
+          <div class="prog-wrap" id="flashProg">
+            <div class="prog-text">
+              <span id="flash-prog-label">Đang nạp...</span>
+              <span id="flash-prog-pct">0%</span>
+            </div>
+            <div class="prog-track">
+              <div class="prog-fill" id="flash-prog-fill" style="background:var(--success);"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:10px; font-size:12px; color:var(--text-muted); line-height:1.45;">
+            📌 Sau khi nạp xong, rút cáp hoặc bấm nút <b>RST</b> trên mạch. Nếu robot tự tải lại theme mặc định qua Wi-Fi OTA, hãy tạm tắt Wi-Fi 10 giây rồi reset lại mạch.
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ESP32 Serial Log Terminal -->
+    <section class="utility-section">
+      <div class="utility-head">
+        <h3>📟 Nhật ký · Log ESP32 (Serial Monitor)</h3>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <select id="serial-baud" class="btn-small">
+            <option value="115200" selected>115200 baud</option>
+            <option value="921600">921600 baud</option>
+          </select>
+          <button type="button" class="btn-small primary" id="btn-serial-connect" onclick="toggleSerialLog()">🔌 Kết nối log</button>
+          <button type="button" class="btn-small" onclick="resetSerialDevice()">🔄 Reset thiết bị</button>
+          <button type="button" class="btn-small" onclick="copySerialLog()">📋 Sao chép</button>
+          <button type="button" class="btn-small" onclick="downloadSerialLog()">💾 Tải log</button>
+          <button type="button" class="btn-small" onclick="clearSerialLog()">🗑️ Xóa</button>
+        </div>
+      </div>
+      <div class="terminal-box" id="serial-terminal">Sẵn sàng. Bấm "Kết nối log" để xem log khởi động từ ESP32-S3 (hỗ trợ Chrome / Edge).</div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="utility-section">
+      <div class="utility-head">
+        <h3>❓ Hỏi nhanh · Lỗi thường gặp</h3>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>1. Nạp theme này có làm mất firmware hay mất kết nối Wi-Fi trên robot không?</summary>
+          <p><b>Không.</b> Công cụ tự đọc bảng phân vùng (Partition Table tại <code>0x8000</code>) trên mạch và chỉ ghi đúng vào phân vùng <code>assets</code> (thường ở <code>0x00800000</code>), hoàn toàn không đụng tới firmware <code>ota_0</code> hay cấu hình Wi-Fi trong <code>nvs</code>.</p>
+        </details>
+        <details class="faq-item">
+          <summary>2. Cắm cáp USB vào máy tính nhưng không thấy cổng COM?</summary>
+          <p>Hãy chắc chắn bạn dùng <b>cáp truyền dữ liệu</b> (không phải cáp chỉ sạc), dùng trình duyệt <b>Chrome hoặc Edge</b> trên máy tính, và cắm đúng cổng USB-C nối với chân USB/UART của ESP32-S3. Nếu vẫn không nhận, giữ nút <b>BOOT</b> rồi bấm nhả nút <b>RST</b> trước khi bấm kết nối.</p>
+        </details>
+        <details class="faq-item">
+          <summary>3. Vì sao ảnh cảm xúc nên để PNG nền trong suốt hoặc GIF đúng tỉ lệ?</summary>
+          <p>Khi bạn dùng hình nền riêng ở Bước 5, ảnh cảm xúc PNG nền trong suốt sẽ hòa vào hình nền cực đẹp. Nếu bạn dùng bộ mắt full màn hình, hãy tích chọn <b>"Ẩn chữ trò chuyện trên màn"</b> ở Bước 3 và chọn khung <b>"Gần full màn"</b> ở Bước 4.</p>
+        </details>
+        <details class="faq-item">
+          <summary>4. Dung lượng file assets.bin tối đa là bao nhiêu?</summary>
+          <p>Tùy bản firmware, phân vùng <code>assets</code> trên ESP32-S3 16MB thường rộng <b>6.5 MB</b> hoặc <b>8 MB</b>. Khi nạp USB, công cụ sẽ tự kiểm tra dung lượng thực tế của phân vùng <code>assets</code> trên mạch và cảnh báo nếu file quá lớn.</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      Chu Hiếu Shop · Công cụ Tự tạo Theme Robot (<code>assets.bin</code>) — Dựa trên chuẩn mở <code>xiaozhi-assets-generator</code> (MIT), Font Noto (OFL), Twemoji (CC-BY 4.0), Noto Emoji (Apache 2.0) &amp; ESP-SR.
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
