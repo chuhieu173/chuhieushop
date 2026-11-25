@@ -3644,7 +3644,11 @@
         }
         applyAdminProductsPayload(resData);
       } catch (e) {
-        if (!hasRenderedSwr) alert("Lỗi kết nối máy chủ Google!");
+        if (!hasRenderedSwr) {
+          alert("Lỗi kết nối máy chủ Google!");
+        } else {
+          showToast("⚠️ Không thể đồng bộ đơn hàng mới nhất từ Google Sheets (đang hiện dữ liệu cũ). Vui lòng bấm Tải lại!", "error");
+        }
       }
       showLoading(false);
     }
@@ -5270,6 +5274,7 @@
         selectedOrderRows.delete(rowIdx);
         pendingOrderChanges.delete(rowIdx);
         globalOrdersData = (globalOrdersData || []).filter(o => o.row !== rowIdx);
+        try { localStorage.setItem(ADMIN_SWR_ORDERS_KEY, JSON.stringify(globalOrdersData)); } catch (e) {}
         renderOrders(globalOrdersData);
         if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
           renderAnalytics();
@@ -5281,6 +5286,15 @@
 
     let selectedOrderRows = new Set();
     let pendingOrderChanges = new Map();
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('beforeunload', function (e) {
+        if (pendingOrderChanges && pendingOrderChanges.size > 0) {
+          e.preventDefault();
+          e.returnValue = 'Bạn còn đơn hàng đã đổi trạng thái nhưng CHƯA LƯU lên Google Sheets!';
+          return e.returnValue;
+        }
+      });
+    }
     let currentOrderStatusFilter = 'all';
     let currentOrderSearchQuery = '';
     let currentOrdersRenderLimit = 50;
@@ -5626,6 +5640,7 @@
           selectedOrderRows.delete(r);
           pendingOrderChanges.delete(r);
         });
+        try { localStorage.setItem(ADMIN_SWR_ORDERS_KEY, JSON.stringify(globalOrdersData)); } catch (e) {}
 
         renderOrders(globalOrdersData);
         if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
@@ -5863,26 +5878,32 @@
       updateOrderToolbars();
       updateOrderStatusCounts(globalOrdersData);
 
+      let isNowPending = pendingOrderChanges.has(rowIdx);
       let rowEl = selectEl.closest('tr');
       if (rowEl) {
         rowEl.classList.remove('order-row-completed', 'order-row-pending-deposit', 'order-row-shipping', 'order-row-custom');
         selectEl.classList.remove('completed');
-        if (val === "Hoàn thành") {
-          rowEl.classList.add('order-row-completed');
-          selectEl.classList.add('completed');
-        } else if (val === "Chưa đặt cọc" || val === "Đang chuẩn bị hàng") {
-          rowEl.classList.add('order-row-pending-deposit');
-        } else if (val === "Đã giao cho đơn vị vận chuyển") {
-          rowEl.classList.add('order-row-shipping');
-        } else if (val && val !== "Khách đặt hàng") {
-          rowEl.classList.add('order-row-custom');
+        if (!isNowPending) {
+          if (val === "Hoàn thành") {
+            rowEl.classList.add('order-row-completed');
+            selectEl.classList.add('completed');
+          } else if (val === "Chưa đặt cọc" || val === "Đang chuẩn bị hàng") {
+            rowEl.classList.add('order-row-pending-deposit');
+          } else if (val === "Đã giao cho đơn vị vận chuyển") {
+            rowEl.classList.add('order-row-shipping');
+          } else if (val && val !== "Khách đặt hàng") {
+            rowEl.classList.add('order-row-custom');
+          }
         }
 
         let statusCell = rowEl.querySelector('td[data-label="Trạng thái"]');
         if (statusCell) {
-          let badgeSpan = statusCell.querySelector('.status-badge-completed, .status-badge-shipping, .status-badge-pending-deposit, .status-badge-new, .status-badge-custom');
+          let badgeSpan = statusCell.querySelector('.status-badge-completed, .status-badge-shipping, .status-badge-pending-deposit, .status-badge-new, .status-badge-custom, .badge-unsaved');
           if (badgeSpan) {
-            if (val === "Hoàn thành") {
+            if (isNowPending) {
+              badgeSpan.className = 'badge-unsaved';
+              badgeSpan.innerHTML = '⏳ CHƯA LƯU → ' + escapeHtml(val || 'Khách đặt hàng');
+            } else if (val === "Hoàn thành") {
               badgeSpan.className = 'status-badge-completed';
               badgeSpan.innerHTML = '✅ Hoàn thành';
             } else if (val === "Đã giao cho đơn vị vận chuyển") {
@@ -5901,20 +5922,12 @@
           }
         }
 
-        if (pendingOrderChanges.has(rowIdx)) {
+        if (isNowPending) {
           rowEl.classList.add('row-pending-change');
           selectEl.classList.add('select-unsaved');
-          if (statusCell && !statusCell.querySelector('.badge-unsaved')) {
-            let b = document.createElement('div');
-            b.className = 'badge-unsaved';
-            b.innerText = '⚠️ Chưa lưu';
-            statusCell.appendChild(b);
-          }
         } else {
           rowEl.classList.remove('row-pending-change');
           selectEl.classList.remove('select-unsaved');
-          let b = rowEl.querySelector('.badge-unsaved');
-          if (b && b.parentNode) b.parentNode.removeChild(b);
         }
       }
     }
@@ -6087,8 +6100,9 @@
         let isDupCopy = !!order.isDuplicateCopy;
         
         let rowClasses = [];
-        if (hasPending) rowClasses.push("row-pending-change");
-        if (isCompleted) rowClasses.push("order-row-completed");
+        if (hasPending) {
+          rowClasses.push("row-pending-change");
+        } else if (isCompleted) rowClasses.push("order-row-completed");
         else if (isShipping) rowClasses.push("order-row-shipping");
         else if (isPendingDeposit) rowClasses.push("order-row-pending-deposit");
         else if (isCustomStatus) rowClasses.push("order-row-custom");
@@ -6097,7 +6111,7 @@
 
         let adminNoteVal = getOrderAdminNote(order);
 
-        let selectHtml = `<select id="status-${order.row}" class="status-select ${hasPending ? 'select-unsaved' : ''} ${isCompleted ? 'completed' : ''}" onchange="onOrderStatusDropdownChange(${order.row}, this)">`;
+        let selectHtml = `<select id="status-${order.row}" class="status-select ${hasPending ? 'select-unsaved' : (isCompleted ? 'completed' : '')}" onchange="onOrderStatusDropdownChange(${order.row}, this)">`;
         STATUS_OPTIONS.forEach(opt => {
           selectHtml += `<option value="${escapeHtml(opt)}" ${currentEffectiveStatus === opt ? "selected" : ""}>${escapeHtml(opt)}</option>`;
         });
@@ -6109,7 +6123,9 @@
         selectHtml += `</select>`;
 
         let statusBadgeHtml = '';
-        if (isCompleted) {
+        if (hasPending) {
+          statusBadgeHtml = `<span class="badge-unsaved">⏳ CHƯA LƯU → ${escapeHtml(currentEffectiveStatus)}</span>`;
+        } else if (isCompleted) {
           statusBadgeHtml = `<span class="status-badge-completed">✅ Hoàn thành</span>`;
         } else if (currentEffectiveStatus === "Đã giao cho đơn vị vận chuyển") {
           statusBadgeHtml = `<span class="status-badge-shipping">🚚 Đã giao ĐVVC</span>`;
@@ -7179,7 +7195,15 @@
       if (!updates || updates.length === 0) return;
       showLoading(true);
       try {
-        let payload = { action: "updateBatchOrderStatus", token: getAdminToken(), updates: updates };
+        // Tự động gắn kèm orderId vào mọi lệnh cập nhật trạng thái để chống lệch dòng 100%
+        let safeUpdates = updates.map(u => {
+          let ord = (globalOrdersData || []).find(o => o.row === u.row);
+          return {
+            ...u,
+            orderId: u.orderId || (ord && ord.orderId ? String(ord.orderId) : '')
+          };
+        });
+        let payload = { action: "updateBatchOrderStatus", token: getAdminToken(), updates: safeUpdates };
         let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         let data = await res.json();
         if (data.status === "error") {
@@ -7190,10 +7214,19 @@
         }
 
         let hasStockDeduction = false;
-        updates.forEach(u => {
+        let resolvedRowMap = {};
+        if (Array.isArray(data.updated)) {
+          data.updated.forEach(item => {
+            if (item && item.requestedRow && item.actualRow) {
+              resolvedRowMap[item.requestedRow] = item.actualRow;
+            }
+          });
+        }
+        safeUpdates.forEach(u => {
           let ord = (globalOrdersData || []).find(o => o.row === u.row);
           if (ord) {
             ord.status = u.newStatus;
+            if (resolvedRowMap[u.row]) ord.row = resolvedRowMap[u.row];
             if (u.newStatus === "Đã giao cho đơn vị vận chuyển" || u.newStatus === "Hoàn thành") {
               if (!ord.isDeducted) {
                 ord.isDeducted = true;
@@ -7204,6 +7237,9 @@
           pendingOrderChanges.delete(u.row);
           selectedOrderRows.delete(u.row);
         });
+
+        // Đồng bộ ngay cache SWR trong localStorage để lần mở lại sau không bao giờ hiện trạng thái cũ
+        try { localStorage.setItem(ADMIN_SWR_ORDERS_KEY, JSON.stringify(globalOrdersData)); } catch (e) {}
 
         renderOrders(globalOrdersData);
         showLoading(false);
@@ -7270,6 +7306,7 @@
           selectedOrderRows.delete(r);
           pendingOrderChanges.delete(r);
         });
+        try { localStorage.setItem(ADMIN_SWR_ORDERS_KEY, JSON.stringify(globalOrdersData)); } catch (e) {}
 
         renderOrders(globalOrdersData);
         if (document.getElementById('analytics') && document.getElementById('analytics').classList.contains('active')) {
@@ -7312,6 +7349,22 @@
         }
         showToast("Trạng thái đơn hàng không có thay đổi", "info");
         return;
+      }
+      let otherPendingRows = [];
+      pendingOrderChanges.forEach((st, r) => {
+        if (r !== rowIdx) otherPendingRows.push({ row: r, newStatus: st });
+      });
+      if (otherPendingRows.length > 0) {
+        let saveAllNow = confirm(
+          `⚠️ Bạn đang có thêm ${otherPendingRows.length} đơn hàng khác vừa đổi trạng thái nhưng CHƯA LƯU!\n\n` +
+          `• Bấm OK: LƯU TẤT CẢ ${otherPendingRows.length + 1} đơn cùng lúc (khuyên dùng)\n` +
+          `• Bấm Hủy: Chỉ lưu riêng đơn hiện tại`
+        );
+        if (saveAllNow) {
+          let allUpdates = [{ row: rowIdx, newStatus: newStatus, adminNote: adminNoteVal }].concat(otherPendingRows);
+          await executeBatchStatusUpdate(allUpdates, `✅ Đã lưu thay đổi cho TẤT CẢ ${allUpdates.length} đơn hàng!`);
+          return;
+        }
       }
       let ordName = order ? `đơn ${order.orderId}` : `dòng ${rowIdx}`;
       await executeBatchStatusUpdate([{ row: rowIdx, newStatus: newStatus, adminNote: adminNoteVal }], `✅ Đã cập nhật ${ordName} thành "${newStatus}"!`);
